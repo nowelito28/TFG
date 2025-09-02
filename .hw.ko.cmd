@@ -1,0 +1,1 @@
+savedcmd_/home/noel/Desktop/TFG/hw.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T scripts/module.lds -o /home/noel/Desktop/TFG/hw.ko /home/noel/Desktop/TFG/hw.o /home/noel/Desktop/TFG/hw.mod.o /home/noel/Desktop/TFG/.module-common.o
