@@ -21,7 +21,7 @@ module_param(mode,int,0660);
 static struct proc_dir_entry *ent;
 
 // Se ejecuta al escribir en /proc/mydev desde espacio de user
-static ssize_t mywrite(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count, loff_t *ppos) 
 {
     // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se esciba en "mydev" --> Loggea
 	printk( KERN_DEBUG "write handler\n");
@@ -34,20 +34,36 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,size_t count, 
 static ssize_t myread(struct file *file, char __user *ubuf, size_t count, loff_t *ppos) 
 {
     // Variables locales:
-	char buf[BUFSIZE];  // Array de chars con el tamaño del buffer (100)
-	int len=0;
+	char buf[BUFSIZE];  // Array de chars con el tamaño del buffer (100) -> buffer temporal en stack del kernel (respuesta para espacio de user)
+	int len=0;  // Numero bytes escritos en buf
+
     // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
 	printk( KERN_DEBUG "read handler\n");
-    // 
+
+    // *ppos > 0 --> puntero de posición es mayor que 0 = se ha leído algo ya dentro del fichero /proc/mydev
+	// count < BUFSIZE --> tamaño que el user pide leer (count) menor que el buffer definido (100 bytes)
 	if(*ppos > 0 || count < BUFSIZE)
-		return 0;
+		return 0;	// Si se cumple una de las dos --> devolver EOF (0)
+
+	// sprintf(destino, formato, valores…) escribe una cadena de texto en un buffer de memoria (destino)
+	// Devuelve el número de caracteres escritos (sin contar el \0 final) --> len
+	// Escribimos en el buffer creado al inicio de la función estas dos frases con los parametros (una después de la otra)
 	len += sprintf(buf,"irq = %d\n",irq);
 	len += sprintf(buf + len,"mode = %d\n",mode);
+	// [i][r][q][ ][=][ ][2][0][\n][m][o][d][e][ ][=][ ][1][\n][\0]
+    //                           ^
+    //                           |
+    //                         buf+len
 	
+	// Copia "len" bytes desde memoria del kernel (buf) a memoria de usuario (ubuf)
 	if(copy_to_user(ubuf,buf,len))
-		return -EFAULT;
+		// Devuelve 0 si ha salido bien --> sino => devuelve nº de bytes que no se han podido copiar
+		return -EFAULT;	// en userland => errno = EFAULT, “Bad address”
+
+	// Ponemos finalmente el puntero de seguimiento (*ppos) del fichero en el último byte copiado en memoria de user (len)
+	// Y retornamos dicha posición del último byte (len)
 	*ppos = len;
-	return len;
+	return len;	// > 0 (se han leído bytes) | = 0 (EOF) | < 0 (error)
 }
 
 // Tabla de operaciones del fichero creado "mydev"
