@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-void main(void)
+int main(void)
 {
     // Buffer (string) reservado para leer del fichero "/proc/mydev"
 	char buf[100];

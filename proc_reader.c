@@ -69,11 +69,12 @@ static ssize_t myread(struct file *file, char __user *ubuf, size_t count, loff_t
 
 // Tabla de operaciones del fichero creado "mydev"
 // Asociar acciones/manejadores que se pueden hacer en este fichero
-static struct file_operations myops = 
+// Utilizar struct proc_ops (en lugar de struct file_operations) a partir del kernel 5.6
+static const struct proc_ops myops = 
 {
-	.owner = THIS_MODULE,  // ayuda al refcount del módulo mientras el archivo este abierto
-	.read = myread,
-	.write = mywrite,
+    .proc_owner = THIS_MODULE,  // ayuda al refcount del módulo mientras el archivo este abierto
+    .proc_read = myread,
+    .proc_write = mywrite,
 };
 
 // Cargar LKM:

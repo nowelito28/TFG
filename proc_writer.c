@@ -10,6 +10,13 @@
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Noel");
 
+// Parametros del modulo --> Valor por defecto si no se le pasa al cargar el modulo:
+static int irq=20;
+module_param(irq,int,0660);
+
+static int mode=1;
+module_param(mode,int,0660);
+
 // Puntero de referencia/entrada al fichero que crearemos en /proc
 static struct proc_dir_entry *ent;
 
@@ -65,11 +72,12 @@ static ssize_t myread(struct file *file, char __user *ubuf, size_t count, loff_t
 
 // Tabla de operaciones del fichero creado "mydev"
 // Asociar acciones/manejadores que se pueden hacer en este fichero
-static struct file_operations myops = 
+// Utilizar struct proc_ops (en lugar de struct file_operations) a partir del kernel 5.6
+static const struct proc_ops myops = 
 {
-	.owner = THIS_MODULE,  // ayuda al refcount del módulo mientras el archivo este abierto
-	.read = myread,
-	.write = mywrite,
+    .proc_owner = THIS_MODULE,  // ayuda al refcount del módulo mientras el archivo este abierto
+    .proc_read = myread,
+    .proc_write = mywrite,
 };
 
 // Cargar LKM:

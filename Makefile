@@ -1,11 +1,13 @@
 SEALFS_VERSION="0.91"		# Variable de versión para LKM
 
 # Añade una flag/opción extra al compilador (gcc) cuando compile los .c:
-EXTRA_CFLAGS += -DSEALFS_VERSION=\"$(SEALFS_VERSION)\"		# Define un macro de preprocesador (SEALFS_VERSION) con el valor "0.91"
+# EXTRA_CFLAGS += -DSEALFS_VERSION=\"$(SEALFS_VERSION)\"		# Define un macro de preprocesador (SEALFS_VERSION) con el valor "0.91" --> Problemas!!!
+EXTRA_CFLAGS += -DSEALFS_VERSION=\"0.91\"
 # En C (.c cargado) -> printk(KERN_INFO "Versión: %s\n", SEALFS_VERSION); => imprimirá “Versión: 0.91” en los logs del kernel
 
 # Nombre del módulo principal .c a compilar con kbuild --> .ko:
-obj-m += proc.o
+# CAMBIAR PARA EL NOMBRE DE CADA MÓDULO!!
+obj-m += proc_mydev.o
 
 # Indicar al compilador (gcc) -> módulo compuesto por múltiples ficheros objeto (NO solo el principal)
 # sealfs-y := dentry.o file.o inode.o main.o super.o lookup.o mmap.o
