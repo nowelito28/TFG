@@ -20,6 +20,40 @@ module_param(mode,int,0660);
 // Puntero de referencia/entrada al fichero que crearemos en /proc
 static struct proc_dir_entry *ent;
 
+// Se ejecuta al realizar la llamada al sistema lseek en /proc/mydev desde espacio de user
+static loff_t mylseek(struct file *file, loff_t offset, int whence)
+{
+	// Posición nueva a adquirir
+    loff_t new_pos;
+
+	// Ver que flags de interpretación de offset se le pasa a lseek:
+    switch (whence) {
+	// SEEK_SET: nueva posición al offset que se le pase
+    case SEEK_SET:
+        new_pos = offset;
+        break;
+	// SEEK_CUR: nueva posición a la posición actual + offset
+    case SEEK_CUR:
+        new_pos = file->f_pos + offset;
+        break;
+	// SEEK_END: nueva posición al final del buffer/fichero + offset
+    case SEEK_END:
+        new_pos = BUFSIZE + offset;
+        break;
+	// Si no se le pasa flag a lseek, error -EINVAL (errno = invalid argument)
+    default:
+        return -EINVAL;
+    }
+
+	// Si la nueva posición es negativa o mayor que el buffer/tamaño del fichero --> error -EINVAL
+    if (new_pos < 0 || new_pos > BUFSIZE)
+        return -EINVAL;
+
+	// Actualizar la posición actual en el fichero a la nueva --> y devolverla																																											
+    file->f_pos = new_pos;
+    return new_pos;
+}
+
 // Se ejecuta al escribir en /proc/mydev desde espacio de user
 static ssize_t mywrite(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
 {
@@ -31,10 +65,13 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,size_t count, 
 	int num,c,i,m;
 	char buf[BUFSIZE];  // Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (copiar lo que envía el espacio de user)
 
+	// Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
+	printk( KERN_DEBUG "write	 handler\n");
+
     // Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => semántica single-shot
     // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/mydev
-	// count <= BUFSIZE --> tamaño que el user pide escribir (count) menor que el buffer definido (100 bytes) --> <= para incluir el '\0'
-	if(*ppos > 0 || count <= BUFSIZE)
+	// count >= BUFSIZE --> tamaño que el user pide escribir (count) tiene que ser menor que el buffer definido (100 bytes) --> >= para incluir el '\0' al final
+	if(*ppos > 0 || count >= BUFSIZE)
 		return -EFAULT;	// Si se cumple una de las dos --> devolver -EFAULT (dirección user inválida)
 
 	// // Copia "count" bytes desde memoria de espacio de user (ubuf) a memoria del kernel (buf)
@@ -106,6 +143,7 @@ static const struct proc_ops myops =
     //.owner = THIS_MODULE,  // Existe en struct file_operations pero no en proc_ops -> ayuda al refcount del módulo mientras el archivo este abierto
     .proc_read = myread,
     .proc_write = mywrite,
+	.proc_lseek = mylseek,
 };
 
 // Cargar LKM:
@@ -113,6 +151,7 @@ static const struct proc_ops myops =
 // con todos los permisos (rw) para el root y el grupo
 static int simple_init(void)
 {
+	printk(KERN_INFO "Creando fichero /proc/mydev\n");
 	ent=proc_create("mydev",0660,NULL,&myops);
     // Comprobar errores -> si falla => ent==NULL => deberia devolver -ENOMEM 
     if (!ent) return -ENOMEM;
@@ -123,6 +162,7 @@ static int simple_init(void)
 // Borrar referencia/entrada al fichero creado "mydev" en /proc
 static void simple_cleanup(void)
 {
+	printk(KERN_INFO "Borrando fichero /proc/mydev\n");
 	proc_remove(ent);
 }
 
