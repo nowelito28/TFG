@@ -66,7 +66,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,size_t count, 
 	char buf[BUFSIZE];  // Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (copiar lo que envía el espacio de user)
 
 	// Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
-	printk( KERN_DEBUG "write	 handler\n");
+	printk( KERN_DEBUG "write handler\n");
 
     // Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => semántica single-shot
     // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/mydev
@@ -92,6 +92,8 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,size_t count, 
 
 	// c = longitud del string "buf" copiado de "ubuf" sin contar '\0'
 	c = strlen(buf);
+	printk(KERN_DEBUG "write to /proc/mydev: write %d bytes from the user\n", c);
+
 	// Cambiar el puntero de seguimiento/entrada de escritura del fichero "/proc/mydev" al último char copiado
 	// Y devolver la posición por donde se encuentra el fichero = nº de bytes hemos recibido del user
 	*ppos = c;
@@ -132,6 +134,7 @@ static ssize_t myread(struct file *file, char __user *ubuf, size_t count, loff_t
 	// Ponemos finalmente el puntero de seguimiento (*ppos) del fichero en el último byte copiado en memoria de user (len)
 	// Y retornamos dicha posición del último byte (len)
 	*ppos = len;
+	printk(KERN_DEBUG "read from /proc/mydev: read %d bytes to the user\n", len);
 	return len;	// > 0 (se han leído bytes) | = 0 (EOF) | < 0 (error)
 }
 
@@ -151,7 +154,7 @@ static const struct proc_ops myops =
 // con todos los permisos (rw) para el root y el grupo
 static int simple_init(void)
 {
-	printk(KERN_INFO "Creando fichero /proc/mydev\n");
+	printk(KERN_INFO "Creating new proc file: /proc/mydev\n");
 	ent=proc_create("mydev",0660,NULL,&myops);
     // Comprobar errores -> si falla => ent==NULL => deberia devolver -ENOMEM 
     if (!ent) return -ENOMEM;
@@ -162,7 +165,7 @@ static int simple_init(void)
 // Borrar referencia/entrada al fichero creado "mydev" en /proc
 static void simple_cleanup(void)
 {
-	printk(KERN_INFO "Borrando fichero /proc/mydev\n");
+	printk(KERN_INFO "Delating proc file: /proc/mydev\n");
 	proc_remove(ent);
 }
 
