@@ -4,6 +4,7 @@
 #include <linux/kernel.h>   
 #include <linux/proc_fs.h>
 #include <asm/uaccess.h>
+
 #define BUFSIZE  100  // Constante global
 
 // Metadatos del modulo:
