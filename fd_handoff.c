@@ -110,7 +110,6 @@ myread (struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
 // Asociar acciones/manejadores que se pueden hacer en este fichero
 // Utilizar struct proc_ops (en lugar de struct file_operations) a partir del kernel 5.6
 static const struct proc_ops myops = {
-  //.owner = THIS_MODULE,  // Existe en struct file_operations pero no en proc_ops -> ayuda al refcount del módulo mientras el archivo este abierto
   .proc_read = myread,
   .proc_write = mywrite,
 };

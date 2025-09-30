@@ -39,5 +39,8 @@ int main(int argc, char *argv[]) {
     // Cerrar el fichero de /proc
     close(fd_proc);
 
+    // Cerrar el fichero creado (file_handoff)
+    close(fd);
+
     exit(EXIT_SUCCESS);
 } 
