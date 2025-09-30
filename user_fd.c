@@ -2,6 +2,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <err.h>
 
 // Crear fichero de texto desde el que se pasará el descriptor (fd)
 int main(int argc, char *argv[]) {
@@ -27,7 +29,7 @@ int main(int argc, char *argv[]) {
     char fd_str[12];    // Suficiente para un integer
     snprintf(fd_str, sizeof(fd_str), "%d", fd);   // ej: 57 --> "57"
 
-    // Escribir en el fichero de /proc (/proc/mydev) el fd del fichero creado (file_handoff):
+    // Escribir en el fichero de /proc (/proc/mydev) el fd (en string sin el '/0') del fichero creado (file_handoff):
     if (write(fd_proc, fd_str, strlen(fd_str)) < 0) {
         close(fd_proc);
         err(EXIT_FAILURE, "Error writing in %s", proc_path);

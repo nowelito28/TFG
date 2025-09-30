@@ -4,6 +4,7 @@
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
 #include <asm/uaccess.h>
+#include <linux/kstrtox.h>
 
 #define BUFSIZE  100		// Constante global
 
@@ -29,14 +30,10 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
 	 loff_t *ppos)
 {
   // Variables temporales:
-  // num --> nº conversiones que se ha realizado de string a ints
   // c --> última posición de escritura (char) en el fichero "/proc/mydev"
   // fd_aux --> variable (fd -> descriptor de fichero) que se escribe desde el user
-  int num, c, fd_aux;
+  int c, fd_aux;
   char buf[BUFSIZE];		// Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (copiar lo que envía el espacio de user)
-
-  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
-  printk (KERN_DEBUG "write handler\n");
 
   // Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => semántica single-shot
   // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/mydev
@@ -44,17 +41,18 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   if (*ppos > 0 || count >= BUFSIZE)
     return -EFAULT;		// Si se cumple una de las dos --> devolver -EFAULT (dirección user inválida)
 
+  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
+  printk (KERN_DEBUG "write handler\n");
+
   // // Copia "count" bytes desde memoria de espacio de user (ubuf) a memoria del kernel (buf)
   if (copy_from_user (buf, ubuf, count))
     // Devuelve 0 si ha salido bien --> sino => devuelve nº de bytes que no se han podido copiar
     return -EFAULT;		// en userland => errno = EFAULT, “Bad address”
 
-  // Parsear los dos números que se encuentran en "buf" (string) al ser copiados desde "ubuf", en forma de string con un espacio entre medias (misma forma sino falla)
-  // --> "i" (iq) y "m" (mode) --> se guardan los valores en sus direcciones
-  // strtol --> convertir string(buf) a long int (10 base decimal en este caso)
-  // Si no se puede convertir nada => buf == endptr
-  fd = strtol(buf, &endptr, 10);
-  if (buf == endptr) {
+  // Parsear descriptor de fichero que le pasa el user (fd) en forma de string
+  // kstrtoint(str, base, &res) --> convierte string a int => devulve 0 en éxito => res contiene el valor convertido => str/buf en memoria del kernel
+  // kstrtoint_from_user(ubuf, count, base, &res) --> convierte string a int desde memoria de user (igual pero desde ubuf)
+  if (kstrtoint(buf, 10, &fd_aux)) {
     // No se pudo convertir nada
     return -EINVAL;   // errno = invalid argument
   }
@@ -64,7 +62,7 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
 
   // c = longitud del string "buf" copiado de "ubuf" sin contar '\0'
   c = strlen (buf);
-  printk (KERN_DEBUG "write to /proc/mydev: write %d bytes from the user\n",
+  printk (KERN_DEBUG "write to /proc/mydev: written %d bytes from the user\n",
 	  c);
 
   // Cambiar el puntero de seguimiento/entrada de escritura del fichero "/proc/mydev" al último char copiado
@@ -81,14 +79,14 @@ myread (struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
   char buf[BUFSIZE];		// Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (respuesta para espacio de user)
   int len = 0;			// Numero bytes escritos en buf
 
-  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
-  printk (KERN_DEBUG "read handler\n");
-
   // Ver si es la primera vez que se llama a "read" para este fichero --> sino EOF => semántica single-shot 
   // *ppos > 0 --> puntero de posición es mayor que 0 = se ha leído algo ya dentro del fichero /proc/mydev
   // count < BUFSIZE --> tamaño que el user pide leer (count) menor que el buffer definido (100 bytes)
   if (*ppos > 0 || count < BUFSIZE)
     return 0;			// Si se cumple una de las dos --> devolver EOF (0)
+
+  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
+  printk (KERN_DEBUG "read handler\n");
 
   // sprintf(destino, formato, valores…) escribe una cadena de texto en un buffer de memoria (destino)
   // Devuelve el número de caracteres escritos (sin contar el \0 final) --> len
