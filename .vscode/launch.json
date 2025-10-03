@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/noelito/Desktop/TFG/TFG",
+      "program": "/Users/noelito/Desktop/TFG/TFG/build/Debug/outDebug"
+    }
+  ]
+}
