@@ -3,10 +3,9 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/kstrtox.h>
 #include <linux/fs.h>
-#include <linux/fdtable.h>
 #include <linux/file.h>
 #include <linux/string.h>
 
@@ -38,7 +37,7 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   // fd_aux --> variable (fd -> descriptor de fichero) que se escribe desde el user
   int c, fd_aux;
   char buf[BUFSIZE];		// Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (copiar lo que envía el espacio de user)
-  const char *payload = "Hello, world!\n";  // Payload (en memoria del kernel)--> lo que se va a escribir en el fichero correspondiente al fd que nos pasa el user
+  const char *payload = "Hello, world!\n";	// Payload (en memoria del kernel)--> lo que se va a escribir en el fichero correspondiente al fd que nos pasa el user
 
   // Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => semántica single-shot
   // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/mydev
@@ -57,59 +56,67 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   // Parsear descriptor de fichero que le pasa el user (fd) en forma de string
   // kstrtoint(str, base, &res) --> convierte string a int => devulve 0 en éxito => res contiene el valor convertido => str/buf en memoria del kernel
   // kstrtoint_from_user(ubuf, count, base, &res) --> convierte string a int desde memoria de user (igual pero desde ubuf)
-  if (kstrtoint(buf, 10, &fd_aux)) {
-    // No se pudo convertir nada
-    return -EINVAL;   // errno = invalid argument
-  }
+  if (kstrtoint (buf, 10, &fd_aux))
+    {
+      // No se pudo convertir nada
+      return -EINVAL;		// errno = invalid argument
+    }
 
   // Asignamos la variable que hemos extraído:
   fd = fd_aux;
 
-// IMPLEMENTAR AQUÍ: ESCRIBIR HOLA MUNDO EN EL FICHERO CORRESPONDIENTE AL DESCRIPTOR DE FICHERO "fd"
-    // struct fd f = fdget() --> para convertir el entero fd (descriptor de fichero dado) en struct fd "f" (igual que ksys_write)(si es válido en ESTE proceso)
-    // fdget(fd) <--> fput(f) => SIEMPRE
-    struct fd f = fdget(fd);
-    // written --> nº bytes escritos en "f" (o error <0 --> en kernel_write)
-    ssize_t written;
-    // Posición de escritura (si aplica --> posicional/regular SI | stream NO)
-    loff_t pos, *ppos_f;
+  // ESCRIBIR HOLA MUNDO EN EL FICHERO CORRESPONDIENTE AL DESCRIPTOR DE FICHERO "fd"
+  // struct fd f = fdget_pos() --> para convertir el entero fd (descriptor de fichero dado) en struct fd "f" (igual que ksys_write)(si es válido en ESTE proceso) => vfs_write
+  // struct file *f = fget() --> para convertir el entero fd (descriptor de fichero dado) en struct file *"f" (tratar f com un fichero no un descriptor de fichero)(si es válido en ESTE proceso) => kernel_write
+  // fdget_pos(fd)|fdget(fd) <--> fput_pos(f)|fput(f) => SIEMPRE --> Igual con => fget() <--> fpos()
+  struct file *f = fget (fd);
+  // written --> nº bytes escritos en "f" (o error <0 --> en kernel_write)
+  ssize_t written;
+  // Posición de escritura (si aplica --> posicional/regular SI | stream NO)
+  loff_t pos, *ppos_f;
 
-    // Comprobar que el fd es válido en ESTE proceso --> f.file != NULL
-    if (!f.file)
-        return -EBADF;  // fd inválido en ESTE proceso --> errno = bad file descriptor
+  // Comprobar que el fd es válido en ESTE proceso --> f != NULL
+  if (!f)
+  {
+    return -EBADF;		// fd inválido en ESTE proceso --> errno = bad file descriptor
+  }
 
-    // Igual que ksys_write: trabajar con copia de f_pos si aplica
-    // file_ppos(f.file) decide cómo gestionar la posición:
-    //  - regular/posicional file --> devuelve puntero a f_pos => posición actual del fichero (ppos_f apunta a &f.file->f_pos, porque ppos_f es puntero)
-    //  - stream (socket, pipe, etc.) --> devuelve NULL (ppos_f = NULL)
-    ppos_f = file_ppos(f.file);
-    if (ppos_f) {       // si es fichero posicional/regular
+  // Igual que ksys_write: trabajar con copia de f_pos si aplica
+  // f->f_mode decide cómo gestionar la posición:
+  //  - regular/posicional file --> si bits de f_mode NO son iguales (f->f_mode & FMODE_STREAM = 1)
+  //  - stream (socket, pipe, etc.) --> si bits de f_mode son iguales (f->f_mode & FMODE_STREAM = 0)
+  if (!(f->f_mode & FMODE_STREAM))
+    {				// si es fichero posicional/regular(NO es stream) --> Multiplicaión de bit 
       // Ambas variables hacerlas iguales --> que apunten a la misma dirección de memoria
-        pos = *ppos_f;  // guardar copia de la posición actual en pos
-        ppos_f = &pos;  // ppos_f apunta a la dirección de memoria de la copia (pos) para usar en kernel_write (en memoria del kernel)
+      pos = f->f_pos;		// guardar posición actual en pos (memoria del kernel)
+      ppos_f = &pos;		// ppos_f apunta a la dirección de memoria de la copia (pos) para usar en kernel_write (en memoria del kernel)
     }
 
-    // Iniciamos escritura desde memoria del kernel (payload) al fichero "f.file" (fd recibido)
-    // Utilizamos kernel_write (internamente llama a rw_verify_area(...), hace file_start_write(...) / file_end_write(...), y delega en __kernel_write --> write_iter)
-    // NO usar vfs_write --> porque se utiliza para camino de syscall (user->kernel) => utiliza memoria de userspace (ubuf) --> si utiliza memoria del kernel => -EFAULT (fallo de acceso a memoria)
-    written = kernel_write(f.file, payload, strlen(payload), ppos_f); // ssize_t kernel_write(struct file *file(fichero), const char *buf(buffer en memoria del kernel), size_t count(nº bytes a escribir de buf), loff_t *pos);
+  // Iniciamos escritura desde memoria del kernel (payload) al fichero "f" (fd recibido)
+  // Utilizamos kernel_write (internamente llama a rw_verify_area(...), hace file_start_write(...) / file_end_write(...), y delega en __kernel_write --> write_iter)
+  // NO usar vfs_write --> porque se utiliza para camino de syscall (user->kernel) => utiliza memoria de userspace (ubuf) --> si utiliza memoria del kernel => -EFAULT (fallo de acceso a memoria)
+  written = kernel_write (f, payload, strlen (payload), ppos_f);	// ssize_t kernel_write(struct file *file(fichero), const char *buf(buffer en memoria del kernel), size_t count(nº bytes a escribir de buf), loff_t *pos);
 
-    // Si acaba en éxito kernel_write (written >= 0 --> written <0 => error)
-    // y es fichero posicional/regular NO stream (ppos_f != NULL)
-    // Actualizar f_pos real a la posición nueva actual tras haber escrito strlen(payload) bytes -->(pos) en f.file->f_pos
-    if (written >= 0 && ppos_f)
-        f.file->f_pos = pos;
+  // Si acaba en éxito kernel_write (written >= 0 --> written <0 => error)
+  // y es fichero posicional/regular NO stream (ppos_f != NULL)
+  // Actualizar f_pos real a la posición nueva actual tras haber escrito strlen(payload) bytes -->(pos) en f->f_pos
+  if (written >= 0 && ppos_f)
+  {
+    f->f_pos = pos;
+  }
 
-    // Liberar struct fd "f" (decrementar contador de referencias y suelta cualquier estado asociado a la posición)
-    fdput(f);
+  // Liberar struct file *"f" (decrementar contador de referencias y suelta cualquier estado asociado a la posición)
+  fput (f);
 
-    // En caso de error en kernel_write --> written < 0:
-    if (written < 0)
-        return written;  // propagar error (-EBADF, -EFAULT, etc.)
+  // En caso de error en kernel_write --> written < 0:
+  if (written < 0)
+  {
+    return written;		// propagar error (-EBADF, -EFAULT, etc.)
+  }
 /////////
 
-    // written --> nº bytes escritos en el fichero correspondiente al fd que nos ha pasado el user
-    printk(KERN_DEBUG "write to fd %d: written %zd bytes\n", fd, written);
+  // written --> nº bytes escritos en el fichero correspondiente al fd que nos ha pasado el user
+  printk (KERN_DEBUG "write to fd %d: written %zd bytes\n", fd, written);
 
   // c = longitud del string "buf" copiado de "ubuf" sin contar '\0'
   c = strlen (buf);
