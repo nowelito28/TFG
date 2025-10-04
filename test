@@ -1,0 +1,39 @@
+localhost:TFG:# make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/noel/Desktop/TFG/fd_handoff.o
+  MODPOST /home/noel/Desktop/TFG/Module.symvers
+  CC [M]  /home/noel/Desktop/TFG/fd_handoff.mod.o
+  LD [M]  /home/noel/Desktop/TFG/fd_handoff.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+localhost:TFG:# insmod fd_handoff.ko
+localhost:TFG:# dmesg | tail
+[  626.640464] hwmon hwmon1: Undervoltage detected!
+[  634.708128] hwmon hwmon1: Voltage normalised
+[  681.072798] hwmon hwmon1: Undervoltage detected!
+[  683.089247] hwmon hwmon1: Voltage normalised
+[  694.040436] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  702.993595] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  713.329051] hwmon hwmon1: Undervoltage detected!
+[  715.345160] hwmon hwmon1: Voltage normalised
+[  772.936719] fd_handoff: loading out-of-tree module taints kernel.
+[  772.947564] Creating new proc file: /proc/mydev
+localhost:TFG:# ./user_fd.c
+zsh: permission denied: ./user_fd.c
+localhost:TFG:# ./user_fd  
+File descriptor written in /proc/mydev:
+3
+localhost:TFG:# cat file_handoff
+Hello, world!
+localhost:TFG:# rmmod fd_handoff 
+localhost:TFG:# dmesg | tail
+[  694.040436] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  702.993595] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  713.329051] hwmon hwmon1: Undervoltage detected!
+[  715.345160] hwmon hwmon1: Voltage normalised
+[  772.936719] fd_handoff: loading out-of-tree module taints kernel.
+[  772.947564] Creating new proc file: /proc/mydev
+[  850.982090] write handler
+[  850.982211] write to fd 3: written 14 bytes
+[  850.982222] write to /proc/mydev: written 1 bytes from the user
+[  916.372285] Delating proc file: /proc/mydev
