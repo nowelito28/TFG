@@ -136,11 +136,11 @@ int main(void) {
     printf("};\n\n");
 
     // 5) Juntar todo el contenido a guardar en el fichero de texto => contetn + separador + HMAC (Base64)
-    static const char *sep = "\n\n---";     // Separador entre el contenido y el HMAC
+    static const char *sep = "\n\n---\n\n";     // Separador entre el contenido y el HMAC
     // Cadena de chars concatenando el contenido, el separador y el HMAC (base 64)
     // Codificar hmac_result a Base64:
     // Longitud del Base64: cada 3 bytes se codifican en 4 caracteres -> si no es múltiplo de 3 se añade padding '='
-    size_t base64_len = 4 * ((input_len + 2) / 3);
+    size_t base64_len = 4 * ((hmac_len + 2) / 3);
     char *b64 = malloc(base64_len + 1); /* +1 para '\0' */
     if (!b64) {
         err(EXIT_FAILURE, "Error in malloc base64");
@@ -153,8 +153,13 @@ int main(void) {
     }
     b64[b64_out] = '\0';    // Añadir el '/0' al final de la cadena Base64
     size_t total_len = strlen(content) + strlen(sep) + (size_t)b64_out + 1; // +1 para '\0'
-    // Crear cadena para el contenido completo concatenado inicializada a '\0'
-    char *full_content[total_len] = '/0';
+    // Crear cadena para el contenido completo concatenado
+    char *full_content = malloc(total_len);
+    if (!full_content) {
+        free(b64);
+        err(EXIT_FAILURE, "Error in malloc full_content");
+    }
+    full_content[0] = '\0'; // Inicializar a cadena vacía
     strcat(full_content, content);
     strcat(full_content, sep);
     strcat(full_content, b64);
@@ -165,12 +170,16 @@ int main(void) {
     const char *test_path = "file_test.txt";
     fd = open(test_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
+        free(full_content);
         err(EXIT_FAILURE, "Error opening(%s)", test_path);
     }
-    if (write_full(fd, full_content, strlen(full_content)) != 0) { 
+    if (write_full(fd, full_content, total_len) != 0) { 
         close(fd);
+        free(full_content);
         err(EXIT_FAILURE, "Error writing(%s)", test_path);
     }
+    free(full_content); // Liberar memoria del contenido completo --> Ya no se usa más
+    full_content = NULL;
     if (close(fd) < 0) {
         err(EXIT_FAILURE, "Error closing(%s)", test_path);
     }
