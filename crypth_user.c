@@ -13,6 +13,7 @@
 #include <string.h>
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 
 #define KEY_SIZE 32     // Longitud en bytes que queremos que tome la clave simétrica => K
 
@@ -108,26 +109,13 @@ int main(void) {
     printf("/* xxd -i key.bin */\n");
     system("xxd -i key.bin");   // Ejecuta llamada al sistema xxd
 
-    // 4) Crear/abrir fichero de prueba "file_test.txt" y escribir el contenido
-    const char *test_path = "file_test.txt";
-    const char *content = "Hi HMAC with SHA-256!\n";
-    fd = open(test_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd < 0) {
-        err(EXIT_FAILURE, "Error opening(%s)", test_path);
-    }
-    if (write_full(fd, content, strlen(content)) != 0) { 
-        close(fd);
-        err(EXIT_FAILURE, "Error writing(%s)", test_path);
-    }
-    if (close(fd) < 0) {
-        err(EXIT_FAILURE, "close(%s)", test_path);
-    }
-
-    // 5) OPENSSL --> Crear HASH de autenticación para certificado HMAC
+    // 4) OPENSSL --> Crear HASH de autenticación para certificado HMAC
     // con la clave 'key' mediante el algoritmo de clave simétrica SHA-256
     // Buffer para almacenar el resultado del HMAC
-    unsigned char result[SHA256_DIGEST_LENGTH];
-    unsigned int len = SHA256_DIGEST_LENGTH;
+    unsigned char hmac_result[SHA256_DIGEST_LENGTH];
+    unsigned int hmac_len = SHA256_DIGEST_LENGTH;
+    // Contenido del mensaje a firmar --> para hacer el HASH
+    const char *content = "Hi HMAC with SHA-256!\n";
     // HMAC(algoritmo_hash, clave, longitud_clave, mensaje, longitud_mensaje, resultado, longitud_resultado)
     HMAC(
         EVP_sha256(),       // Algoritmo de hash --> SHA-256
@@ -135,18 +123,57 @@ int main(void) {
         KEY_SIZE,        // Longitud de la clave
         (unsigned char *)content, // Mensaje --> como array de chars (bytes)
         strlen(content),    // Longitud del mensaje
-        result,             // Buffer de salida
-        &len                // Longitud del buffer de salida
+        hmac_result,             // Buffer de salida --> HMAC
+        &hmac_len            // Longitud del buffer de salida --> Longitud del HMAC (se sobreescribe la variable)
     );
+    if (!HMAC) {
+        errx(EXIT_FAILURE, "HMAC(EVP_sha256) failed");
+    }
     // Imprimir el resultado del HMAC en formato hexadecimal
     printf("HMAC-SHA256 del mensaje:\n");
     printf("HMAC(SHA-256) = {");
-    print_hex(result, len);
+    print_hex(hmac_result, hmac_len);
     printf("};\n\n");
 
+    // 5) Juntar todo el contenido a guardar en el fichero de texto => contetn + separador + HMAC (Base64)
+    static const char *sep = "\n\n---";     // Separador entre el contenido y el HMAC
+    // Cadena de chars concatenando el contenido, el separador y el HMAC (base 64)
+    // Codificar hmac_result a Base64:
+    // Longitud del Base64: cada 3 bytes se codifican en 4 caracteres -> si no es múltiplo de 3 se añade padding '='
+    size_t base64_len = 4 * ((input_len + 2) / 3);
+    char *b64 = malloc(base64_len + 1); /* +1 para '\0' */
+    if (!b64) {
+        err(EXIT_FAILURE, "Error in malloc base64");
+    }
+    // Codificar certificado HMAC (array de bytes) a Base64 --> Devuelve longitud del Base64 (no incluye el '\0')
+    int b64_out = EVP_EncodeBlock((unsigned char *)b64, hmac_result, (int)hmac_len);
+    if (b64_out < 0) {
+        free(b64);
+        errx(EXIT_FAILURE, "EVP_EncodeBlock failed");
+    }
+    b64[b64_out] = '\0';    // Añadir el '/0' al final de la cadena Base64
+    size_t total_len = strlen(content) + strlen(sep) + (size_t)b64_out + 1; // +1 para '\0'
+    // Crear cadena para el contenido completo concatenado inicializada a '\0'
+    char *full_content[total_len] = '/0';
+    strcat(full_content, content);
+    strcat(full_content, sep);
+    strcat(full_content, b64);
+    free(b64);  // Liberar memoria del Base64 --> Ya no se usa más
+    b64 = NULL;
 
-    
-
+    // 6) Crear/abrir fichero de prueba "file_test.txt" y escribir el contenido con certificado HMAC(SHA-256)
+    const char *test_path = "file_test.txt";
+    fd = open(test_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+        err(EXIT_FAILURE, "Error opening(%s)", test_path);
+    }
+    if (write_full(fd, full_content, strlen(full_content)) != 0) { 
+        close(fd);
+        err(EXIT_FAILURE, "Error writing(%s)", test_path);
+    }
+    if (close(fd) < 0) {
+        err(EXIT_FAILURE, "Error closing(%s)", test_path);
+    }
 
 
 
