@@ -85,7 +85,6 @@ int main(void) {
         err(EXIT_FAILURE, "Error closing key.bin");
     }
 
-
     // 3) (Opcional) Mostrar el array en C directamente
     printf("/* Array en C (en memoria ahora mismo) */\n");
     printf("unsigned char key[32] = {");
@@ -96,13 +95,10 @@ int main(void) {
     }
     printf("};\n\n");
 
-    // 4) (Opcional) Usar xxd/od para convertir el binario a array C
-    // xxd -i genera un array listo para copiar/pegar:
+    // 4) (Opcional) Usar xxd/od para convertir el binario a array de chars en C
+    // xxd -i genera un array listo para copiar/pegar --> También se puede usar od (no da array C, solo bytes):
     printf("/* xxd -i key.bin */\n");
     system("xxd -i key.bin");
 
-    // Si no tienes xxd, puedes ver los bytes con od (no da array C, solo bytes):
-    // system(\"od -An -t x1 -v key.bin\");
-
-    return 0;
+    return EXIT_SUCCESS;
 }
