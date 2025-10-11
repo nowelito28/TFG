@@ -10,8 +10,19 @@
 #include <err.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
 
 #define KEY_SIZE 32     // Longitud en bytes que queremos que tome la clave simétrica => K
+
+// Imprimir array de bytes en hexadecimal
+void print_hex(const unsigned char *data, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        // 0x%02x lo muestra en hex con 2 dígitos, rellenando con ceros si hace falta (por ejemplo 0x0a)
+        // segundo %s imprime coma y espacio ", " salvo en el último elemento (donde imprime cadena vacía "")
+        printf("%02x", data[i], (i == len-1) ? "" : ", ");
+    }
+}
 
 // Asegurarnos que se realiza la lectura completa: (return -1 en error)
 static int read_full(int fd, void *buf, size_t len) {
@@ -47,6 +58,9 @@ static int write_full(int fd, const void *buf, size_t len) {
     }
     return 0;       // Devolver 0 en caso de haber escrito lo pedido
 }
+
+// Creación de certificado HMAC(SHA-256)
+
 
 
 int main(void) {
@@ -85,20 +99,57 @@ int main(void) {
         err(EXIT_FAILURE, "Error closing key.bin");
     }
 
-    // 3) (Opcional) Mostrar el array en C directamente
+    // 3) Mostrar el array en C directamente
     printf("/* Array en C (en memoria ahora mismo) */\n");
     printf("unsigned char key[32] = {");
-    for (int i = 0; i < KEY_SIZE; i++) {
-        // 0x%02x lo muestra en hex con 2 dígitos, rellenando con ceros si hace falta (por ejemplo 0x0a)
-        // segundo %s imprime coma y espacio ", " salvo en el último elemento (donde imprime cadena vacía "")
-        printf("0x%02x%s", key[i], (i == 31) ? "" : ", ");
-    }
+    print_hex(key, KEY_SIZE);
     printf("};\n\n");
-
-    // 4) (Opcional) Usar xxd/od para convertir el binario a array de chars en C
+    // Usar xxd/od para convertir el binario a array de chars en C
     // xxd -i genera un array listo para copiar/pegar --> También se puede usar od (no da array C, solo bytes):
     printf("/* xxd -i key.bin */\n");
-    system("xxd -i key.bin");
+    system("xxd -i key.bin");   // Ejecuta llamada al sistema xxd
+
+    // 4) Crear/abrir fichero de prueba "file_test.txt" y escribir el contenido
+    const char *test_path = "file_test.txt";
+    const char *content = "Hi HMAC with SHA-256!\n";
+    fd = open(test_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+        err(EXIT_FAILURE, "Error opening(%s)", test_path);
+    }
+    if (write_full(fd, content, strlen(content)) != 0) { 
+        close(fd);
+        err(EXIT_FAILURE, "Error writing(%s)", test_path);
+    }
+    if (close(fd) < 0) {
+        err(EXIT_FAILURE, "close(%s)", test_path);
+    }
+
+    // 5) OPENSSL --> Crear HASH de autenticación para certificado HMAC
+    // con la clave 'key' mediante el algoritmo de clave simétrica SHA-256
+    // Buffer para almacenar el resultado del HMAC
+    unsigned char result[SHA256_DIGEST_LENGTH];
+    unsigned int len = SHA256_DIGEST_LENGTH;
+    // HMAC(algoritmo_hash, clave, longitud_clave, mensaje, longitud_mensaje, resultado, longitud_resultado)
+    HMAC(
+        EVP_sha256(),       // Algoritmo de hash --> SHA-256
+        key,                // Clave secreta creada
+        strlen(key),        // Longitud de la clave
+        (unsigned char *)content, // Mensaje --> como array de chars (bytes)
+        strlen(content),    // Longitud del mensaje
+        result,             // Buffer de salida
+        &len                // Longitud del buffer de salida
+    );
+    // Imprimir el resultado del HMAC en formato hexadecimal
+    printf("HMAC-SHA256 del mensaje:\n");
+    printf("HMAC(SHA-256) = {");
+    print_hex(result, len);
+    printf("};\n\n");
+
+
+    
+
+
+
 
     return EXIT_SUCCESS;
 }
