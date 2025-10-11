@@ -9,3 +9,12 @@ unsigned char key_bin[] = {
   0xbd, 0x8f, 0xce, 0xe6, 0x8b, 0x19, 0x97, 0xe8
 };
 unsigned int key_bin_len = 32;
+
+
+
+noel@localhost:~/Desktop/TFG$ gcc -c -Wall -Wshadow -Wvla crypth_user.c 
+noel@localhost:~/Desktop/TFG$ gcc -o crypth_user crypth_user.o
+/usr/bin/ld: crypth_user.o: in function `main':
+crypth_user.c:(.text+0x42c): undefined reference to `EVP_sha256'
+/usr/bin/ld: crypth_user.c:(.text+0x468): undefined reference to `HMAC'
+collect2: error: ld returned 1 exit status

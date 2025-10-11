@@ -10,6 +10,7 @@
 #include <err.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 
@@ -20,7 +21,7 @@ void print_hex(const unsigned char *data, size_t len) {
     for (size_t i = 0; i < len; ++i) {
         // 0x%02x lo muestra en hex con 2 dígitos, rellenando con ceros si hace falta (por ejemplo 0x0a)
         // segundo %s imprime coma y espacio ", " salvo en el último elemento (donde imprime cadena vacía "")
-        printf("%02x", data[i], (i == len-1) ? "" : ", ");
+        printf("0x%02x%s", data[i], (i == len-1) ? "" : ", ");
     }
 }
 
@@ -58,8 +59,6 @@ static int write_full(int fd, const void *buf, size_t len) {
     }
     return 0;       // Devolver 0 en caso de haber escrito lo pedido
 }
-
-// Creación de certificado HMAC(SHA-256)
 
 
 
@@ -133,7 +132,7 @@ int main(void) {
     HMAC(
         EVP_sha256(),       // Algoritmo de hash --> SHA-256
         key,                // Clave secreta creada
-        strlen(key),        // Longitud de la clave
+        KEY_SIZE,        // Longitud de la clave
         (unsigned char *)content, // Mensaje --> como array de chars (bytes)
         strlen(content),    // Longitud del mensaje
         result,             // Buffer de salida
