@@ -27,12 +27,40 @@ module_param (fd, int, 0660);
 
 // Clave simétrica en memoria del kernel (K) --> 32 bytes aleatorios
 static char K[KEY_SIZE];
+// Clave K en Base64: cada 3 bytes se codifican en 4 caracteres -> si no es múltiplo de 3 se añade padding '=' al final
+char Kb64[BASE64_CHARS(KEY_SIZE) + 1]; // +1 para '\0'
 
 // Puntero de referencia/entrada al fichero que crearemos en /proc
 static struct proc_dir_entry *ent;
 
 // Puntero de seguimiento/salida para strtol --> lo sobreescribe
 char *endptr = NULL;
+
+
+// Creamos nueva llamada al sistema => printH()
+//--> Para escribir contenido (ubuf --> Payload) en un fichero dado, firmado con un HMAC(SHA-256) con clave K
+static ssize_t
+printH (struct file *file, const char __user *ubuf, size_t count,
+  loff_t *ppos)
+{
+  // Buffer para guardar datos en memoria del kernel
+  char buf[BUFSIZE];	// Buffer en memoria del kernel (100 bytes)
+  copy_from_user(buf, ubuf, BUFSIZE); // Copiar K desde espacio de user a memoria del kernel
+
+  // Ver que tenemos un fd válido en ESTE proceso o no se ha pasado ningún fd de momento::
+  if (fd < 0) {
+    printk(KERN_ERR "printH: invalid fd (%d)\n", fd);
+    return -EBADF;		// fd inválido en ESTE proceso --> errno = bad file descriptor
+  }
+
+  // Firmar con HMAC(SHA-256) el mensaje recibido desde espacio de user (ubuf)
+
+
+
+
+
+}
+
 
 // Se ejecuta al escribir en /proc/mydev desde espacio de user
 static ssize_t
@@ -197,20 +225,17 @@ simple_init (void)
   // Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log)
   // %*phN muestra el buffer en hex sin espacios
   // %*phC muestra bytes (del buffer) separados por ':'
-  printk(KERN_DEBUG "K (32Bytes) = %*phC\n", KEY_SIZE, K);
-  printk(KERN_DEBUG "K (32Bytes) generated in the load: %*phN\n", KEY_SIZE, K);
+  printk(KERN_DEBUG "K (32Bytes) generated in the load = %*phC\n", KEY_SIZE, K);
 
   // Codificar K en Base64 para imprimirlo en los logs del kernel
-  // Base64: cada 3 bytes se codifican en 4 caracteres; si no es múltiplo de 3 se añade padding '=' al final
   // Fórmula: base64_len = 4 * ((input_len + 2) / 3)
-  char b64[BASE64_CHARS(KEY_SIZE) + 1]; // +1 para '\0'
     // base64_encode(const u8 *src, size_t srclen, char *dst) --> devuelve nº bytes escritos en dst (o error <0)
-    int b64len = base64_encode((const u8 *)K, KEY_SIZE, b64);
+    int b64len = base64_encode((const u8 *)K, KEY_SIZE, Kb64);
     if (b64len < 0) {
         printk(KERN_ERR "base64_encode(K) failed: %d\n", b64len);
     } else {
-        b64[b64len] = '\0';
-        printk(KERN_DEBUG "K (Base64) = %s\n", b64);
+        Kb64[b64len] = '\0';
+        printk(KERN_DEBUG "K (Base64) = %s\n", Kb64);
     }
 
 

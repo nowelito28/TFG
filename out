@@ -1,33 +1,32 @@
-noel@localhost:~/Desktop/TFG$ gcc crypth_user.c -o crypth_user -lcrypto
-noel@localhost:~/Desktop/TFG$ ./crypth_user 
-/* Array en C (en memoria ahora mismo) */
-unsigned char key[32] = {0x76, 0x05, 0x42, 0x41, 0xaf, 0x8a, 0xc3, 0x9b, 0x37, 0x77, 0x1b, 0xec, 0xc1, 0x02, 0x7a, 0x19, 0xbb, 0x64, 0x82, 0xf7, 0xb8, 0x3c, 0xf8, 0x7c, 0xd5, 0x48, 0xbe, 0x36, 0xb8, 0xab, 0x16, 0x26};
-
-/* xxd -i key.bin */
-unsigned char key_bin[] = {
-  0x76, 0x05, 0x42, 0x41, 0xaf, 0x8a, 0xc3, 0x9b, 0x37, 0x77, 0x1b, 0xec,
-  0xc1, 0x02, 0x7a, 0x19, 0xbb, 0x64, 0x82, 0xf7, 0xb8, 0x3c, 0xf8, 0x7c,
-  0xd5, 0x48, 0xbe, 0x36, 0xb8, 0xab, 0x16, 0x26
-};
-unsigned int key_bin_len = 32;
-HMAC-SHA256 del mensaje:
-HMAC(SHA-256) = {0x0a, 0x8f, 0x4c, 0x93, 0x50, 0xf4, 0xfc, 0xd1, 0xa2, 0xf8, 0xba, 0x3f, 0x84, 0xe1, 0x2e, 0x7a, 0xc6, 0x4a, 0x80, 0x55, 0x23, 0x3c, 0xf0, 0xd8, 0xa1, 0xa2, 0x69, 0xe4, 0xd5, 0x10, 0x16, 0xd6};
-
-noel@localhost:~/Desktop/TFG$ ls -l
-total 60
--rwxrwxr-x 1 noel noel 71280 oct 11 20:09 crypth_user
--rw-rw-r-- 1 noel noel  7549 oct 11 20:06 crypth_user.c
--rw-rw-r-- 1 noel noel  6080 oct 11 18:50 crypth_user.o
--rw-r--r-- 1 noel noel    74 oct 11 20:09 file_test.txt
--rw------- 1 noel noel    32 oct 11 20:09 key.bin
--rw-rw-r-- 1 noel noel  1062 sep 25 15:22 LICENSE
--rw-rw-r-- 1 noel noel  1445 oct 11 16:55 Makefile
--rw-rw-r-- 1 noel noel   894 oct 11 19:03 out
--rw-rw-r-- 1 noel noel   146 sep 30 20:15 README.md
-noel@localhost:~/Desktop/TFG$ cat file_test.txt
-Hi HMAC with SHA-256!
-
-
----
-
-Co9Mk1D0/NGi+Lo/hOEuesZKgFUjPPDYoaJp5NUQFtY=
+localhost:TFG:# make            
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/noel/Desktop/TFG/crypth.o
+  MODPOST /home/noel/Desktop/TFG/Module.symvers
+  CC [M]  /home/noel/Desktop/TFG/crypth.mod.o
+  LD [M]  /home/noel/Desktop/TFG/crypth.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+localhost:TFG:# insmod crypth.ko
+localhost:TFG:# dmesg | tail    
+[ 1595.099664] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1661.863567] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1722.810714] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1724.867439] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1741.252736] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1764.453217] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1773.304707] K (32Bytes) = 02:89:1a:8b:7d:57:c1:cf:de:8d:12:28:d9:65:59:24:26:bf:49:ee:de:28:50:95:35:aa:d7:2a:59:76:99:02
+[ 1773.304732] K (32Bytes) generated in the load: 02891a8b7d57c1cfde8d1228d965592426bf49eede28509535aad72a59769902
+[ 1773.304739] K (Base64) = Aokai31Xwc/ejRIo2WVZJCa/Se7eKFCVNarXKll2mQI=
+[ 1773.304744] Creating new proc file: /proc/mydev
+localhost:TFG:# rmmod crypth    
+localhost:TFG:# dmesg | tail
+[ 1661.863567] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1722.810714] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1724.867439] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1741.252736] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1764.453217] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 1773.304707] K (32Bytes) = 02:89:1a:8b:7d:57:c1:cf:de:8d:12:28:d9:65:59:24:26:bf:49:ee:de:28:50:95:35:aa:d7:2a:59:76:99:02
+[ 1773.304732] K (32Bytes) generated in the load: 02891a8b7d57c1cfde8d1228d965592426bf49eede28509535aad72a59769902
+[ 1773.304739] K (Base64) = Aokai31Xwc/ejRIo2WVZJCa/Se7eKFCVNarXKll2mQI=
+[ 1773.304744] Creating new proc file: /proc/mydev
+[ 1790.508915] Delating proc file: /proc/mydev
