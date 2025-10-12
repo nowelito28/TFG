@@ -24,9 +24,8 @@ MODULE_AUTHOR ("Noel");
 static int fd = -1;
 module_param (fd, int, 0660);
 
-// Clave simétrica en memoria del kernel
+// Clave simétrica en memoria del kernel (K) --> 32 bytes aleatorios
 static char K[KEY_SIZE];
-module_param (K, char[], 0660);
 
 // Puntero de referencia/entrada al fichero que crearemos en /proc
 static struct proc_dir_entry *ent;
@@ -120,7 +119,6 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   {
     return written;		// propagar error (-EBADF, -EFAULT, etc.)
   }
-/////////
 
   // written --> nº bytes escritos en el fichero correspondiente al fd que nos ha pasado el user
   printk (KERN_DEBUG "write to fd %d: written %zd bytes\n", fd, written);
@@ -190,7 +188,7 @@ simple_init (void)
   //Puede dormir --> es correcto en module_init --> Devuelve 0 si OK
   int ret = wait_for_random_bytes();
   if (ret) {
-    printk(KERN_ERR "random: CRNG not ready (ret=%d)\n", ret);
+    printk(KERN_ERR "Error random: CRNG not ready (ret=%d)\n", ret);
     return ret;
   }
   // Rellenar K con 32 bytes criptográficamente aleatorios
@@ -198,7 +196,6 @@ simple_init (void)
   // Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log)
   // %*phN muestra el buffer en hex sin espacios
   printk(KERN_DEBUG "K (32B) generated in the load: %*phN\n", KEY_SIZE, K);
-
 
   printk (KERN_INFO "Creating new proc file: /proc/mydev\n");
   ent = proc_create ("mydev", 0660, NULL, &myops);
