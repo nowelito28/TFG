@@ -6,23 +6,23 @@
 #include <err.h>
 #include <errno.h>
 
-// Devuelve nº de bytes leídos (>=0) o -1 en error.
-// Lee como máximo 'cap' bytes y se para en EOF o si llena el buffer.
-static ssize_t read_to_eof(int fd, void *buf, size_t cap) {
+// Asegurarnos que se realiza la lectura completa: (return -1 en error)
+static int read_full(int fd, void *buf, size_t len) {
     size_t off = 0;
-    for (;;) {
-        ssize_t r = read(fd, (unsigned char*)buf + off, cap - off);
+    while (off < len) {
+        ssize_t r = read(fd, (unsigned char*)buf + off, len - off);
         if (r < 0) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR) {   // reintentar si fue interrumpido
+                continue;
+            }
             return -1;
         }
-        if (r == 0) { // EOF
-            break;
+        if (r == 0) {   // EOF antes del final pedido (EOF antes de leer len bytes)
+            return 0;
         }
-        off += (size_t)r;
-        if (off == cap) break;
+        off += (size_t)r;   // Sumar el offset ya leído
     }
-    return (ssize_t)off;
+    return (off == len) ? 0 : -1;   // Devolver 0 si se ha leído lo pedido o -1 en otro caso
 }
 
 // Asegurarnos que hace la lectura completa:    (return -1 en error)
@@ -96,8 +96,15 @@ int main(int argc, char *argv[]) {
     printf("Content of the created file (%s):\n", path);
     size_t len = strlen(cont) + 100;
     char *result = (char *) malloc(len); // Buffer para leer el contenido del fichero creado (con espacio extra para el HMAC en Base64)
-     // Leer más bytes para incluir el HMAC (Base64) --> con 100 bytes extras da de sobra para el HMAC de clave simétrica SHA-256 (32bytes) -> 44 caracteres aprox en Base64 + '\0')
-    if (read_to_eof(fd, result, len) != 0) {
+    // Recoloca el puntero de fichero al principio antes de leer --> debido a que la posición actual está al final del fichero al haber escrito el LKM en él
+    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
+        close(fd_proc);
+        close(fd_proc_hmac);
+        close(fd);
+        err(EXIT_FAILURE, "lseek to start failed on %s", path);
+    }
+    // Leer más bytes para incluir el HMAC (Base64) --> con 100 bytes extras da de sobra para el HMAC de clave simétrica SHA-256 (32bytes) -> 44 caracteres aprox en Base64 + '\0')
+    if (read_full(fd, result, len) != 0) {
         close(fd_proc);
         close(fd_proc_hmac);
         close(fd);
