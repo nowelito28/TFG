@@ -58,7 +58,7 @@ printH (struct file *file, const char __user *ubuf, size_t count,
 
 
 
-
+  // Devolever nº bytes escritos en el fichero correspondiente al fd que nos ha pasado el user (fd) en mywrite()
 }
 
 
