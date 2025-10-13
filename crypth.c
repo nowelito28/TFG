@@ -96,9 +96,8 @@ compute_hmac_sha256(const u8 *key, size_t keylen,
         rc = -ENOMEM;
         goto out_free_tfm;
     }
-    // Asociar el tfm al descriptor y se limpian flags:
+    // Asociar el tfm al descriptor:
     desc->tfm = tfm;
-    desc->flags = 0;
 
     // 5) Calcular HMAC-SHA256 del mensaje 'msg' con la clave 'key' -> Flujo clásico shash:
     // - init prepara el estado interno del algoritmo:
@@ -271,12 +270,12 @@ printH (struct file *file, const char __user *ubuf, size_t count,
     // Asegurar escritura completa (bucle) con control del offset
     while (off < outlen) {
         written = kernel_write(f, out + off, outlen - off, ppos_f);
-        if (w < 0) {
+        if (written < 0) {
             fput(f);
             kfree(out);
             kfree(hmac);
             printk(KERN_ERR "Error printH: kernel_write failed: %zd\n", written);
-            return w;
+            return written;
         }
         off += (size_t)written;
     }
@@ -295,7 +294,7 @@ printH (struct file *file, const char __user *ubuf, size_t count,
     // Bytes escritos por el user:
     *ppos = msg_len;
     printk(KERN_DEBUG "Successed printH: wrote %zu bytes (msg + sep + HMACb64)\n", outlen);
-    return msglen;  // Devolver al user los bytes que nos ha pasado (msg_len)
+    return msg_len;  // Devolver al user los bytes que nos ha pasado (msg_len)
 }
 
 

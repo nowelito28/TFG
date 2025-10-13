@@ -1,0 +1,11 @@
+localhost:TFG:# make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/noel/Desktop/TFG/crypth.o
+/home/noel/Desktop/TFG/crypth.c:199:1: warning: ‘printH’ defined but not used [-Wunused-function]
+  199 | printH (struct file *file, const char __user *ubuf, size_t count,
+      | ^~~~~~
+  MODPOST /home/noel/Desktop/TFG/Module.symvers
+  CC [M]  /home/noel/Desktop/TFG/crypth.mod.o
+  LD [M]  /home/noel/Desktop/TFG/crypth.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
