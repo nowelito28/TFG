@@ -34,8 +34,10 @@ static char K[KEY_SIZE];
 // Clave K en Base64: cada 3 bytes se codifican en 4 caracteres -> si no es múltiplo de 3 se añade padding '=' al final
 char Kb64[BASE64_CHARS(KEY_SIZE) + 1]; // +1 para '\0'
 
-// Puntero de referencia/entrada al fichero que crearemos en /proc
+// Puntero de referencia/entrada al fichero que crearemos en /proc --> /proc/fddev
 static struct proc_dir_entry *ent;
+// Puntero de referencia/entrada al segundo fichero que crearemos en /proc --> /proc/hmacdev
+static struct proc_dir_entry *ent_hmac;
 
 // Puntero de seguimiento/salida para strtol --> lo sobreescribe
 char *endptr = NULL;
@@ -193,7 +195,7 @@ out_free_b64:
     return rc;
 }
 
-// Creamos nueva llamada al sistema => printH()
+// Creamos nueva función para cargar relacionado al fichero /proc/hamcdev => printH()
 //--> Para escribir contenido (ubuf --> Payload) en un fichero dado, firmado con un HMAC(SHA-256) con clave K
 static ssize_t
 printH (struct file *file, const char __user *ubuf, size_t count,
@@ -219,15 +221,13 @@ printH (struct file *file, const char __user *ubuf, size_t count,
     return -EFAULT;
   }
 
-  // 1) Copiar K desde espacio de user a memoria del kernel
+  // 1) Copiar Payload (contenido a certificar) -> buf desde espacio de user a memoria del kernel
   if (copy_from_user(buf, ubuf, msg_len)) {
     return -EFAULT;   // en userland => errno = EFAULT, “Bad address”
   }
 
   // 2) HMAC-SHA256 sobre 'msg' con clave K --> obtener 'hmac' y 'hlen'
-    rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE,
-                             (const u8 *)buf, msg_len,
-                             &hmac, &hlen);
+    rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, msg_len, &hmac, &hlen);
   // Manejo de error:
     if (rc) {
         printk(KERN_ERR "printH: compute_hmac_sha256 failed: %d\n", rc);
@@ -298,25 +298,24 @@ printH (struct file *file, const char __user *ubuf, size_t count,
 }
 
 
-// Se ejecuta al escribir en /proc/mydev desde espacio de user
+// Se ejecuta al escribir en /proc/fddev desde espacio de user
 static ssize_t
 mywrite (struct file *file, const char __user *ubuf, size_t count,
 	 loff_t *ppos)
 {
   // Variables temporales:
-  // c --> última posición de escritura (char) en el fichero "/proc/mydev"
+  // c --> última posición de escritura (char) en el fichero "/proc/fddev"
   // fd_aux --> variable (fd -> descriptor de fichero) que se escribe desde el user
   int c, fd_aux;
   char buf[BUFSIZE];		// Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (copiar lo que envía el espacio de user)
-  const char *payload = "Hello, world!\n";	// Payload (en memoria del kernel)--> lo que se va a escribir en el fichero correspondiente al fd que nos pasa el user
 
   // Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => semántica single-shot
-  // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/mydev
+  // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/fddev
   // count >= BUFSIZE --> tamaño que el user pide escribir (count) tiene que ser menor que el buffer definido (100 bytes) --> >= para incluir el '\0' al final
   if (*ppos > 0 || count >= BUFSIZE)
     return -EFAULT;		// Si se cumple una de las dos --> devolver -EFAULT (dirección user inválida)
 
-  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
+  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "fddev" --> Loggea
   printk (KERN_DEBUG "write handler\n");
 
   // // Copia "count" bytes desde memoria de espacio de user (ubuf) a memoria del kernel (buf)
@@ -336,61 +335,9 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   // Asignamos la variable que hemos extraído:
   fd = fd_aux;
 
-  // ESCRIBIR HOLA MUNDO EN EL FICHERO CORRESPONDIENTE AL DESCRIPTOR DE FICHERO "fd"
-  // struct fd f = fdget_pos() --> para convertir el entero fd (descriptor de fichero dado) en struct fd "f" (igual que ksys_write)(si es válido en ESTE proceso) => vfs_write
-  // struct file *f = fget() --> para convertir el entero fd (descriptor de fichero dado) en struct file *"f" (tratar f com un fichero no un descriptor de fichero)(si es válido en ESTE proceso) => kernel_write
-  // fdget_pos(fd)|fdget(fd) <--> fput_pos(f)|fput(f) => SIEMPRE --> Igual con => fget() <--> fpos()
-  struct file *f = fget (fd);
-  // written --> nº bytes escritos en "f" (o error <0 --> en kernel_write)
-  ssize_t written;
-  // Posición de escritura (si aplica --> posicional/regular SI | stream NO)
-  loff_t pos, *ppos_f;
-
-  // Comprobar que el fd es válido en ESTE proceso --> f != NULL
-  if (!f)
-  {
-    return -EBADF;		// fd inválido en ESTE proceso --> errno = bad file descriptor
-  }
-
-  // Igual que ksys_write: trabajar con copia de f_pos si aplica
-  // f->f_mode decide cómo gestionar la posición:
-  //  - regular/posicional file --> si bits de f_mode NO son iguales (f->f_mode & FMODE_STREAM = 1)
-  //  - stream (socket, pipe, etc.) --> si bits de f_mode son iguales (f->f_mode & FMODE_STREAM = 0)
-  if (!(f->f_mode & FMODE_STREAM))
-    {				// si es fichero posicional/regular(NO es stream) --> Multiplicaión de bit 
-      // Ambas variables hacerlas iguales --> que apunten a la misma dirección de memoria
-      pos = f->f_pos;		// guardar posición actual en pos (memoria del kernel)
-      ppos_f = &pos;		// ppos_f apunta a la dirección de memoria de la copia (pos) para usar en kernel_write (en memoria del kernel)
-    }
-
-  // Iniciamos escritura desde memoria del kernel (payload) al fichero "f" (fd recibido)
-  // Utilizamos kernel_write (internamente llama a rw_verify_area(...), hace file_start_write(...) / file_end_write(...), y delega en __kernel_write --> write_iter)
-  // NO usar vfs_write --> porque se utiliza para camino de syscall (user->kernel) => utiliza memoria de userspace (ubuf) --> si utiliza memoria del kernel => -EFAULT (fallo de acceso a memoria)
-  written = kernel_write (f, payload, strlen (payload), ppos_f);	// ssize_t kernel_write(struct file *file(fichero), const char *buf(buffer en memoria del kernel), size_t count(nº bytes a escribir de buf), loff_t *pos);
-
-  // Si acaba en éxito kernel_write (written >= 0 --> written <0 => error)
-  // y es fichero posicional/regular NO stream (ppos_f != NULL)
-  // Actualizar f_pos real a la posición nueva actual tras haber escrito strlen(payload) bytes -->(pos) en f->f_pos
-  if (written >= 0 && ppos_f)
-  {
-    f->f_pos = pos;
-  }
-
-  // Liberar struct file *"f" (decrementar contador de referencias y suelta cualquier estado asociado a la posición)
-  fput (f);
-
-  // En caso de error en kernel_write --> written < 0:
-  if (written < 0)
-  {
-    return written;		// propagar error (-EBADF, -EFAULT, etc.)
-  }
-
-  // written --> nº bytes escritos en el fichero correspondiente al fd que nos ha pasado el user
-  printk (KERN_DEBUG "write to fd %d: written %zd bytes\n", fd, written);
-
   // c = longitud del string "buf" copiado de "ubuf" sin contar '\0'
   c = strlen (buf);
-  printk (KERN_DEBUG "write to /proc/mydev: written %d bytes from the user\n",
+  printk (KERN_DEBUG "write to /proc/fddev: written %d bytes from the user\n",
 	  c);
 
   // Cambiar el puntero de seguimiento/entrada de escritura del fichero "/proc/mydev" al último char copiado
@@ -399,7 +346,7 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   return c;
 }
 
-// Se ejecuta al leer en /proc/mydev desde espacio de user
+// Se ejecuta al leer en /proc/fddev desde espacio de user
 static ssize_t
 myread (struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
 {
@@ -408,12 +355,12 @@ myread (struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
   int len = 0;			// Numero bytes escritos en buf
 
   // Ver si es la primera vez que se llama a "read" para este fichero --> sino EOF => semántica single-shot 
-  // *ppos > 0 --> puntero de posición es mayor que 0 = se ha leído algo ya dentro del fichero /proc/mydev
+  // *ppos > 0 --> puntero de posición es mayor que 0 = se ha leído algo ya dentro del fichero /proc/fddev
   // count < BUFSIZE --> tamaño que el user pide leer (count) menor que el buffer definido (100 bytes)
   if (*ppos > 0 || count < BUFSIZE)
     return 0;			// Si se cumple una de las dos --> devolver EOF (0)
 
-  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "mydev" --> Loggea
+  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "fddev" --> Loggea
   printk (KERN_DEBUG "read handler\n");
 
   // sprintf(destino, formato, valores…) escribe una cadena de texto en un buffer de memoria (destino)
@@ -429,17 +376,23 @@ myread (struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
   // Ponemos finalmente el puntero de seguimiento (*ppos) del fichero en el último byte copiado en memoria de user (len)
   // Y retornamos dicha posición del último byte (len)
   *ppos = len;
-  printk (KERN_DEBUG "read from /proc/mydev: read %d bytes to the user\n",
+  printk (KERN_DEBUG "read from /proc/fddev: read %d bytes to the user\n",
 	  len);
   return len;			// > 0 (se han leído bytes) | = 0 (EOF) | < 0 (error)
 }
 
-// Tabla de operaciones del fichero creado "mydev"
+// Tabla de operaciones del fichero creado "fddev"
 // Asociar acciones/manejadores que se pueden hacer en este fichero
 // Utilizar struct proc_ops (en lugar de struct file_operations) a partir del kernel 5.6
 static const struct proc_ops myops = {
   .proc_read = myread,
   .proc_write = mywrite,
+};
+
+// Tabla de operaciones del fichero creado "hmacdev" para HMAC
+// Asociar acciones/manejadores que se pueden hacer en este fichero
+static const struct proc_ops myops_hmac = {
+  .proc_write = printH,   // Escritura (write) en fichero 'fd' del payload firmado con HMAC
 };
 
 // Cargar LKM:
@@ -474,23 +427,36 @@ simple_init (void)
         printk(KERN_DEBUG "K (Base64) = %s\n", Kb64);
     }
 
-
-  printk (KERN_INFO "Creating new proc file: /proc/mydev\n");
-  ent = proc_create ("mydev", 0660, NULL, &myops);
+  // Crear el primer fichero en /proc para la funcionalidad básica de
+  // escribir el fd del fichero donde quiere escribir el contenido certificado
+  printk (KERN_INFO "Creating new proc file: /proc/fddev\n");
+  ent = proc_create ("fddev", 0660, NULL, &myops);
   // Comprobar errores -> si falla => ent==NULL => deberia devolver -ENOMEM 
   if (!ent) {
     return -ENOMEM;
   }
+
+  // Crear el segundo fichero en /proc para la funcionalidad de escribir en el fd que el user escriba en /proc/fddev
+  // el contenido que se le pase certificado con HMAC
+  printk (KERN_INFO "Creating new proc file: /proc/hmacdev\n");
+  ent_hmac = proc_create("hmacdev", 0660, NULL, &myops_hmac);
+  if (!ent_hmac) {
+    proc_remove(ent);
+    return -ENOMEM;
+  }
+
   return 0;
 }
 
 // Descargar LKM:
-// Borrar referencia/entrada al fichero creado "mydev" en /proc
+// Borrar referencia/entrada a los ficheros creados en /proc
 static void
 simple_cleanup (void)
 {
-  printk (KERN_INFO "Delating proc file: /proc/mydev\n");
+  printk (KERN_INFO "Delating proc file: /proc/fddev\n");
   proc_remove (ent);
+  printk (KERN_INFO "Delating proc file: /proc/hmacdev\n");
+  proc_remove (ent_hmac);
 }
 
 module_init (simple_init);
