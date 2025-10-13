@@ -6,23 +6,23 @@
 #include <err.h>
 #include <errno.h>
 
-// Asegurarnos que se realiza la lectura completa: (return -1 en error)
-static int read_full(int fd, void *buf, size_t len) {
+// Devuelve nº de bytes leídos (>=0) o -1 en error.
+// Lee como máximo 'cap' bytes y se para en EOF o si llena el buffer.
+static ssize_t read_to_eof(int fd, void *buf, size_t cap) {
     size_t off = 0;
-    while (off < len) {
-        ssize_t r = read(fd, (unsigned char*)buf + off, len - off);
+    for (;;) {
+        ssize_t r = read(fd, (unsigned char*)buf + off, cap - off);
         if (r < 0) {
-            if (errno == EINTR) {   // reintentar si fue interrumpido
-                continue;
-            }
+            if (errno == EINTR) continue;
             return -1;
         }
-        if (r == 0) {   // EOF antes del final pedido (EOF antes de leer len bytes)
-            return 0;
+        if (r == 0) { // EOF
+            break;
         }
-        off += (size_t)r;   // Sumar el offset ya leído
+        off += (size_t)r;
+        if (off == cap) break;
     }
-    return (off == len) ? 0 : -1;   // Devolver 0 si se ha leído lo pedido o -1 en otro caso
+    return (ssize_t)off;
 }
 
 // Asegurarnos que hace la lectura completa:    (return -1 en error)
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     size_t len = strlen(cont) + 100;
     char *result = (char *) malloc(len); // Buffer para leer el contenido del fichero creado (con espacio extra para el HMAC en Base64)
      // Leer más bytes para incluir el HMAC (Base64) --> con 100 bytes extras da de sobra para el HMAC de clave simétrica SHA-256 (32bytes) -> 44 caracteres aprox en Base64 + '\0')
-    if (read_full(fd, result, len) != 0) {
+    if (read_to_eof(fd, result, len) != 0) {
         close(fd_proc);
         close(fd_proc_hmac);
         close(fd);
