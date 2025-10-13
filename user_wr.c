@@ -17,8 +17,8 @@ static int read_full(int fd, void *buf, size_t len) {
             }
             return -1;
         }
-        if (r == 0) {   // EOF inesperado
-            break;
+        if (r == 0) {   // EOF antes del final pedido (EOF antes de leer len bytes)
+            return 0;
         }
         off += (size_t)r;   // Sumar el offset ya leído
     }
@@ -76,27 +76,36 @@ int main(int argc, char *argv[]) {
     // Escribir en el fichero de /proc (/proc/fddev) el fd (en string sin el '/0') del fichero creado (file_handoff):
     if (write_full(fd_proc, fd_str, strlen(fd_str)) != 0) {
         close(fd_proc);
+        close(fd_proc_hmac);
+        close(fd);
         err(EXIT_FAILURE, "Error writing in %s", proc_path_fd); 
     }
     printf("File descriptor written in /proc/fddev:\n%s\n", fd_str);
 
     // Escribir en el fichero de /proc (/proc/hmacdev) el contenido a escribir en el fd (file_handoff) firmado con HMAC
-    char cont[] = "This is an authentic content, validated by HMAC(SHA-256)!!\n";
+    char cont[] = "This is an authentic content, validated by HMAC(SHA-256)!!";
     if (write_full(fd_proc_hmac, cont, strlen(cont)) != 0) {
+        close(fd_proc);
         close(fd_proc_hmac);
+        close(fd);
         err(EXIT_FAILURE, "Error writing in %s", proc_path_hmac); 
     }
     printf("Content certificated written through /proc/hmacdev:\n%s\n", cont);
 
     // Ver el contenido del fichero creado (file_handoff) con su certificado HMAC(SHA-256) (Base64):
     printf("Content of the created file (%s):\n", path);
-    char result[strlen(cont) + 100]; // Buffer para leer el contenido del fichero creado (con espacio extra para el HMAC en Base64)
+    size_t len = strlen(cont) + 100;
+    char *result = (char *) malloc(len); // Buffer para leer el contenido del fichero creado (con espacio extra para el HMAC en Base64)
      // Leer más bytes para incluir el HMAC (Base64) --> con 100 bytes extras da de sobra para el HMAC de clave simétrica SHA-256 (32bytes) -> 44 caracteres aprox en Base64 + '\0')
-    if (read_full(fd, result, strlen(cont) + 100) != 0) {
-        err(EXIT_FAILURE, "Error reading from %s", path);
+    if (read_full(fd, result, len) != 0) {
+        close(fd_proc);
+        close(fd_proc_hmac);
         close(fd);
+        free(result);
+        err(EXIT_FAILURE, "Error reading from %s", path);
     }
     printf("%s\n", result);
+    free(result);
 
     // Cerrar el fichero de /proc --> /proc/fddev
     close(fd_proc);
