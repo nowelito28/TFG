@@ -202,7 +202,7 @@ printH (struct file *file, const char __user *ubuf, size_t count,
   loff_t *ppos)
 {
   // Buffer para guardar datos en memoria del kernel
-  char buf[BUFSIZE];	// Buffer en memoria del kernel (100 bytes)
+  char buf[BUFSIZE];	// Buffer en memoria del kernel (100 bytes) --> Solo se pueden escribir 100 bytes de contenido a cetificar
   size_t msg_len = count;    // Longitud del mensaje que nos pasa el user (count)
   int rc;                     // Registro de errores
   u8 *hmac = NULL;            // Buffer de salida del HMAC (array de bytes)
