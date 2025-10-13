@@ -1,4 +1,4 @@
-localhost:TFG:# make            
+localhost:TFG:# make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/crypth.o
@@ -7,26 +7,48 @@ make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   LD [M]  /home/noel/Desktop/TFG/crypth.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 localhost:TFG:# insmod crypth.ko
-localhost:TFG:# dmesg | tail    
-[ 1595.099664] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1661.863567] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1722.810714] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1724.867439] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1741.252736] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1764.453217] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1773.304707] K (32Bytes) = 02:89:1a:8b:7d:57:c1:cf:de:8d:12:28:d9:65:59:24:26:bf:49:ee:de:28:50:95:35:aa:d7:2a:59:76:99:02
-[ 1773.304732] K (32Bytes) generated in the load: 02891a8b7d57c1cfde8d1228d965592426bf49eede28509535aad72a59769902
-[ 1773.304739] K (Base64) = Aokai31Xwc/ejRIo2WVZJCa/Se7eKFCVNarXKll2mQI=
-[ 1773.304744] Creating new proc file: /proc/mydev
-localhost:TFG:# rmmod crypth    
 localhost:TFG:# dmesg | tail
-[ 1661.863567] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1722.810714] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1724.867439] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1741.252736] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1764.453217] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 1773.304707] K (32Bytes) = 02:89:1a:8b:7d:57:c1:cf:de:8d:12:28:d9:65:59:24:26:bf:49:ee:de:28:50:95:35:aa:d7:2a:59:76:99:02
-[ 1773.304732] K (32Bytes) generated in the load: 02891a8b7d57c1cfde8d1228d965592426bf49eede28509535aad72a59769902
-[ 1773.304739] K (Base64) = Aokai31Xwc/ejRIo2WVZJCa/Se7eKFCVNarXKll2mQI=
-[ 1773.304744] Creating new proc file: /proc/mydev
-[ 1790.508915] Delating proc file: /proc/mydev
+[ 8059.976472] hwmon hwmon1: Voltage normalised
+[ 8061.988792] hwmon hwmon1: Undervoltage detected!
+[ 8066.020437] hwmon hwmon1: Voltage normalised
+[ 8067.697219] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 8080.134167] hwmon hwmon1: Undervoltage detected!
+[ 8082.148769] hwmon hwmon1: Voltage normalised
+[ 8096.110424] K (32Bytes) generated in the load = 15:d5:54:59:2b:8c:45:09:14:ca:5f:4a:7c:76:00:e9:6c:a2:0a:88:65:51:1f:de:12:79:82:a8:a7:5d:98:78
+[ 8096.110464] K (Base64) = FdVUWSuMRQkUyl9KfHYA6WyiCohlUR/eEnmCqKddmHg=
+[ 8096.110478] Creating new proc file: /proc/fddev
+[ 8096.110504] Creating new proc file: /proc/hmacdev
+localhost:TFG:# ./user_wr
+File descriptor written in /proc/fddev:
+3
+Content certificated written through /proc/hmacdev:
+This is an authentic content, validated by HMAC(SHA-256)!!
+Content of the created file (./file_handoff):
+This is an authentic content, validated by HMAC(SHA-256)!!
+
+---
+
+QUHrFe7GKj0P4/8P9qmoD9Ohs+yRL8hhXmIO5IfkiF8=
+localhost:TFG:# dmesg | tail
+[ 8067.697219] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 8080.134167] hwmon hwmon1: Undervoltage detected!
+[ 8082.148769] hwmon hwmon1: Voltage normalised
+[ 8096.110424] K (32Bytes) generated in the load = 15:d5:54:59:2b:8c:45:09:14:ca:5f:4a:7c:76:00:e9:6c:a2:0a:88:65:51:1f:de:12:79:82:a8:a7:5d:98:78
+[ 8096.110464] K (Base64) = FdVUWSuMRQkUyl9KfHYA6WyiCohlUR/eEnmCqKddmHg=
+[ 8096.110478] Creating new proc file: /proc/fddev
+[ 8096.110504] Creating new proc file: /proc/hmacdev
+[ 8135.683905] write handler
+[ 8135.683980] write to /proc/fddev: written 1 bytes from the user
+[ 8135.685149] Successed printH: wrote 109 bytes (msg + sep + HMACb64)
+localhost:TFG:# rmmod crypth 
+localhost:TFG:# dmesg | tail
+[ 8096.110424] K (32Bytes) generated in the load = 15:d5:54:59:2b:8c:45:09:14:ca:5f:4a:7c:76:00:e9:6c:a2:0a:88:65:51:1f:de:12:79:82:a8:a7:5d:98:78
+[ 8096.110464] K (Base64) = FdVUWSuMRQkUyl9KfHYA6WyiCohlUR/eEnmCqKddmHg=
+[ 8096.110478] Creating new proc file: /proc/fddev
+[ 8096.110504] Creating new proc file: /proc/hmacdev
+[ 8135.683905] write handler
+[ 8135.683980] write to /proc/fddev: written 1 bytes from the user
+[ 8135.685149] Successed printH: wrote 109 bytes (msg + sep + HMACb64)
+[ 8169.160562] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[ 8180.561615] Delating proc file: /proc/fddev
+[ 8180.561651] Delating proc file: /proc/hmacdev
