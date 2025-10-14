@@ -232,6 +232,7 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   // fd_aux --> variable (fd -> descriptor de fichero) que se escribe desde el user
   int c, fd_aux;
   char buf[BUFSIZE];		// Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (copiar lo que envía el espacio de user)
+  ssize_t added;           // bytes añadidos por printH (sep + b64) o <0 en error
 
   // Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => semántica single-shot
   // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/fddev
@@ -260,16 +261,22 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
   fd = fd_aux;
 
   // Certificar contenido del fichero fd dado por el user con HMAC(SHA-256) con clave K:
-  printH(fd);
+  added = printH(fd);
+  if (added < 0) {
+      printk(KERN_ERR "Error mywrite: printH fallo para fd %d: %zd\n", fd, added);
+      return added;
+  }
 
   // c = longitud del string "buf" copiado de "ubuf" sin contar '\0'
   c = strlen (buf);
   printk (KERN_DEBUG "write to /proc/fddev: written %d bytes from the user\n",
 	  c);
 
+  printk(KERN_INFO "mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd %d (appended %zd bytes)\n", fd, added);
+
   // Cambiar el puntero de seguimiento/entrada de escritura del fichero "/proc/mydev" al último char copiado
   // Y devolver la posición por donde se encuentra el fichero = nº de bytes hemos recibido del user
-  *ppos = c;
+  *ppos = c
   return c;
 }
 
