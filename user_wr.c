@@ -61,14 +61,12 @@ main (int argc, char *argv[])
   char *path = "./file_handoff";
   // Nombre del fichero de /proc donde escribir el fd de file_handoff
   char proc_path_fd[] = "/proc/fddev";
-  // Nombre del fichero de /proc donde escribir el contenido a escribir contenido firmado con HMAC en el fd de file_handoff
-  char proc_path_hmac[] = "/proc/hmacdev";
 
   // Descriptor de fichero (fd) --> lo crear y si existe => lo trunca (vacía) --> se abre con todos los permisos
   int fd = open (path, O_CREAT | O_RDWR | O_TRUNC, 0666);
   if (fd < 0)
     {
-      err (EXIT_FAILURE, "Error opening/creating the file");
+      err (EXIT_FAILURE, "Error opening/creating the file %s", path);
     }
 
   // Abrir el fichero de /proc (/proc/fddev):
@@ -78,37 +76,28 @@ main (int argc, char *argv[])
       err (EXIT_FAILURE, "Error opening %s", proc_path_fd);
     }
 
-  // Abrir el fichero de /proc (/proc/hmacdev):
-  int fd_proc_hmac = open (proc_path_hmac, O_RDWR);
-  if (fd_proc_hmac < 0)
-    {
-      err (EXIT_FAILURE, "Error opening %s", proc_path_hmac);
-    }
-
   // Convertir el fd (int) a string para escribirlo en /proc/fddev
   char fd_str[12];		// Suficiente para un integer
   snprintf (fd_str, sizeof (fd_str), "%d", fd);	// ej: 57 --> "57"
 
-  // Escribir en el fichero de /proc (/proc/fddev) el fd (en string sin el '/0') del fichero creado (file_handoff):
+  // Escribir en el fichero creado (file_handoff) el contenido ser certificado con HMAC(SHA 256):
+  char cont[] = "This is an authentic content to be validated by HMAC(SHA-256)!!";
+  if (write_full (fd, cont, strlen (cont)) != 0)
+    {
+      close (fd_proc);
+      close (fd);
+      err (EXIT_FAILURE, "Error writing in %s", path);
+    }
+  printf ("Content certificated with HMAC(SHA-256):\n%s\n", cont);
+
+  // Escribir en el fichero de /proc (/proc/fddev) el 'fd' (sin el '/0') del fichero creado (file_handoff) y que será certificado su contenido:
   if (write_full (fd_proc, fd_str, strlen (fd_str)) != 0)
     {
       close (fd_proc);
-      close (fd_proc_hmac);
       close (fd);
       err (EXIT_FAILURE, "Error writing in %s", proc_path_fd);
     }
-  printf ("File descriptor written in /proc/fddev:\n%s\n", fd_str);
-
-  // Escribir en el fichero de /proc (/proc/hmacdev) el contenido a escribir en el fd (file_handoff) firmado con HMAC
-  char cont[] = "This is an authentic content, validated by HMAC(SHA-256)!!";
-  if (write_full (fd_proc_hmac, cont, strlen (cont)) != 0)
-    {
-      close (fd_proc);
-      close (fd_proc_hmac);
-      close (fd);
-      err (EXIT_FAILURE, "Error writing in %s", proc_path_hmac);
-    }
-  printf ("Content certificated written through /proc/hmacdev:\n%s\n", cont);
+  printf ("File descriptor written in /proc/fddev:\n%s => Content has been certificated.\n", fd_str);
 
   // Ver el contenido del fichero creado (file_handoff) con su certificado HMAC(SHA-256) (Base64):
   printf ("Content of the created file (%s):\n", path);
@@ -118,7 +107,6 @@ main (int argc, char *argv[])
   if (lseek (fd, 0, SEEK_SET) == (off_t) - 1)
     {
       close (fd_proc);
-      close (fd_proc_hmac);
       close (fd);
       err (EXIT_FAILURE, "lseek to start failed on %s", path);
     }
@@ -126,7 +114,6 @@ main (int argc, char *argv[])
   if (read_full (fd, result, len) != 0)
     {
       close (fd_proc);
-      close (fd_proc_hmac);
       close (fd);
       free (result);
       err (EXIT_FAILURE, "Error reading from %s", path);
@@ -136,9 +123,6 @@ main (int argc, char *argv[])
 
   // Cerrar el fichero de /proc --> /proc/fddev
   close (fd_proc);
-
-  // Cerrar el fichero de /proc --> /proc/hmacdev
-  close (fd_proc_hmac);
 
   // Cerrar el fichero creado (file_handoff)
   close (fd);
