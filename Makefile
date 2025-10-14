@@ -9,6 +9,10 @@ EXTRA_CFLAGS += -DSEALFS_VERSION=\"0.91\"
 # CAMBIAR PARA EL NOMBRE DE CADA MÓDULO!!
 obj-m += crypth.o
 
+# Genera key_embedded.h si falta (mediante gen_K_embedded.zsh) ---
+K_embedded.h: gen_K_embedded.zsh
+	@./gen_K_embedded.zsh
+
 # Indicar al compilador (gcc) -> módulo compuesto por múltiples ficheros objeto (NO solo el principal)
 # sealfs-y := dentry.o file.o inode.o main.o super.o lookup.o mmap.o
 

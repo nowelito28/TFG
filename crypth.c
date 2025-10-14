@@ -8,12 +8,14 @@
 #include <linux/fs.h>
 #include <linux/file.h>
 #include <linux/string.h>
-#include <linux/random.h>
 #include <linux/base64.h>
 #include <linux/crypto.h>
 #include <crypto/hash.h>
 #include <linux/slab.h>
 #include <linux/err.h>
+
+// Clave K embebida de 32 bytes (generada con xxd -i) --> Creado key_embedded.h desde un binario (key.bin)
+#include "K_embedded.h"   // define: unsigned char K[]; unsigned int K_len=32;
 
 #define BUFSIZE  100		// Constante global
 #define KEY_SIZE 32		// Longitud en bytes que queremos que tome la clave => K
@@ -30,9 +32,9 @@ static int fd = -1;
 module_param (fd, int, 0660);
 
 // Clave simétrica en memoria del kernel (K) --> 32 bytes aleatorios
-static char K[KEY_SIZE];
+// static char K[KEY_SIZE];
 // Clave K en Base64: cada 3 bytes se codifican en 4 caracteres -> si no es múltiplo de 3 se añade padding '=' al final
-char Kb64[BASE64_CHARS (KEY_SIZE) + 1];	// +1 para '\0'
+// char Kb64[BASE64_CHARS (KEY_SIZE) + 1];	// +1 para '\0'
 
 // Puntero de referencia/entrada al fichero que crearemos en /proc --> /proc/fddev
 static struct proc_dir_entry *ent;
@@ -427,6 +429,7 @@ static const struct proc_ops myops_hmac = {
 static int
 simple_init (void)
 {
+/*  NO HAY QUE GENERAR LA CLAVE K CADA VEZ QUE SE CARGA EL MÓDULO --> YA VIENE EMBEBIDA
   // Generar clave K de 32 bytes aleatorios
   //Espera a que el generador criptográfico del kernel (CRNG) esté inicializado
   //Puede dormir --> es correcto en module_init --> Devuelve 0 si OK
@@ -438,6 +441,11 @@ simple_init (void)
     }
   // Rellenar K con 32 bytes criptográficamente aleatorios
   get_random_bytes (K, KEY_SIZE);
+*/
+
+  // La clave K de 32 bytes ya viene embebida desde key_embedded.h --> comprobar que es de 32 bytes en tiempo de compilación
+  BUILD_BUG_ON(sizeof(K) != KEY_SIZE);
+
   // Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log)
   // %*phN muestra el buffer en hex sin espacios
   // %*phC muestra bytes (del buffer) separados por ':'
