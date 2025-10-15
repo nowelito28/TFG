@@ -35,20 +35,56 @@ module_param (fd, int, 0660);
 static struct proc_dir_entry *ent;
 
 // Puntero de seguimiento/salida para strtol --> lo sobreescribe
-char *endptr = NULL;
+static char *endptr = NULL;
 
 // Leer chunk de 1024 bytes máx del fichero fd (para no usar demasiada memoria del kernel)
-const size_t chunk = 1024;
+static const size_t chunk = 1024;
 
 // Separador textual entre el mensaje y el HMAC codificado (7 chars + '\0')
 static const char *sep = "\n\n---\n\n";
 
 
 // Calcular el HAMC(SHA-256) con la clave K del contenido que nos pasan:
+// Devuelve 0 si todo ok -> <0 (‐errno) si hay error
 static int
 compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
 {
+  int rc; // Registro de errores
+  struct crypto_shash *tfm; // Handler del Crypto API del kernel para un hash síncrono --> shash => Transformador
 
+  // HAMC(SHA-256) como algoritmo => pide al Crypto API del kernel handler sincrónico (shash) para HMAC-SHA256
+  tfm = crypto_alloc_shash("hmac(sha256)", 0, 0);
+  if (IS_ERR(tfm))  // Algoritmo NO disponible
+      return PTR_ERR(tfm);  // -ENOENT
+
+  // Asocia la clave al “transform” (handler)
+  rc = crypto_shash_setkey(tfm, K, KEY_SIZE);
+  if (rc)   // Error si tamaños NO válidos
+      goto out_free_tfm;
+
+  // Reservar el buffer de salida (para el hmac) y comunicar su tamaño
+  // Tamaño del hash (32bytes para SHA-256)
+  *hmac_len = crypto_shash_digestsize(tfm);
+  // Reservar el buffer de salida (hamc) con dicho tamaño calculado en el heap del kernel
+  *hmac = kmalloc(*hmac_len, GFP_KERNEL); // caller debe hacer kfree(*hmac) en éxito -> una vez se le llama se libera en memoria
+  if (!*hmac) {
+      rc = -ENOMEM;
+      goto out_free_tfm;
+  }
+
+  // Calcular el HMAC en una sola llamada (one-shot)
+  // SHASH_DESC_ON_STACK(desc, tfm) --> macro (de <crypto/hash.h>) crea en la pila un bloque de memoria del kernel 
+  // del tamaño correcto para un struct shash_desc + el área privada que necesita el algoritmo => sizeof(struct shash_desc) + crypto_shash_descsize(tfm)
+  // desc --> esta macro declara este puntero struct shash_desc *desc --> estado intermedio del HMAC mientras se procesa
+  SHASH_DESC_ON_STACK(desc, tfm);
+  desc->tfm = tfm;  // Le asociamos el algoritmo de HMAC(SHA-256) -> Handler/transformador
+  // flujo init -> update -> final en un paso sobre buf (contenido)
+  rc = crypto_shash_digest(desc, buf, buf_len, *hmac);
+
+  // Limpieza de memoria del handler al final o en error
+out_free_tfm:
+    crypto_free_shash(tfm);
+    return rc;  // Devolver 0 en éxito <-> <0 en error
 }
 
 // Calcula HMAC(SHA-256) con la clave K embebida del contenido del fichero f y lo concatena al fichero f en buf_len:
@@ -64,7 +100,7 @@ get_hmac(struct file *f, const char *buf, size_t buf_len)
   size_t seplen = strlen(sep); // 7 bytes --> len del separador
 
   // 1) HMAC(SHA-256)(K, buf) --> calcular el HMAC del contenido leído del fichero -> f:
-  rc = compute_hmac_sha256((const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
+  rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
   if (rc)   // Ver si ha habido error
     return rc;
 
@@ -183,6 +219,7 @@ printH (int fd)
 {
   char *buf = NULL;   // Buffer en memoria del kernel --> contenido leído a certificar
   size_t buf_len = 0; // Longitud del buffer --> contenido leído
+  size_t rc;			        // Registro de errores
   size_t rc;			        // Registro de errores
 
   // Ver que tenemos un fd válido en ESTE proceso o no se ha pasado ningún fd de momento::
@@ -340,6 +377,7 @@ simple_init (void)
   // Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log)
   // %*phN muestra el buffer en hex sin espacios
   // %*phC muestra bytes (del buffer) separados por ':'
+  printk (KERN_DEBUG "K (32Bytes) loaded = %*phC\n", KEY_SIZE,
   printk (KERN_DEBUG "K (32Bytes) loaded = %*phC\n", KEY_SIZE,
 	  K);
 
