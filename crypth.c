@@ -100,7 +100,7 @@ get_hmac(struct file *f, const char *buf, size_t buf_len)
   size_t seplen = strlen(sep); // 7 bytes --> len del separador
 
   // 1) HMAC(SHA-256)(K, buf) --> calcular el HMAC del contenido leído del fichero -> f:
-  rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
+  rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (u8 **)buf, (size_t)buf_len, &hmac, &hmac_len);
   if (rc)   // Ver si ha habido error
     return rc;
 
@@ -219,7 +219,6 @@ printH (int fd)
 {
   char *buf = NULL;   // Buffer en memoria del kernel --> contenido leído a certificar
   size_t buf_len = 0; // Longitud del buffer --> contenido leído
-  size_t rc;			        // Registro de errores
   size_t rc;			        // Registro de errores
 
   // Ver que tenemos un fd válido en ESTE proceso o no se ha pasado ningún fd de momento::
@@ -377,7 +376,6 @@ simple_init (void)
   // Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log)
   // %*phN muestra el buffer en hex sin espacios
   // %*phC muestra bytes (del buffer) separados por ':'
-  printk (KERN_DEBUG "K (32Bytes) loaded = %*phC\n", KEY_SIZE,
   printk (KERN_DEBUG "K (32Bytes) loaded = %*phC\n", KEY_SIZE,
 	  K);
 

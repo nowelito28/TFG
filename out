@@ -61,12 +61,29 @@ make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modu
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/crypth.o
 /home/noel/Desktop/TFG/crypth.c: In function ‘get_hmac’:
-/home/noel/Desktop/TFG/crypth.c:60:8: error: implicit declaration of function ‘compute_hmac_sha256’ [-Werror=implicit-function-declaration]
-   60 |   rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
+/home/noel/Desktop/TFG/crypth.c:103:65: warning: passing argument 4 of ‘compute_hmac_sha256’ makes pointer from integer without a cast [-Wint-conversion]
+  103 |  = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (u8 **)buf, (size_t)buf_len, &hmac, &hmac_len);
+      |                                                             ^~~~~~~~~~~~~~~
+      |                                                             |
+      |                                                             long unsigned int
+
+/home/noel/Desktop/TFG/crypth.c:50:77: note: expected ‘unsigned int *’ but argument is of type ‘long unsigned int’
+   50 | ha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
+      |                                                 ~~~~~~~~~~~~~~^~~~~~~~
+
+/home/noel/Desktop/TFG/crypth.c:103:8: error: too many arguments to function ‘compute_hmac_sha256’
+  103 |   rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (u8 **)buf, (size_t)buf_len, &hmac, &hmac_len);
       |        ^~~~~~~~~~~~~~~~~~~
-cc1: some warnings being treated as errors
+/home/noel/Desktop/TFG/crypth.c:50:1: note: declared here
+   50 | compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
+      | ^~~~~~~~~~~~~~~~~~~
+/home/noel/Desktop/TFG/crypth.c: At top level:
+/home/noel/Desktop/TFG/crypth.c:38:14: warning: ‘endptr’ defined but not used [-Wunused-variable]
+   38 | static char *endptr = NULL;
+      |              ^~~~~~
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/crypth.o] Error 1
 make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG] Error 2
 make[1]: *** [Makefile:224: __sub-make] Error 2
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 make: *** [Makefile:19: all] Error 2
+
