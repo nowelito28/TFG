@@ -43,10 +43,10 @@ static const char *sep = "\n\n---\n\n";
 
 // Calcular el HAMC(SHA-256) con la clave K del contenido que nos pasan:
 // Devuelve 0 si todo ok -> <0 (‐errno) si hay error
-static int
+static ssize_t
 compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
 {
-  int rc; // Registro de errores
+  ssize_t rc; // Registro de errores
   struct crypto_shash *tfm; // Handler del Crypto API del kernel para un hash síncrono --> shash => Transformador
 
   // HAMC(SHA-256) como algoritmo => pide al Crypto API del kernel handler sincrónico (shash) para HMAC-SHA256
@@ -159,7 +159,7 @@ out_free_hmac:
 // Devuelve en *buf un buffer (kvmalloc) con el contenido leído y en *buf_len su longitud
 // Si encuentra separador => *already=0 y el contenido devuelto llega hasta justo antes del separador
 // Retorna 0 en éxito <=> <0 si error
-static int
+static ssize_t
 read_file (struct file *f, char **buf, size_t *buf_len)
 {
   ssize_t rc = 0;        // Registro de errores
