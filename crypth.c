@@ -48,7 +48,7 @@ static const char *sep = "\n\n---\n\n";
 static int
 compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
 {
-  
+
 }
 
 // Calcula HMAC(SHA-256) con la clave K embebida del contenido del fichero f y lo concatena al fichero f en buf_len:
@@ -64,7 +64,7 @@ get_hmac(struct file *f, const char *buf, size_t buf_len)
   size_t seplen = strlen(sep); // 7 bytes --> len del separador
 
   // 1) HMAC(SHA-256)(K, buf) --> calcular el HMAC del contenido leído del fichero -> f:
-  rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
+  rc = compute_hmac_sha256((const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
   if (rc)   // Ver si ha habido error
     return rc;
 
