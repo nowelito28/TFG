@@ -56,57 +56,14 @@ localhost:TFG:# dmesg | tail
 
 
 
-
-
-
-
-
-
 noel@localhost:~/Desktop/TFG$ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/crypth.o
 /home/noel/Desktop/TFG/crypth.c: In function ‘get_hmac’:
 /home/noel/Desktop/TFG/crypth.c:60:8: error: implicit declaration of function ‘compute_hmac_sha256’ [-Werror=implicit-function-declaration]
-   60 |   rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, (size_t)buf_len, hmac, &hmac_len);
+   60 |   rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
       |        ^~~~~~~~~~~~~~~~~~~
-In file included from ./include/asm-generic/bug.h:22,
-                 from ./arch/arm64/include/asm/bug.h:26,
-                 from ./include/linux/bug.h:5,
-                 from ./arch/arm64/include/asm/cpufeature.h:24,
-                 from ./arch/arm64/include/asm/hwcap.h:9,
-                 from ./arch/arm64/include/asm/arch_timer.h:12,
-                 from ./arch/arm64/include/asm/timex.h:8,
-                 from ./include/linux/timex.h:67,
-                 from ./include/linux/time32.h:13,
-                 from ./include/linux/time.h:60,
-                 from ./arch/arm64/include/asm/stat.h:12,
-                 from ./include/linux/stat.h:6,
-                 from ./include/linux/module.h:13,
-                 from /home/noel/Desktop/TFG/crypth.c:1:
-/home/noel/Desktop/TFG/crypth.c: In function ‘printH’:
-./include/linux/kern_levels.h:5:25: warning: format ‘%zd’ expects argument of type ‘signed size_t’, but argument 3 has type ‘int’ [-Wformat=]
-    5 | #define KERN_SOH        "\001"          /* ASCII Start Of Header */
-      |                         ^~~~~~
-./include/linux/printk.h:468:25: note: in definition of macro ‘printk_index_wrap’
-  468 |                 _p_func(_fmt, ##__VA_ARGS__);                           \
-      |                         ^~~~
-/home/noel/Desktop/TFG/crypth.c:209:5: note: in expansion of macro ‘printk’
-  209 |     printk(KERN_ERR "Error printH: generating HMAC failed para fd %d: %zd\n", fd, rc);
-      |     ^~~~~~
-./include/linux/kern_levels.h:11:25: note: in expansion of macro ‘KERN_SOH’
-   11 | #define KERN_ERR        KERN_SOH "3"    /* error conditions */
-      |                         ^~~~~~~~
-/home/noel/Desktop/TFG/crypth.c:209:12: note: in expansion of macro ‘KERN_ERR’
-  209 |     printk(KERN_ERR "Error printH: generating HMAC failed para fd %d: %zd\n", fd, rc);
-      |            ^~~~~~~~
-/home/noel/Desktop/TFG/crypth.c: In function ‘simple_init’:
-/home/noel/Desktop/TFG/crypth.c:343:16: warning: ‘Kb64’ is used uninitialized [-Wuninitialized]
-  343 |   int b64len = base64_encode ((const u8 *) K, KEY_SIZE, Kb64);
-      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/noel/Desktop/TFG/crypth.c:342:9: note: ‘Kb64’ was declared here
-  342 |   char *Kb64;
-      |         ^~~~
 cc1: some warnings being treated as errors
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/crypth.o] Error 1
 make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG] Error 2

@@ -44,6 +44,13 @@ const size_t chunk = 1024;
 static const char *sep = "\n\n---\n\n";
 
 
+// Calcular el HAMC(SHA-256) con la clave K del contenido que nos pasan:
+static int
+compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
+{
+  
+}
+
 // Calcula HMAC(SHA-256) con la clave K embebida del contenido del fichero f y lo concatena al fichero f en buf_len:
 // buf + "\n\n---\n\n" + base64(HMAC) => Devuelve bytes añadidos o <0 en error
 static ssize_t 
@@ -176,7 +183,7 @@ printH (int fd)
 {
   char *buf = NULL;   // Buffer en memoria del kernel --> contenido leído a certificar
   size_t buf_len = 0; // Longitud del buffer --> contenido leído
-  int rc;			        // Registro de errores
+  size_t rc;			        // Registro de errores
 
   // Ver que tenemos un fd válido en ESTE proceso o no se ha pasado ningún fd de momento::
   if (fd < 0)
@@ -333,23 +340,8 @@ simple_init (void)
   // Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log)
   // %*phN muestra el buffer en hex sin espacios
   // %*phC muestra bytes (del buffer) separados por ':'
-  printk (KERN_DEBUG "K (32Bytes) generated in the load = %*phC\n", KEY_SIZE,
+  printk (KERN_DEBUG "K (32Bytes) loaded = %*phC\n", KEY_SIZE,
 	  K);
-
-  // Codificar K en Base64 para imprimirlo en los logs del kernel
-  // Fórmula: base64_len = 4 * ((input_len + 2) / 3)
-  // base64_encode(const u8 *src, size_t srclen, char *dst) --> devuelve nº bytes escritos en dst (o error <0)
-  char *Kb64;
-  int b64len = base64_encode ((const u8 *) K, KEY_SIZE, Kb64);
-  if (b64len < 0)
-    {
-      printk (KERN_ERR "base64_encode(K) failed: %d\n", b64len);
-    }
-  else
-    {
-      Kb64[b64len] = '\0';
-      printk (KERN_DEBUG "K (Base64) = %s\n", Kb64);
-    }
 
   // Crear el primer fichero en /proc para la funcionalidad básica de
   // escribir el fd del fichero donde quiere escribir el contenido certificado
