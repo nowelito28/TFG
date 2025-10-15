@@ -34,9 +34,6 @@ module_param (fd, int, 0660);
 // Puntero de referencia/entrada al fichero que crearemos en /proc --> /proc/fddev
 static struct proc_dir_entry *ent;
 
-// Puntero de seguimiento/salida para strtol --> lo sobreescribe
-static char *endptr = NULL;
-
 // Leer chunk de 1024 bytes máx del fichero fd (para no usar demasiada memoria del kernel)
 static const size_t chunk = 1024;
 
@@ -80,7 +77,7 @@ compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac
   desc->tfm = tfm;  // Le asociamos el algoritmo de HMAC(SHA-256) -> Handler/transformador
   // flujo init -> update -> final en un paso sobre buf (contenido)
   rc = crypto_shash_digest(desc, buf, buf_len, *hmac);
-
+  
   // Limpieza de memoria del handler al final o en error
 out_free_tfm:
     crypto_free_shash(tfm);
@@ -92,7 +89,7 @@ out_free_tfm:
 static ssize_t 
 get_hmac(struct file *f, const char *buf, size_t buf_len)
 {
-  int rc;               // Registro de errores
+  ssize_t rc;               // Registro de errores
   u8 *hmac = NULL;    // Buffer de salida del HMAC (array de bytes/chars)
   unsigned int hmac_len = 0;  // Longitud del HMAC (se sobreescribe las variables)
   char *b64 = NULL;   // HMAC en Base64
@@ -100,7 +97,7 @@ get_hmac(struct file *f, const char *buf, size_t buf_len)
   size_t seplen = strlen(sep); // 7 bytes --> len del separador
 
   // 1) HMAC(SHA-256)(K, buf) --> calcular el HMAC del contenido leído del fichero -> f:
-  rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (u8 **)buf, (size_t)buf_len, &hmac, &hmac_len);
+  rc = compute_hmac_sha256((const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
   if (rc)   // Ver si ha habido error
     return rc;
 
@@ -165,7 +162,7 @@ out_free_hmac:
 static int
 read_file (struct file *f, char **buf, size_t *buf_len)
 {
-  int rc = 0;        // Registro de errores
+  ssize_t rc = 0;        // Registro de errores
   loff_t size = i_size_read(file_inode(f)); // Tamaño del fichero f (bytes)
   loff_t pos = 0;           // Posición actual de lectura en el fichero f --> inicialmente 0
 
@@ -178,7 +175,7 @@ read_file (struct file *f, char **buf, size_t *buf_len)
 
   // Reserva un buffer del tamaño actual del fichero en memoria del kernel
   *buf = kvmalloc(size, GFP_KERNEL);
-  if (!buf)
+  if (!*buf)
     return -ENOMEM;
 
   // Leer el fichero 'f' --> (1024 bytes máx = chunk) ó hasta EOF (pos = size) o hasta encontrar el separador
@@ -189,7 +186,7 @@ read_file (struct file *f, char **buf, size_t *buf_len)
     loff_t posr = pos;
     // Leer desde el fichero 'f' en memoria del kernel (buf + pos --> posición por la que se encuentra el buffer del kernel) 
     // hasta to_read bytes --> EOF o tope de chunk
-    ssize_t r = kernel_read(f, buf + pos, to_read, &posr);
+    ssize_t r = kernel_read(f, *buf + pos, to_read, &posr);
     if (r < 0) {  // Error en la lectura --> Saltar a etiqueta de limpieza de memoria y salir con el código de error
        rc = r;
        goto err;
@@ -219,7 +216,7 @@ printH (int fd)
 {
   char *buf = NULL;   // Buffer en memoria del kernel --> contenido leído a certificar
   size_t buf_len = 0; // Longitud del buffer --> contenido leído
-  size_t rc;			        // Registro de errores
+  ssize_t rc;			        // Registro de errores
 
   // Ver que tenemos un fd válido en ESTE proceso o no se ha pasado ningún fd de momento::
   if (fd < 0)
@@ -246,7 +243,7 @@ printH (int fd)
   if (rc < 0) 
     goto out_put;
 
-  // 3) Certificar (HMAC(SHA 256) con clave K) y poner al final:
+  // 3) Certificar (HMAC(SHA 256)) con clave K) y poner al final del fichero fd:
   rc = get_hmac(f, buf, buf_len);
   if (rc < 0) {
     printk(KERN_ERR "Error printH: generating HMAC failed para fd %d: %zd\n", fd, rc);

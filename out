@@ -60,30 +60,56 @@ noel@localhost:~/Desktop/TFG$ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/crypth.o
-/home/noel/Desktop/TFG/crypth.c: In function ‘get_hmac’:
-/home/noel/Desktop/TFG/crypth.c:103:65: warning: passing argument 4 of ‘compute_hmac_sha256’ makes pointer from integer without a cast [-Wint-conversion]
-  103 |  = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (u8 **)buf, (size_t)buf_len, &hmac, &hmac_len);
-      |                                                             ^~~~~~~~~~~~~~~
-      |                                                             |
-      |                                                             long unsigned int
-
-/home/noel/Desktop/TFG/crypth.c:50:77: note: expected ‘unsigned int *’ but argument is of type ‘long unsigned int’
-   50 | ha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
-      |                                                 ~~~~~~~~~~~~~~^~~~~~~~
-
-/home/noel/Desktop/TFG/crypth.c:103:8: error: too many arguments to function ‘compute_hmac_sha256’
-  103 |   rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (u8 **)buf, (size_t)buf_len, &hmac, &hmac_len);
-      |        ^~~~~~~~~~~~~~~~~~~
-/home/noel/Desktop/TFG/crypth.c:50:1: note: declared here
-   50 | compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
-      | ^~~~~~~~~~~~~~~~~~~
-/home/noel/Desktop/TFG/crypth.c: At top level:
-/home/noel/Desktop/TFG/crypth.c:38:14: warning: ‘endptr’ defined but not used [-Wunused-variable]
-   38 | static char *endptr = NULL;
-      |              ^~~~~~
-make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/crypth.o] Error 1
-make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG] Error 2
-make[1]: *** [Makefile:224: __sub-make] Error 2
+  MODPOST /home/noel/Desktop/TFG/Module.symvers
+  CC [M]  /home/noel/Desktop/TFG/crypth.mod.o
+  LD [M]  /home/noel/Desktop/TFG/crypth.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-make: *** [Makefile:19: all] Error 2
+noel@localhost:~/Desktop/TFG$ su 
+Password: 
+localhost:TFG:# insmod crypth.ko
+localhost:TFG:# dmesg | tail
+[  457.595960] vc4-drm gpu: swiotlb buffer is full (sz: 4194304 bytes), total 32768 (slots), used 0 (slots)
+[  479.350031] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  534.268809] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  558.119957] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  567.726001] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  695.103325] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  701.828147] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  717.663603] crypth: loading out-of-tree module taints kernel.
+[  717.679212] K (32Bytes) loaded = a3:c4:e5:05:39:3d:eb:27:c6:ff:b3:95:5d:ac:e5:25:af:02:f8:c5:ab:53:03:73:4d:34:f6:09:b0:fc:c8:66
+[  717.679248] Creating new proc file: /proc/fddev
+localhost:TFG:# ./user_wr
+Content certificated with HMAC(SHA-256):
+This is an authentic content to be validated by HMAC(SHA-256)!!
+File descriptor written in /proc/fddev:
+3 => Content has been certificated.
+Content of the created file (./file_handoff):
+This is an authentic content to be validated by HMAC(SHA-256)!!
+
+---
+
+xLAkFWXNnioXGbgxGECkmcLp+q/sEMqSShCv9BhaWqA=
+localhost:TFG:# dmesg | tail
+[  695.103325] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  701.828147] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  717.663603] crypth: loading out-of-tree module taints kernel.
+[  717.679212] K (32Bytes) loaded = a3:c4:e5:05:39:3d:eb:27:c6:ff:b3:95:5d:ac:e5:25:af:02:f8:c5:ab:53:03:73:4d:34:f6:09:b0:fc:c8:66
+[  717.679248] Creating new proc file: /proc/fddev
+[  734.247395] write handler
+[  734.275619] printH: file fd=3 certificated with HMAC(SHA-256) and appended at the bottom
+[  734.275663] write to /proc/fddev: written 1 bytes from the user
+[  734.275676] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (appended 51 bytes)
+[  739.914537] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+localhost:TFG:# rmmod crypth 
+localhost:TFG:# dmesg | tail
+[  701.828147] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  717.663603] crypth: loading out-of-tree module taints kernel.
+[  717.679212] K (32Bytes) loaded = a3:c4:e5:05:39:3d:eb:27:c6:ff:b3:95:5d:ac:e5:25:af:02:f8:c5:ab:53:03:73:4d:34:f6:09:b0:fc:c8:66
+[  717.679248] Creating new proc file: /proc/fddev
+[  734.247395] write handler
+[  734.275619] printH: file fd=3 certificated with HMAC(SHA-256) and appended at the bottom
+[  734.275663] write to /proc/fddev: written 1 bytes from the user
+[  734.275676] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (appended 51 bytes)
+[  739.914537] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
+[  783.897037] Delating proc file: /proc/fddev
 

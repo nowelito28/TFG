@@ -88,7 +88,7 @@ main (int argc, char *argv[])
       close (fd);
       err (EXIT_FAILURE, "Error writing in %s", path);
     }
-  printf ("Content certificated with HMAC(SHA-256):\n%s\n", cont);
+  printf ("Content to be certificated by HMAC(SHA-256):\n%s\n", cont);
 
   // Escribir en el fichero de /proc (/proc/fddev) el 'fd' (sin el '/0') del fichero creado (file_handoff) y que será certificado su contenido:
   if (write_full (fd_proc, fd_str, strlen (fd_str)) != 0)
