@@ -1,1 +1,0 @@
-savedcmd_/home/noel/Desktop/TFG/crypth.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T scripts/module.lds -o /home/noel/Desktop/TFG/crypth.ko /home/noel/Desktop/TFG/crypth.o /home/noel/Desktop/TFG/crypth.mod.o /home/noel/Desktop/TFG/.module-common.o
