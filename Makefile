@@ -9,9 +9,17 @@ EXTRA_CFLAGS += -DSEALFS_VERSION=\"0.91\"
 # CAMBIAR PARA EL NOMBRE DE CADA MÓDULO!!
 obj-m += crypth.o
 
-# Genera key_embedded.h si falta (mediante gen_K_embedded.zsh) ---
-K_embedded.h: gen_K_embedded.zsh
-	@./gen_K_embedded.zsh
+# Asegura que el objeto dependa del header (por si alguien llama directamente a "modules")
+$(obj)/crypth.o: $(src)/K_embedded.h
+
+# Genera K_embedded.h SOLO si NO existe en este path
+K_embedded.h:
+	@if [ -f "$@" ]; then \
+		echo "[SKIP] $@ already exists"; \
+	else \
+		echo "[GEN ] Generating $@ by gen_K_embedded.sh"; \
+		./gen_K_embedded.sh; \
+	fi
 
 # Indicar al compilador (gcc) -> módulo compuesto por múltiples ficheros objeto (NO solo el principal)
 # sealfs-y := dentry.o file.o inode.o main.o super.o lookup.o mmap.o
@@ -19,7 +27,7 @@ K_embedded.h: gen_K_embedded.zsh
 # 1. Cambia al directorio de compilación del kernel en uso -> make -C /lib/modules/$(shell uname -r)/build
 # 2. Indica al sistema de compilación del kernel que compile el Makefile local en el directorio actual (pwd) -> M=$(shell pwd)
 # 3. Especifica que compile módulos externos -> modules
-all:
+all: K_embedded.h
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
 
 # Limpia todos los archivos intermedios que haya creado (*.o, *.mod.c, *.symvers, etc.) -> directorio limpio
