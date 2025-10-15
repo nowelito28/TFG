@@ -42,7 +42,6 @@ const size_t chunk = 1024;
 
 // Separador textual entre el mensaje y el HMAC codificado (7 chars + '\0')
 static const char *sep = "\n\n---\n\n";
-static const size_t seplen = strlen(sep); // 7 bytes
 
 
 // Calcula HMAC(SHA-256) con la clave K embebida del contenido del fichero f y lo concatena al fichero f en buf_len:
@@ -55,6 +54,7 @@ get_hmac(struct file *f, const char *buf, size_t buf_len)
   unsigned int hmac_len = 0;  // Longitud del HMAC (se sobreescribe las variables)
   char *b64 = NULL;   // HMAC en Base64
   ssize_t ret = 0;    // Bytes añadidos o <0 en error
+  size_t seplen = strlen(sep); // 7 bytes --> len del separador
 
   // 1) HMAC(SHA-256)(K, buf) --> calcular el HMAC del contenido leído del fichero -> f:
   rc = compute_hmac_sha256((const u8 *)K, KEY_SIZE, (const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
@@ -96,7 +96,7 @@ get_hmac(struct file *f, const char *buf, size_t buf_len)
   // Escribir el Base64 del HMAC al final del fichero f después del separador:
   off = 0;
   while (off < (size_t)b64len) {
-    w = kernel_write(f, b64 + off, (size_t)b64len - off, &pos_write);
+    ssize_t w = kernel_write(f, b64 + off, (size_t)b64len - off, &pos_write);
     if (w <= 0) {
       ret = w; 
       goto out_free_b64;
@@ -125,8 +125,6 @@ read_file (struct file *f, char **buf, size_t *buf_len)
   int rc = 0;        // Registro de errores
   loff_t size = i_size_read(file_inode(f)); // Tamaño del fichero f (bytes)
   loff_t pos = 0;           // Posición actual de lectura en el fichero f --> inicialmente 0
-  loff_t pos_prev = 0;      // Posición anterior de lectura (para buscar separador)
-  int sep_len = strlen(sep); // Longitud del separador (7 bytes)
 
   // Aceptar ficheros vacíos --> Enviar buffer vacío y longitud 0
   if (size <= 0) {
@@ -201,12 +199,12 @@ printH (int fd)
   }
 
   // 2) Leer hasta EOF o hasta separador:
-  rc = read_file(f, &buf, &buf_len, &already);
+  rc = read_file(f, &buf, &buf_len);
   if (rc < 0) 
     goto out_put;
 
   // 3) Certificar (HMAC(SHA 256) con clave K) y poner al final:
-  rc = get_hamc(f, buf, buf_len);
+  rc = get_hmac(f, buf, buf_len);
   if (rc < 0) {
     printk(KERN_ERR "Error printH: generating HMAC failed para fd %d: %zd\n", fd, rc);
     goto out_free;
@@ -276,7 +274,7 @@ mywrite (struct file *file, const char __user *ubuf, size_t count,
 
   // Cambiar el puntero de seguimiento/entrada de escritura del fichero "/proc/mydev" al último char copiado
   // Y devolver la posición por donde se encuentra el fichero = nº de bytes hemos recibido del user
-  *ppos = c
+  *ppos = c;
   return c;
 }
 
@@ -341,6 +339,7 @@ simple_init (void)
   // Codificar K en Base64 para imprimirlo en los logs del kernel
   // Fórmula: base64_len = 4 * ((input_len + 2) / 3)
   // base64_encode(const u8 *src, size_t srclen, char *dst) --> devuelve nº bytes escritos en dst (o error <0)
+  char *Kb64;
   int b64len = base64_encode ((const u8 *) K, KEY_SIZE, Kb64);
   if (b64len < 0)
     {
