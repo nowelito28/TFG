@@ -1,3 +1,5 @@
+localhost:TFG:# ./gen_K_embedded.sh
+OK: generated K_embedded.h with key K (64 bytes).
 localhost:TFG:# make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
@@ -7,114 +9,27 @@ make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   LD [M]  /home/noel/Desktop/TFG/crypth.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 localhost:TFG:# insmod crypth.ko
-localhost:TFG:# dmesg | tail
-[ 8059.976472] hwmon hwmon1: Voltage normalised
-[ 8061.988792] hwmon hwmon1: Undervoltage detected!
-[ 8066.020437] hwmon hwmon1: Voltage normalised
-[ 8067.697219] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 8080.134167] hwmon hwmon1: Undervoltage detected!
-[ 8082.148769] hwmon hwmon1: Voltage normalised
-[ 8096.110424] K (32Bytes) generated in the load = 15:d5:54:59:2b:8c:45:09:14:ca:5f:4a:7c:76:00:e9:6c:a2:0a:88:65:51:1f:de:12:79:82:a8:a7:5d:98:78
-[ 8096.110464] K (Base64) = FdVUWSuMRQkUyl9KfHYA6WyiCohlUR/eEnmCqKddmHg=
-[ 8096.110478] Creating new proc file: /proc/fddev
-[ 8096.110504] Creating new proc file: /proc/hmacdev
-localhost:TFG:# ./user_wr
+localhost:TFG:# dmesg | tail 
+...        
+[ 5024.747380] K (64Bytes) loaded = 30:b1:6d:64:51:30:ba:e0:37:02:57:96:5b:86:1c:65:00:35:b7:78:0a:37:56:ee:b0:22:13:fb:c9:9f:dd:d2:c7:8b:b2:c6:46:7e:3a:44:65:62:b3:ac:dc:9c:8e:3a:b9:89:b4:ea:3a:b5:63:da:ec:e2:63:3f:6e:0a:7d:59
+[ 5024.747443] New proc file created: /proc/fddev
+localhost:TFG:# gcc -c -Wshadow -Wvla -Wall user_wr.c
+localhost:TFG:# gcc -o user_wr user_wr.o             
+localhost:TFG:# ./user_wr                            
 File descriptor written in /proc/fddev:
 3
-Content certificated written through /proc/hmacdev:
-This is an authentic content, validated by HMAC(SHA-256)!!
-Content of the created file (./file_handoff):
-This is an authentic content, validated by HMAC(SHA-256)!!
-
----
-
-QUHrFe7GKj0P4/8P9qmoD9Ohs+yRL8hhXmIO5IfkiF8=
-localhost:TFG:# dmesg | tail
-[ 8067.697219] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 8080.134167] hwmon hwmon1: Undervoltage detected!
-[ 8082.148769] hwmon hwmon1: Voltage normalised
-[ 8096.110424] K (32Bytes) generated in the load = 15:d5:54:59:2b:8c:45:09:14:ca:5f:4a:7c:76:00:e9:6c:a2:0a:88:65:51:1f:de:12:79:82:a8:a7:5d:98:78
-[ 8096.110464] K (Base64) = FdVUWSuMRQkUyl9KfHYA6WyiCohlUR/eEnmCqKddmHg=
-[ 8096.110478] Creating new proc file: /proc/fddev
-[ 8096.110504] Creating new proc file: /proc/hmacdev
-[ 8135.683905] write handler
-[ 8135.683980] write to /proc/fddev: written 1 bytes from the user
-[ 8135.685149] Successed printH: wrote 109 bytes (msg + sep + HMACb64)
-localhost:TFG:# rmmod crypth 
-localhost:TFG:# dmesg | tail
-[ 8096.110424] K (32Bytes) generated in the load = 15:d5:54:59:2b:8c:45:09:14:ca:5f:4a:7c:76:00:e9:6c:a2:0a:88:65:51:1f:de:12:79:82:a8:a7:5d:98:78
-[ 8096.110464] K (Base64) = FdVUWSuMRQkUyl9KfHYA6WyiCohlUR/eEnmCqKddmHg=
-[ 8096.110478] Creating new proc file: /proc/fddev
-[ 8096.110504] Creating new proc file: /proc/hmacdev
-[ 8135.683905] write handler
-[ 8135.683980] write to /proc/fddev: written 1 bytes from the user
-[ 8135.685149] Successed printH: wrote 109 bytes (msg + sep + HMACb64)
-[ 8169.160562] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[ 8180.561615] Delating proc file: /proc/fddev
-[ 8180.561651] Delating proc file: /proc/hmacdev
-
-
-
-
-
-
-
-NEW IMPLEMENTATION:
-
-noel@localhost:~/Desktop/TFG$ make
-make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
-make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-  CC [M]  /home/noel/Desktop/TFG/crypth.o
-  MODPOST /home/noel/Desktop/TFG/Module.symvers
-  CC [M]  /home/noel/Desktop/TFG/crypth.mod.o
-  LD [M]  /home/noel/Desktop/TFG/crypth.ko
-make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-noel@localhost:~/Desktop/TFG$ su 
-Password: 
-localhost:TFG:# insmod crypth.ko
-localhost:TFG:# dmesg | tail
-[  457.595960] vc4-drm gpu: swiotlb buffer is full (sz: 4194304 bytes), total 32768 (slots), used 0 (slots)
-[  479.350031] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  534.268809] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  558.119957] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  567.726001] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  695.103325] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  701.828147] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  717.663603] crypth: loading out-of-tree module taints kernel.
-[  717.679212] K (32Bytes) loaded = a3:c4:e5:05:39:3d:eb:27:c6:ff:b3:95:5d:ac:e5:25:af:02:f8:c5:ab:53:03:73:4d:34:f6:09:b0:fc:c8:66
-[  717.679248] Creating new proc file: /proc/fddev
-localhost:TFG:# ./user_wr
-Content certificated with HMAC(SHA-256):
+Content dispatched by kernel in ./file_handoff(./file_handoff):
 This is an authentic content to be validated by HMAC(SHA-256)!!
-File descriptor written in /proc/fddev:
-3 => Content has been certificated.
-Content of the created file (./file_handoff):
-This is an authentic content to be validated by HMAC(SHA-256)!!
-
----
-
-xLAkFWXNnioXGbgxGECkmcLp+q/sEMqSShCv9BhaWqA=
+-HMAC(SHA-256)-
+sFxyRpac67COIsxmOrv1MZJpNj3QkNAH2b6DZS18Czs=
+localhost:TFG:# dmesg | tail 
+...
+[ 5120.315691] /proc/fddev: write handler
+[ 5120.315737] /proc/fddev write: written 1 bytes from the user
+[ 5120.316082] printH: file fd=3 has been written with content certificated by HMAC(SHA-256)
+[ 5120.316099] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (124 bytes written)
+localhost:TFG:# rmmod crypth                         
 localhost:TFG:# dmesg | tail
-[  695.103325] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  701.828147] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  717.663603] crypth: loading out-of-tree module taints kernel.
-[  717.679212] K (32Bytes) loaded = a3:c4:e5:05:39:3d:eb:27:c6:ff:b3:95:5d:ac:e5:25:af:02:f8:c5:ab:53:03:73:4d:34:f6:09:b0:fc:c8:66
-[  717.679248] Creating new proc file: /proc/fddev
-[  734.247395] write handler
-[  734.275619] printH: file fd=3 certificated with HMAC(SHA-256) and appended at the bottom
-[  734.275663] write to /proc/fddev: written 1 bytes from the user
-[  734.275676] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (appended 51 bytes)
-[  739.914537] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-localhost:TFG:# rmmod crypth 
-localhost:TFG:# dmesg | tail
-[  701.828147] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  717.663603] crypth: loading out-of-tree module taints kernel.
-[  717.679212] K (32Bytes) loaded = a3:c4:e5:05:39:3d:eb:27:c6:ff:b3:95:5d:ac:e5:25:af:02:f8:c5:ab:53:03:73:4d:34:f6:09:b0:fc:c8:66
-[  717.679248] Creating new proc file: /proc/fddev
-[  734.247395] write handler
-[  734.275619] printH: file fd=3 certificated with HMAC(SHA-256) and appended at the bottom
-[  734.275663] write to /proc/fddev: written 1 bytes from the user
-[  734.275676] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (appended 51 bytes)
-[  739.914537] vc4-drm gpu: swiotlb buffer is full (sz: 2097152 bytes), total 32768 (slots), used 0 (slots)
-[  783.897037] Delating proc file: /proc/fddev
+...
+[ 5192.878514] Proc file deleted: /proc/fddev
 

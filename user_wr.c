@@ -81,7 +81,7 @@ main (int argc, char *argv[])
   snprintf (fd_str, sizeof (fd_str), "%d", fd);
 
   // 4) Escribir en el fichero de /proc (/proc/fddev) el 'fd' (sin el '/0') del fichero creado (file_handoff):
-  if (write_full (fd_proc, fd_str, strlen (fd_str)) != 0)
+  if (write_full (fd_proc, fd_str, strlen (fd_str)) <= 0)
     {
       close (fd_proc);
       close (fd);
@@ -109,7 +109,7 @@ main (int argc, char *argv[])
       err (EXIT_FAILURE, "lseek to start failed on %s", path);
     }
 
-  if (read_full (fd, result, len) != 0)
+  if (read_full (fd, result, len) < 0)
     {
       close (fd_proc);
       close (fd);

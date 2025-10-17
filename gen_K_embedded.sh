@@ -3,7 +3,7 @@ set -e               # Salir si cualquier comando devuelve error (exit != 0)
 
 # 1) Generar 64 bytes aleatorios y guardarlos en key.bin (binario) -> Clave óptima para SHA-256
 KEY_LEN=64
-openssl rand -out key.bin KEY_LEN
+openssl rand -out key.bin ${KEY_LEN}
 
 # 2) Convertir el binario a cabecera C con el símbolo K en un .h 
 # --> Array de chars/bytes(const unsigned char K[]) y longitud (const unsigned int K_len=32)
