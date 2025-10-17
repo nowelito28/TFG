@@ -14,14 +14,19 @@ localhost:TFG:# dmesg | tail
 [ 5024.747380] K (64Bytes) loaded = 30:b1:6d:64:51:30:ba:e0:37:02:57:96:5b:86:1c:65:00:35:b7:78:0a:37:56:ee:b0:22:13:fb:c9:9f:dd:d2:c7:8b:b2:c6:46:7e:3a:44:65:62:b3:ac:dc:9c:8e:3a:b9:89:b4:ea:3a:b5:63:da:ec:e2:63:3f:6e:0a:7d:59
 [ 5024.747443] New proc file created: /proc/fddev
 localhost:TFG:# gcc -c -Wshadow -Wvla -Wall user_wr.c
-localhost:TFG:# gcc -o user_wr user_wr.o             
-localhost:TFG:# ./user_wr                            
+localhost:TFG:# gcc -o user_wr user_wr.o -lcrypto           
+localhost:TFG:# ./user_wr
 File descriptor written in /proc/fddev:
 3
 Content dispatched by kernel in ./file_handoff(./file_handoff):
 This is an authentic content to be validated by HMAC(SHA-256)!!
 -HMAC(SHA-256)-
 sFxyRpac67COIsxmOrv1MZJpNj3QkNAH2b6DZS18Czs=
+Extracted content:
+This is an authentic content to be validated by HMAC(SHA-256)!!
+Extracted HMAC(Base64):
+sFxyRpac67COIsxmOrv1MZJpNj3QkNAH2b6DZS18Czs=
+HMAC(SHA-256) Base64 bytes compare: Equal -> valid HMAC
 localhost:TFG:# dmesg | tail 
 ...
 [ 5120.315691] /proc/fddev: write handler

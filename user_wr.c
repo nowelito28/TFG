@@ -14,7 +14,7 @@
 #include "K_embedded.h"  // const unsigned char K[]; const unsigned int K_len;
 
 // Separador y longitud:
-const char[] sep = "\n-HMAC(SHA-256)-\n";
+const char sep[] = "\n-HMAC(SHA-256)-\n";
 const char sep_len = sizeof(sep) - 1; // NO contar '\0'
 
 // Asegurarnos que se realiza la lectura completa: 
@@ -140,10 +140,10 @@ main (int argc, char *argv[])
   }
 
   int content_len = (int)(sep_pos - result);    // Longitud del contenido antes del separador
-  unsigned char *hmac_b64 = sep_pos + sep_len; // HMAC en base64 después del separador (dirección al inicio del HMAC)
+  unsigned char *hmac_b64 = (unsigned char*)sep_pos + sep_len; // HMAC en base64 después del separador (dirección al inicio del HMAC)
   *sep_pos = '\0';
   char *content = result;             // Contenido antes del separador
-  int hmac_b64_len = strlen(hmac_b64) - 1; // Longitud del HMAC en base64 (sin contar '\0')
+  int hmac_b64_len = sizeof(hmac_b64) - 1; // Longitud del HMAC en base64 (sin contar '\0')
 
   printf ("Extracted content:\n%s\n", content);
   printf ("Extracted HMAC(Base64):\n%s\n", hmac_b64);
