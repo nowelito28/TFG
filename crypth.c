@@ -14,215 +14,151 @@
 #include <linux/slab.h>
 #include <linux/err.h>
 
-// Clave K embebida de 32 bytes (generada con xxd -i) --> Creado key_embedded.h desde un binario (key.bin)
-#include "K_embedded.h"   // define: unsigned char K[]; unsigned int K_len=32;
+#include "K_embedded.h"   // unsigned char K[]; unsigned int K_len=64;
 
-#define BUFSIZE  100		// Constante global
-#define KEY_SIZE 32		  // Longitud en bytes que queremos que tome la clave => K
+enum { BUFSIZE = 100 };
 
-// Metadatos del modulo:
 MODULE_LICENSE ("Dual BSD/GPL");
 MODULE_AUTHOR ("Noel");
-
-// Parámetros del módulo --> Valor por defecto si no se le pasa al cargar el modulo:
-
-// fd --> descriptor de fichero (fd) que se va a pasar entre procesos (desde espacio de user)
-// fd => inicialiar fd = -1 (valor inválido) --> hasta que no sea váido --> NO buscar en él
-static int fd = -1;
-module_param (fd, int, 0660);
 
 // Puntero de referencia/entrada al fichero que crearemos en /proc --> /proc/fddev
 static struct proc_dir_entry *ent;
 
-// Leer chunk de 1024 bytes máx del fichero fd (para no usar demasiada memoria del kernel)
-static const size_t chunk = 1024;
+// Separador textual entre el contenido y el HMAC en base 64:
+static const char sep[] = "\n-HMAC(SHA-256)-\n";
+static const char sep_len = sizeof(sep) - 1; // NO contar '\0'
 
-// Separador textual entre el mensaje y el HMAC codificado (7 chars + '\0')
-static const char *sep = "\n\n---\n\n";
 
+// Helper --> Escribir todo el contenido que se pase en f:
+// Devuelve bytes escritos (off) en éxito <-> <0 en error <-> 0 si encuentra EOF
+static ssize_t 
+write_full(struct file *f, const char *buf, size_t len, loff_t *pos)
+{
+    ssize_t off = 0;
+    while (off < len) {
+        ssize_t w = kernel_write(f, buf + off, len - off, pos);
+        if (w < 0)  
+          return w;
+        if (w == 0) 
+          return -EIO;
+        off += w;
+    }
+    return off;
+}
+
+// Escribir en fichero f (de fd) -> cont + sep + HMAC
+// Devuelve >0 = bytes escritos totales <-> <0 = error
+static ssize_t
+write_cont_hmac(struct file *f, const char *cont, size_t cont_len, const char *hmac_b64, size_t hmac_b64len)
+{
+  loff_t pos = 0;
+  ssize_t w, total = 0;
+
+  w = write_full(f, cont, cont_len, &pos);
+  if (w < 0) 
+    return w;
+  total += w;
+
+  w = write_full(f, sep, sep_len, &pos);
+  if (w < 0)
+    return w;
+  total += w;
+
+  w = write_full(f, hmac_b64, hmac_b64len, &pos);
+  if (w < 0)
+    return w;
+  total += w;
+
+  return total;
+}
 
 // Calcular el HAMC(SHA-256) con la clave K del contenido que nos pasan:
-// Devuelve 0 si todo ok -> <0 (‐errno) si hay error
+// Devuelve 0 en éxito <-> <0 en error
 static ssize_t
 compute_hmac_sha256(const u8 *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len)
 {
-  ssize_t rc; // Registro de errores
-  struct crypto_shash *tfm; // Handler del Crypto API del kernel para un hash síncrono --> shash => Transformador
+  ssize_t rc;
+  // Handler del Crypto API del kernel para un hash síncrono --> shash => Transformador:
+  struct crypto_shash *tfm;
 
-  // HAMC(SHA-256) como algoritmo => pide al Crypto API del kernel handler sincrónico (shash) para HMAC-SHA256
+  // 1) HAMC(SHA-256) como algoritmo => pide al Crypto API del kernel handler sincrónico (shash) para HMAC-SHA256
   tfm = crypto_alloc_shash("hmac(sha256)", 0, 0);
-  if (IS_ERR(tfm))  // Algoritmo NO disponible
-      return PTR_ERR(tfm);  // -ENOENT
+  if (IS_ERR(tfm))
+      return PTR_ERR(tfm);
 
-  // Asocia la clave al “transform” (handler)
+  // 2) Asocia la clave al “transform” (handler)
   rc = crypto_shash_setkey(tfm, K, KEY_SIZE);
-  if (rc)   // Error si tamaños NO válidos
+  if (rc)
       goto out_free_tfm;
 
-  // Reservar el buffer de salida (para el hmac) y comunicar su tamaño
-  // Tamaño del hash (32bytes para SHA-256)
+  // 3) Reservar memoria para el HMAC (calculando su tamaño)
   *hmac_len = crypto_shash_digestsize(tfm);
-  // Reservar el buffer de salida (hamc) con dicho tamaño calculado en el heap del kernel
-  *hmac = kmalloc(*hmac_len, GFP_KERNEL); // caller debe hacer kfree(*hmac) en éxito -> una vez se le llama se libera en memoria
+  *hmac = kmalloc(*hmac_len, GFP_KERNEL);
   if (!*hmac) {
       rc = -ENOMEM;
       goto out_free_tfm;
   }
 
-  // Calcular el HMAC en una sola llamada (one-shot)
-  // SHASH_DESC_ON_STACK(desc, tfm) --> macro (de <crypto/hash.h>) crea en la pila un bloque de memoria del kernel 
-  // del tamaño correcto para un struct shash_desc + el área privada que necesita el algoritmo => sizeof(struct shash_desc) + crypto_shash_descsize(tfm)
-  // desc --> esta macro declara este puntero struct shash_desc *desc --> estado intermedio del HMAC mientras se procesa
+  // 4) Calcular el HMAC en una sola llamada (one-shot):
+  // SHASH_DESC_ON_STACK(desc, tfm) --> macro (<crypto/hash.h>) crea en la pila un bloque de memoria del kernel => sizeof(struct shash_desc) + crypto_shash_descsize(tfm)
+  // struct shash_desc *desc --> estado intermedio del HMAC mientras se procesa -> Le asociamos el algoritmo de HMAC(SHA-256) -> Handler/transformador
   SHASH_DESC_ON_STACK(desc, tfm);
-  desc->tfm = tfm;  // Le asociamos el algoritmo de HMAC(SHA-256) -> Handler/transformador
-  // flujo init -> update -> final en un paso sobre buf (contenido)
+  desc->tfm = tfm;
+
+  // 5) flujo: init -> update -> final en un paso sobre buf (contenido) => Cálculo final del HMAC
   rc = crypto_shash_digest(desc, buf, buf_len, *hmac);
   
-  // Limpieza de memoria del handler al final o en error
 out_free_tfm:
     crypto_free_shash(tfm);
-    return rc;  // Devolver 0 en éxito <-> <0 en error
+    return rc;
 }
 
-// Calcula HMAC(SHA-256) con la clave K embebida del contenido del fichero f y lo concatena al fichero f en buf_len:
-// buf + "\n\n---\n\n" + base64(HMAC) => Devuelve bytes añadidos o <0 en error
+// Calcula HMAC(SHA-256) con la clave K embebida del contenido que le pasamos:
+// Devuelve => 0 en éxito o <0 en error
 static ssize_t 
-get_hmac(struct file *f, const char *buf, size_t buf_len)
+get_hmac(const char *buf, size_t buf_len, u8 **hmac, unsigned int *hmac_len, char **hmac_b64, size_t *hmac_b64len)
 {
-  ssize_t rc;               // Registro de errores
-  u8 *hmac = NULL;    // Buffer de salida del HMAC (array de bytes/chars)
-  unsigned int hmac_len = 0;  // Longitud del HMAC (se sobreescribe las variables)
-  char *b64 = NULL;   // HMAC en Base64
-  ssize_t ret = 0;    // Bytes añadidos o <0 en error
-  size_t seplen = strlen(sep); // 7 bytes --> len del separador
-
   // 1) HMAC(SHA-256)(K, buf) --> calcular el HMAC del contenido leído del fichero -> f:
-  rc = compute_hmac_sha256((const u8 *)buf, (size_t)buf_len, &hmac, &hmac_len);
-  if (rc)   // Ver si ha habido error
+  rc = compute_hmac_sha256((const u8 *)buf, buf_len, hmac, hmac_len);
+  if (rc)
     return rc;
 
-  // 2) Calcular Base64(HMAC):
-  // Espacio necesario para el Base64 del HMAC
-  size_t b64cap = BASE64_CHARS(hmac_len) + 1; // +1 para '\0'
-  b64 = kmalloc(b64cap, GFP_KERNEL);  // Reservar memoria para el Base64 del HMAC -> GFP_KERNEL porque puede dormir
-  if (!b64) { 
-    ret = -ENOMEM; 
-    goto out_free_hmac; 
+  // 2) Calcular espacio de Base64(HMAC):
+  size_t hmac_b64cap = BASE64_CHARS(hmac_len);
+  *hmac_b64 = kmalloc(hmac_b64cap, GFP_KERNEL);
+  if (!*hmac_b64) { 
+    kfree(*hmac);
+    return -ENOMEM; 
   }
 
-  // Codificar el HMAC a Base64 y guardar la longitud real escrita en b64len
-  int b64len = base64_encode(hmac, hmac_len, b64);
-  if (b64len < 0) { // Error al code base 64
-    ret = b64len; 
-    goto out_free_b64; 
-  }
-  b64[b64len] = '\0';
-
-  // 3) Concatenar al final del contenido leído (buf_len)
-  // Posición de escritura al final del contenido leído
-  loff_t pos_write = (loff_t)buf_len;
-
-  // Escribir el separador al final del fichero f: --> Asegurarnos que se escribe todo con un bucle
-  size_t off = 0;
-  while (off < seplen) {
-    ssize_t w = kernel_write(f, sep + off, seplen - off, &pos_write);
-    if (w <= 0) { 
-      ret = w; 
-      goto out_free_b64; 
-    }
-    off += (size_t)w;
+  // 3) Codificar el HMAC a Base64 y guardar la longitud real escrita en b64len
+  *hmac_b64len = base64_encode(hmac, hmac_len, hmac_b64);
+  if (*hmac_b64len < 0) {
+    kfree(*hmac);
+    kfree(*hmac_b64);
+    return *hmac_b64len; 
   }
 
-  // Escribir el Base64 del HMAC al final del fichero f después del separador:
-  off = 0;
-  while (off < (size_t)b64len) {
-    ssize_t w = kernel_write(f, b64 + off, (size_t)b64len - off, &pos_write);
-    if (w <= 0) {
-      ret = w; 
-      goto out_free_b64;
-    }
-    off += (size_t)w;
-  }
-
-  // Success --> devolver bytes añadidos al contenido original (buf_len)
-  ret = (ssize_t)(seplen + b64len);
-
-// Liberar memoria reservada y salir --> 0 = ya estaba certificado (todavía NO) <=> >0 = bytes añadidos <=> <0 = error
-out_free_b64:
-  kfree(b64);
-out_free_hmac:
-  kfree(hmac);
-  return ret;
+  return 0;
 }
 
-// Leer el contenido del fichero 'f' hasta EOF o hasta encontrar el separador del HMAC (si ya está certificado)
-// Devuelve en *buf un buffer (kvmalloc) con el contenido leído y en *buf_len su longitud
-// Si encuentra separador => *already=0 y el contenido devuelto llega hasta justo antes del separador
-// Retorna 0 en éxito <=> <0 si error
-static ssize_t
-read_file (struct file *f, char **buf, size_t *buf_len)
-{
-  ssize_t rc = 0;        // Registro de errores
-  loff_t size = i_size_read(file_inode(f)); // Tamaño del fichero f (bytes)
-  loff_t pos = 0;           // Posición actual de lectura en el fichero f --> inicialmente 0
-
-  // Aceptar ficheros vacíos --> Enviar buffer vacío y longitud 0
-  if (size <= 0) {
-    *buf = NULL;
-    *buf_len = 0;
-    return 0;
-  }
-
-  // Reserva un buffer del tamaño actual del fichero en memoria del kernel
-  *buf = kvmalloc(size, GFP_KERNEL);
-  if (!*buf)
-    return -ENOMEM;
-
-  // Leer el fichero 'f' --> (1024 bytes máx = chunk) ó hasta EOF (pos = size) o hasta encontrar el separador
-  while (pos < size) {
-    // Leer un 'chunk' de 1024 bytes ó lo que quede hasta EOF si es menor
-    size_t to_read = (size - pos > (loff_t)chunk) ? chunk : (size_t)(size - pos);
-    // kernel_read actualiza posr --> posición después de leer
-    loff_t posr = pos;
-    // Leer desde el fichero 'f' en memoria del kernel (buf + pos --> posición por la que se encuentra el buffer del kernel) 
-    // hasta to_read bytes --> EOF o tope de chunk
-    ssize_t r = kernel_read(f, *buf + pos, to_read, &posr);
-    if (r < 0) {  // Error en la lectura --> Saltar a etiqueta de limpieza de memoria y salir con el código de error
-       rc = r;
-       goto err;
-    }
-    if (r == 0) // EOF inesperado al saber ya el tamaño del fichero de antemano
-      break;
-    // Actualizar puntero de lectura hasta donde se ha quedado kernel_read
-    pos = posr;
-  }
-
-  // Cambiar el tamaño del buffer al tamaño real leído (pos)
-  *buf_len = (size_t)pos;
-  return 0;   
-
-  // Liberar memoria en caso de error y salir con él:
-err:
-  kvfree(*buf);
-  *buf = NULL;
-  *buf_len = 0;
-  return rc;
-}
-
-
-// Creamos nueva función para certificar el contenido que tenga el fichero dado por 'fd' con HMAC(SHA-256) con clave K
+// Función para certificar el contenido que queremos poneren el fichero dado por 'fd' con HMAC(SHA-256) con clave K
+// Devuelve => >0 = bytes añadidos <=> <0 = error
 static ssize_t
 printH (int fd)
 {
-  char *buf = NULL;   // Buffer en memoria del kernel --> contenido leído a certificar
-  size_t buf_len = 0; // Longitud del buffer --> contenido leído
-  ssize_t rc;			        // Registro de errores
+  ssize_t rc;
+  const char cont[] = "This is an authentic content to be validated by HMAC(SHA-256)!!";
+  const size_t cont_len = sizeof(cont) - 1; // NO contar '\0'
+  u8 *hmac = NULL;
+  unsigned int hmac_len = 0;
+  char *hmac_b64 = NULL;
+  size_t hmac_b64len = 0;
 
-  // Ver que tenemos un fd válido en ESTE proceso o no se ha pasado ningún fd de momento::
   if (fd < 0)
     {
       printk (KERN_ERR "printH: invalid fd (%d)\n", fd);
-      return -EBADF;		// fd inválido en ESTE proceso --> errno = bad file descriptor
+      return -EBADF;
     }
   
   // 1) Comprobar que el fd es válido en ESTE proceso y que es O_RDWR:
@@ -231,130 +167,124 @@ printH (int fd)
     printk(KERN_ERR "Error printH: fget failed for fd %d\n", fd);
     return -EBADF;
   }
-  // Comprobar que el fd permite leer y escribir
-  if (!(f->f_mode & FMODE_READ) || !(f->f_mode & FMODE_WRITE)) {
-    printk(KERN_ERR "Error printH: fd %d must be O_RDWR\n", fd);
+
+  // 2) Comprobar que el fd permite ESCRIBIR (no hace falta leer)
+  if (!(f->f_mode & FMODE_WRITE)) {
+    printk(KERN_ERR "Error printH: fd %d must be writable (O_WRONLY/O_RDWR)\n", fd);
     rc = -EBADF;
     goto out_put;
   }
 
-  // 2) Leer hasta EOF o hasta separador:
-  rc = read_file(f, &buf, &buf_len);
-  if (rc < 0) 
+  // 3) Comprobar que el fichero está VACÍO (size == 0) => Solo fichero fd vacío apto
+  struct inode *inode = file_inode(f);
+  loff_t fsize = i_size_read(inode);
+  if (fsize != 0) {
+    printk(KERN_ERR "Error printH: fd %d must refer to an empty file (size=%lld)\n",
+            fd, fsize);
+    rc = -ENOTEMPTY;
     goto out_put;
-
-  // 3) Certificar (HMAC(SHA 256)) con clave K) y poner al final del fichero fd:
-  rc = get_hmac(f, buf, buf_len);
-  if (rc < 0) {
-    printk(KERN_ERR "Error printH: generating HMAC failed para fd %d: %zd\n", fd, rc);
-    goto out_free;
   }
-  printk(KERN_INFO "printH: file fd=%d certificated with HMAC(SHA-256) and appended at the bottom\n", fd);
 
-  // Liberar memoria reservada y salir --> 0 = ya estaba certificado (TODAVÍA NO -> ASUMIR SOLO NO CERTIFICADOS) <=> >0 = bytes añadidos <=> <0 = error
-  // Etiqueta para saltar al flujo de limpieza y salida con antelación si es necesario:
-out_free:
-  kvfree(buf);
+  // 4) Certificar (HMAC(SHA 256)) con clave K):
+  rc = get_hmac(cont, cont_len, &hmac, &hmac_len, &hmac_b64, &hmac_b64len);
+  if (rc < 0) {
+    printk(KERN_ERR "Error printH: generating HMAC failed for fd %d: %zd\n", fd, rc);
+    goto out_put;
+  }
+
+  // 5) Escribir contenido y HMAC en el fichero fd -> cont + sep + HMAC(base 64):
+  rc = write_cont_hmac(f, cont, cont_len, hmac_b64, hmac_b64len )
+  if (rc < 0) {
+    printk(KERN_ERR "Error printH: writing content in fd %d: %zd\n", fd, rc);
+    goto out_free_hmac;
+  }
+  printk(KERN_INFO "printH: file fd=%d has been written with content certificated by HMAC(SHA-256)\n", fd);
+
+out_free_hmac:
+  kfree(hmac_b64);
+  kfree(hmac);
 out_put:
   fput(f);
   return rc;
 }
 
 // Se ejecuta al escribir en /proc/fddev desde espacio de user
+// Escribe contenido del kernel certificado en fd (userpace)
+// Devuelve bytes escritos/pos en /proc/fddev (c) en éxito <-> <0 en error <-> 0 EOF
 static ssize_t
 mywrite (struct file *file, const char __user *ubuf, size_t count,
 	 loff_t *ppos)
 {
-  // Variables temporales:
-  // c --> última posición de escritura (char) en el fichero "/proc/fddev"
-  // fd_aux --> variable (fd -> descriptor de fichero) que se escribe desde el user
-  int c, fd_aux;
-  char buf[BUFSIZE];		// Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (copiar lo que envía el espacio de user)
-  ssize_t added;           // bytes añadidos por printH (sep + b64) o <0 en error
+  int fd;
+  int c;
+  char buf[BUFSIZE];
+  ssize_t written;
 
-  // Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => semántica single-shot
-  // *ppos > 0 --> puntero de posición es mayor que 0 = se ha escrito algo ya dentro del fichero /proc/fddev
-  // count >= BUFSIZE --> tamaño que el user pide escribir (count) tiene que ser menor que el buffer definido (100 bytes) --> >= para incluir el '\0' al final
-  if (*ppos > 0 || count >= BUFSIZE)
-    return -EFAULT;		// Si se cumple una de las dos --> devolver -EFAULT (dirección user inválida)
+  // 1) Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => single-shot:
+  if (*ppos > 0 || count > BUFSIZE)
+    printK (KERN_ERR "/proc/fddev: Only one write allowed or too much bytes sent (100 bytes max)\n");
+    return -EFAULT;
+  printk (KERN_DEBUG "/proc/fddev: write handler\n");
 
-  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "fddev" --> Loggea
-  printk (KERN_DEBUG "write handler\n");
-
-  // // Copia "count" bytes desde memoria de espacio de user (ubuf) a memoria del kernel (buf)
+  // 2) Copia "count" bytes desde memoria de espacio de user (ubuf) a memoria del kernel (buf)
+  // y cambiar puntero de seguimiento del fichero /proc/fddev:
   if (copy_from_user (buf, ubuf, count))
-    // Devuelve 0 si ha salido bien --> sino => devuelve nº de bytes que no se han podido copiar
-    return -EFAULT;		// en userland => errno = EFAULT, “Bad address”
+    printk (KERN_ERR "/proc/fddev: write handler failed\n");
+    return -EFAULT;
+  c = strlen (buf);
+  printk (KERN_DEBUG "/proc/fddev write: written %d bytes from the user\n",
+	  c);
+  *ppos = c;
 
-  // Parsear descriptor de fichero que le pasa el user (fd) en forma de string
-  // kstrtoint(str, base, &res) --> convierte string a int => devulve 0 en éxito => res contiene el valor convertido => str/buf en memoria del kernel
-  // kstrtoint_from_user(ubuf, count, base, &res) --> convierte string a int desde memoria de user (igual pero desde ubuf)
-  if (kstrtoint (buf, 10, &fd_aux))
+  // 3) Parsear descriptor de fichero que le pasa el user (fd) a int -> kstrtoint(char[], base, &res)
+  if (kstrtoint (buf, 10, &fd))
     {
-      // No se pudo convertir nada
-      return -EINVAL;		// errno = invalid argument
+      printk (KERN_ERR "/proc/fddev: can not be parsed fd from userspace\n");
+      return -EINVAL;
     }
 
-  // Asignamos la variable que hemos extraído --> fd (descriptor de fichero) de referencia para hacer el certificado con HMAC:
-  fd = fd_aux;
-
-  // Certificar contenido del fichero fd dado por el user con HMAC(SHA-256) con clave K:
-  added = printH(fd);
-  if (added < 0) {
-      printk(KERN_ERR "Error mywrite: printH fallo para fd %d: %zd\n", fd, added);
-      return added;
+  // 4) Escribir contenido del kernel certificado en fd -> HMAC(SHA-256) con clave K embebida:
+  written = printH(fd);
+  if (written < 0) {
+      printk(KERN_ERR "Error mywrite: printH failed for fd %d: %zd\n", fd, written);
+      return written;
   }
+  printk(KERN_DEBUG "mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd %d (%zd bytes written)\n", fd, written);
 
-  // c = longitud del string "buf" copiado de "ubuf" sin contar '\0'
-  c = strlen (buf);
-  printk (KERN_DEBUG "write to /proc/fddev: written %d bytes from the user\n",
-	  c);
-
-  printk(KERN_INFO "mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd %d (appended %zd bytes)\n", fd, added);
-
-  // Cambiar el puntero de seguimiento/entrada de escritura del fichero "/proc/mydev" al último char copiado
-  // Y devolver la posición por donde se encuentra el fichero = nº de bytes hemos recibido del user
-  *ppos = c;
   return c;
 }
 
 // Se ejecuta al leer en /proc/fddev desde espacio de user
+// Pasarle el contenido guardado en /proc/fddev a userpace
+// Devuelve > 0 (bytes leídos -> len) <-> = 0 (EOF) <-> < 0 (error)
 static ssize_t
 myread (struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
 {
-  // Variables locales:
-  char buf[BUFSIZE];		// Array de chars con el tamaño del buffer (100) -> buffer/memoria temporal en stack del kernel (respuesta para espacio de user)
-  int len = 0;			// Numero bytes escritos en buf
+  char buf[BUFSIZE];
+  int len = 0;
 
-  // Ver si es la primera vez que se llama a "read" para este fichero --> sino EOF => semántica single-shot 
-  // *ppos > 0 --> puntero de posición es mayor que 0 = se ha leído algo ya dentro del fichero /proc/fddev
-  // count < BUFSIZE --> tamaño que el user pide leer (count) menor que el buffer definido (100 bytes)
+  // 1) Ver si es la primera vez que se llama a "read" para este fichero --> sino EOF => single-shot 
   if (*ppos > 0 || count < BUFSIZE)
-    return 0;			// Si se cumple una de las dos --> devolver EOF (0)
+    printk (KERN_ERR "/proc/fddev: Only one read allowed or too much bytes requested (100 bytes max)\n");
+    return 0;
+  printk (KERN_DEBUG "/proc/fddev: read handler\n");
 
-  // Se notifica en los logs del kernel (/var/log/kern.log) cada vez que se lea en "fddev" --> Loggea
-  printk (KERN_DEBUG "read handler\n");
-
-  // sprintf(destino, formato, valores…) escribe una cadena de texto en un buffer de memoria (destino)
-  // Devuelve el número de caracteres escritos (sin contar el \0 final) --> len
-  // Escribimos en el buffer creado al inicio de la función estas dos frases con los parametros (una después de la otra)
+  // 2) Escribe contenido solicitado por userspace -> sprintf(destino, formato, valores…)
   len += sprintf (buf, "fd = %d\n", fd);
 
-  // Copia "len" bytes desde memoria del kernel (buf) a memoria de usuario (ubuf)
+  // 3) Copia "len" bytes desde memoria del kernel (buf) a memoria de usuario (ubuf):
   if (copy_to_user (ubuf, buf, len))
-    // Devuelve 0 si ha salido bien --> sino => devuelve nº de bytes que no se han podido copiar
-    return -EFAULT;		// en userland => errno = EFAULT, “Bad address”
+    printk (KERN_ERR "/proc/fddev: write handler failed\n");
+    return -EFAULT;
 
-  // Ponemos finalmente el puntero de seguimiento (*ppos) del fichero en el último byte copiado en memoria de user (len)
-  // Y retornamos dicha posición del último byte (len)
+  // 4) Puntero de seguimiento (*ppos) del fichero en el último byte copiado en memoria de userspace (len)
   *ppos = len;
-  printk (KERN_DEBUG "read from /proc/fddev: read %d bytes to the user\n",
+  printk (KERN_DEBUG "/proc/fddev myread: read %d bytes by userspace\n",
 	  len);
-  return len;			// > 0 (se han leído bytes) | = 0 (EOF) | < 0 (error)
+  return len;
 }
 
-// Tabla de operaciones del fichero creado "fddev"
-// Asociar acciones/manejadores que se pueden hacer en este fichero
+// Asociar acciones/manejadores para /proc/fddev:
 // Utilizar struct proc_ops (en lugar de struct file_operations) a partir del kernel 5.6
 static const struct proc_ops myops = {
   .proc_read = myread,
@@ -362,40 +292,30 @@ static const struct proc_ops myops = {
 };
 
 // Cargar LKM:
-// Inicializar ent con la creacion del fichero "mydev" en /proc
-// con todos los permisos (rw) para el root y el grupo
 static int
 simple_init (void)
 {
-  // La clave K de 32 bytes ya viene embebida desde key_embedded.h --> comprobar que es de 32 bytes en tiempo de compilación
-  BUILD_BUG_ON(sizeof(K) != KEY_SIZE);
-
-  // Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log)
-  // %*phN muestra el buffer en hex sin espacios
-  // %*phC muestra bytes (del buffer) separados por ':'
-  printk (KERN_DEBUG "K (32Bytes) loaded = %*phC\n", KEY_SIZE,
+  // 1) Imprime K en hexadecimal en los logs del kernel (/var/log/kern.log) -> %*phC separa bytes con ':' => SOLO EN PRUEBAS
+  printk (KERN_DEBUG "K (64Bytes) loaded = %*phC\n", KEY_SIZE,
 	  K);
 
-  // Crear el primer fichero en /proc para la funcionalidad básica de
-  // escribir el fd del fichero donde quiere escribir el contenido certificado
-  printk (KERN_INFO "Creating new proc file: /proc/fddev\n");
+  // 2) Crear fichero en /proc -> /proc/fddev:
   ent = proc_create ("fddev", 0660, NULL, &myops);
-  // Comprobar errores -> si falla => ent==NULL => deberia devolver -ENOMEM 
   if (!ent)
-    {
-      return -ENOMEM;
-    }
+    printk (KERN_ERR "Error creating file in /proc");
+    return -ENOMEM;
+  printk (KERN_INFO "New proc file created: /proc/fddev\n");
 
   return 0;
 }
 
 // Descargar LKM:
-// Borrar referencia/entrada a los ficheros creados en /proc
 static void
 simple_cleanup (void)
 {
-  printk (KERN_INFO "Delating proc file: /proc/fddev\n");
+  // 1) Borrar referencia al fichero creado en /proc -> /proc/fddev:
   proc_remove (ent);
+  printk (KERN_INFO "Proc file deleted: /proc/fddev\n");
 }
 
 module_init (simple_init);

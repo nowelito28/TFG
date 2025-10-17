@@ -56,6 +56,11 @@ localhost:TFG:# dmesg | tail
 
 
 
+
+
+
+NEW IMPLEMENTATION:
+
 noel@localhost:~/Desktop/TFG$ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
