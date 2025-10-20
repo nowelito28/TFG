@@ -348,9 +348,9 @@ static int simple_init (void)
   // 2) Crear fichero en /proc -> /proc/fddev:
   ent = proc_create ("fddev", 0660, NULL, &myops);
   if (!ent) {
-      printk (KERN_ERR "Error creating file in /proc");
-      return -ENOMEM;
-    }
+    printk (KERN_ERR "Error creating file in /proc");
+    return -ENOMEM;
+  }
   printk (KERN_INFO "New proc file created: /proc/fddev\n");
 
   return 0;
