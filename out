@@ -1,18 +1,20 @@
-localhost:TFG:# ./gen_K_embedded.sh
-OK: generated K_embedded.h with key K (64 bytes).
+localhost:TFG:# cd LKM
+localhost:TFG:# ./gen_k_embedded.sh
+OK: generated k_embedded.h with key K (64 bytes).
 localhost:TFG:# make
-make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG modules
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-  CC [M]  /home/noel/Desktop/TFG/crypth.o
+  CC [M]  /home/noel/Desktop/TFG/crypto_fd.o
   MODPOST /home/noel/Desktop/TFG/Module.symvers
-  CC [M]  /home/noel/Desktop/TFG/crypth.mod.o
-  LD [M]  /home/noel/Desktop/TFG/crypth.ko
+  CC [M]  /home/noel/Desktop/TFG/crypto_fd.mod.o
+  LD [M]  /home/noel/Desktop/TFG/crypto_fd.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-localhost:TFG:# insmod crypth.ko
+localhost:TFG:# insmod crypt_fd.ko
 localhost:TFG:# dmesg | tail 
 ...        
 [ 5024.747380] K (64Bytes) loaded = 30:b1:6d:64:51:30:ba:e0:37:02:57:96:5b:86:1c:65:00:35:b7:78:0a:37:56:ee:b0:22:13:fb:c9:9f:dd:d2:c7:8b:b2:c6:46:7e:3a:44:65:62:b3:ac:dc:9c:8e:3a:b9:89:b4:ea:3a:b5:63:da:ec:e2:63:3f:6e:0a:7d:59
 [ 5024.747443] New proc file created: /proc/fddev
+localhost:TFG:# cd ..
 localhost:TFG:# gcc -c -Wshadow -Wvla -Wall user_wr.c
 localhost:TFG:# gcc -o user_wr user_wr.o -lcrypto           
 localhost:TFG:# ./user_wr
@@ -33,7 +35,8 @@ localhost:TFG:# dmesg | tail
 [ 5120.315737] /proc/fddev write: written 1 bytes from the user
 [ 5120.316082] printH: file fd=3 has been written with content certificated by HMAC(SHA-256)
 [ 5120.316099] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (124 bytes written)
-localhost:TFG:# rmmod crypth                         
+localhost:TFG:# cd LKM
+localhost:TFG:# rmmod crypto_fd                         
 localhost:TFG:# dmesg | tail
 ...
 [ 5192.878514] Proc file deleted: /proc/fddev

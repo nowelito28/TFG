@@ -7,7 +7,7 @@ EXTRA_CFLAGS += -DSEALFS_VERSION=\"0.91\"
 
 # Nombre del módulo principal .c a compilar con kbuild --> .ko:
 # CAMBIAR PARA EL NOMBRE DE CADA MÓDULO!!
-obj-m += crypth.o
+obj-m += crypto_fd.o
 
 # Indicar al compilador (gcc) -> módulo compuesto por múltiples ficheros objeto (NO solo el principal)
 # sealfs-y := dentry.o file.o inode.o main.o super.o lookup.o mmap.o

@@ -9,8 +9,8 @@ openssl rand -out key.bin ${KEY_LEN}
 # --> Array de chars/bytes(const unsigned char K[]) y longitud (const unsigned int K_len=32)
 xxd -i -n K key.bin | \
   sed -e 's/^unsigned char/const unsigned char/' \
-      -e 's/^unsigned int/const unsigned int/' > K_embedded.h
-echo "OK: generated K_embedded.h with key K (${KEY_LEN} bytes)."
+      -e 's/^unsigned int/const unsigned int/' > k_embedded.h
+echo "OK: generated k_embedded.h with key K (${KEY_LEN} bytes)."
 
 # 3) Ejecutar este script y darle permisos de ejecución para ejecutarlo (externamente del script):
 # chmod +x gen_K_embedded.sh
