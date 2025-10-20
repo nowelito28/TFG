@@ -11,34 +11,41 @@
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
 
-#include "K_embedded.h"  // const unsigned char K[]; const unsigned int K_len;
+// const unsigned char K[]; const unsigned int K_len;
+#include "./LKM/k_embedded.h"
+
+// Valor de 1KB arbitrario de prueba -> leer resultado del kernel
+enum
+{ LEN = 1024 };
 
 // Separador y longitud:
 const char sep[] = "\n-HMAC(SHA-256)-\n";
-const char sep_len = sizeof(sep) - 1; // NO contar '\0'
+const int sep_len = sizeof (sep) - 1;	// NO contar '\0'
 
 // Asegurarnos que se realiza la lectura completa: 
 // Devuelve bytes leídos (>0 -> puede ser <len) <-> -1 en error <-> 0 EOF inesperado
 static int
-read_full (int fd, char *buf, size_t len)
+read_full (int fd, char *buf, int len)
 {
-  ssize_t off = 0;
+  int off = 0;
+  int r;
+
   while (off < len)
-  {
-    ssize_t r = read (fd, buf + off, len - off);
-
-    if (r < 0)
     {
-      if (errno == EINTR) // reintentar si es interrumpido
-        continue;
-      return -1;
-    }
-    
-    if (r == 0)
-      return 0;
+      r = read (fd, buf + off, len - off);
 
-    off += r;
-  }
+      if (r < 0)
+      {
+        if (errno == EINTR)	// reintentar si es interrumpido
+          continue;
+        return -1;
+      }
+
+      if (r == 0)
+	      return 0;
+
+      off += r;
+    }
 
   return off;
 }
@@ -46,22 +53,25 @@ read_full (int fd, char *buf, size_t len)
 // Asegurarnos que se realiza la escritura completa: 
 // Devuelve bytes escritos (>0 -> puede ser <len) <-> -1 en error
 static int
-write_full (int fd, const char *buf, size_t len)
+write_full (int fd, const char *buf, int len)
 {
-  ssize_t off = 0;
-  while (off < len)
-  {
-    ssize_t w = write (fd, buf + off, len - off);
+  int off = 0;
+  int w;
 
-    if (w < 0)
+  while (off < len)
     {
-      if (errno == EINTR) // reintentar si fue interrumpido	
-        continue;
-      return -1;
+      w = write (fd, buf + off, len - off);
+
+      if (w < 0)
+      {
+        if (errno == EINTR)	// reintentar si fue interrumpido     
+          continue;
+        return -1;
+      }
+
+      off += w;
     }
 
-    off += w;
-  }
   return off;
 }
 
@@ -103,8 +113,8 @@ main (int argc, char *argv[])
   // 5) Ver el contenido certificado que nos ha escrito el kernel en (file_handoff -> fd) con su certificado HMAC(SHA-256)(Base64):
   printf ("Content dispatched by kernel in ./file_handoff(%s):\n", path);
 
-  size_t len = 1024;  // Valor de 1KB arbitrario de prueba con espacio de sobra
-  char *result = (char *) malloc (len);
+  unsigned char *result = (unsigned char *) malloc (LEN);
+  int result_len;
   if (!result)
     {
       close (fd_proc);
@@ -112,7 +122,7 @@ main (int argc, char *argv[])
       err (EXIT_FAILURE, "malloc failed\n");
     }
 
-  if (lseek (fd, 0, SEEK_SET) == (off_t) - 1)
+  if (lseek (fd, 0, SEEK_SET) == -1)
     {
       close (fd_proc);
       close (fd);
@@ -120,7 +130,8 @@ main (int argc, char *argv[])
       err (EXIT_FAILURE, "lseek to start failed on %s", path);
     }
 
-  if (read_full (fd, result, len) < 0)
+  result_len = read_full (fd, result, LEN);
+  if (result_len < 0)
     {
       close (fd_proc);
       close (fd);
@@ -131,19 +142,26 @@ main (int argc, char *argv[])
   printf ("%s\n", result);
 
   // 6) Tokenizar conteido leído según el separador para obtener el contenido y el HMAC(Base64) por separado:
-  char *sep_pos = strstr(result, sep);
-  if (!sep_pos) {
-    free (result);
-    close (fd_proc);
-    close (fd);
-    errx(EXIT_FAILURE, "Separation not found -> No HMAC present in %s\n", path);
-  }
+  unsigned char *sep_pos = memmem (result, result_len, sep, sep_len);
+  if (!sep_pos)
+    {
+      free (result);
+      close (fd_proc);
+      close (fd);
+      errx (EXIT_FAILURE, "Separation not found -> No HMAC present in %s\n",
+	    path);
+    }
 
-  int content_len = (int)(sep_pos - result);    // Longitud del contenido antes del separador
-  unsigned char *hmac_b64 = (unsigned char*)sep_pos + sep_len; // HMAC en base64 después del separador (dirección al inicio del HMAC)
+  // Longitud del contenido antes del separador: diferencia de punteros (distancia)
+  const int content_len = (int) sep_pos - result;
+  // HMAC en base64 después del separador (dirección al inicio del HMAC)
+  unsigned char *hmac_b64 = sep_pos + sep_len;
+  // Borrar contenido desde el separador para tener solo el contenido puro
   *sep_pos = '\0';
-  char *content = result;             // Contenido antes del separador
-  int hmac_b64_len = sizeof(hmac_b64) - 1; // Longitud del HMAC en base64 (sin contar '\0')
+  // Contenido antes del separador
+  const unsigned char *content = result;
+  // Longitud del HMAC en base64 (sin contar '\0')
+  unsigned int hmac_b64_len = sizeof (hmac_b64) - 1;
 
   printf ("Extracted content:\n%s\n", content);
   printf ("Extracted HMAC(Base64):\n%s\n", hmac_b64);
@@ -152,31 +170,36 @@ main (int argc, char *argv[])
   unsigned char hmac[EVP_MAX_MD_SIZE];
   unsigned int hmac_len = 0;
 
-  if (!HMAC(EVP_sha256(), K, (int)K_len, (const unsigned char*)content, content_len, hmac, &hmac_len)) {
-    free(result);
-    close(fd_proc);
-    close(fd);
-    errx(EXIT_FAILURE, "HMAC(EVP_sha256) failed\n");
-  }
+  if (!HMAC (EVP_sha256 (), K, K_len, content, content_len, hmac, &hmac_len))
+    {
+      free (result);
+      close (fd_proc);
+      close (fd);
+      errx (EXIT_FAILURE, "HMAC(EVP_sha256) failed\n");
+    }
 
   // 8) Codificar HMAC calculado a Base64 (ASCII):
-  int hmac_bs64_calc_len = EVP_ENCODE_LENGTH(hmac_len);
-  unsigned char *hmac_b64_calc = (unsigned char*)malloc(hmac_bs64_calc_len + 1);
-  if (!hmac_b64_calc) {
-    free(result);
-    close(fd_proc);
-    close(fd);
-    errx(EXIT_FAILURE, "malloc failed for hmac_b64_calc\n");
-  }
-  int w = EVP_EncodeBlock(hmac_b64_calc, hmac, hmac_len);
+  unsigned int hmac_bs64_calc_len = EVP_ENCODE_LENGTH (hmac_len);
+  unsigned char *hmac_b64_calc =
+    (unsigned char *) malloc (hmac_bs64_calc_len + 1);
+  if (!hmac_b64_calc)
+    {
+      free (result);
+      close (fd_proc);
+      close (fd);
+      errx (EXIT_FAILURE, "malloc failed for hmac_b64_calc\n");
+    }
+  int w = EVP_EncodeBlock (hmac_b64_calc, hmac, hmac_len);
 
   // 9) Comparar HMAC(Base64) leído del fichero con el HMAC(Base64) calculado -> como cadena de caracteres:
   int ok = -1;
 
-  if (w == hmac_b64_len) {
-    ok = (CRYPTO_memcmp(hmac_b64_calc, hmac_b64, w) == 0);
-  }
-  printf("HMAC(SHA-256) Base64 bytes compare: %s\n", ok ? "Equal -> valid HMAC" : "Not equal -> invalid HMAC");
+  if (w == hmac_b64_len)
+    {
+      ok = (CRYPTO_memcmp (hmac_b64_calc, hmac_b64, w) == 0);
+    }
+  printf ("HMAC(SHA-256) Base64 bytes compare: %s\n",
+	  ok ? "Equal -> valid HMAC" : "Not equal -> invalid HMAC");
 
   // 10) Cerrar ficheros abiertos y liberar memoria:
   free (result);

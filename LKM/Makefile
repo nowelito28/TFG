@@ -15,7 +15,7 @@ obj-m += crypth.o
 # 1. Cambia al directorio de compilación del kernel en uso -> make -C /lib/modules/$(shell uname -r)/build
 # 2. Indica al sistema de compilación del kernel que compile el Makefile local en el directorio actual (pwd) -> M=$(shell pwd)
 # 3. Especifica que compile módulos externos -> modules
-all: K_embedded.h
+all: k_embedded.h
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
 
 # Limpia todos los archivos intermedios que haya creado (*.o, *.mod.c, *.symvers, etc.) -> directorio limpio
