@@ -196,7 +196,7 @@ printH (int fd)
 
   // 3) Comprobar que el fichero está VACÍO (size == 0) => Solo fichero fd vacío apto
   struct inode *inode = file_inode (f);
-  loff_t fsize = i_size_read (inode);
+  int fsize = i_size_read (inode);
   if (fsize != 0)
     {
       printk (KERN_ERR
