@@ -64,7 +64,7 @@ static int write_full (struct file *f, const char *buf, int len)
 // Escribir en fichero f (de fd) -> cont + sep + HMAC
 // Devuelve >0 = bytes escritos totales <-> <0 = error
 static int write_cont_hmac (struct file *f, const char *cont, int cont_len,
-		            const char *hmac_b64, int hmac_b64len)
+		                        const char *hmac_b64, int hmac_b64len)
 {
   int w, total = 0;
 
@@ -91,6 +91,7 @@ static int write_cont_hmac (struct file *f, const char *cont, int cont_len,
 static int get_hmac_sha256 (const u8 *buf, int buf_len, u8 **hmac, int *hmac_len)
 {
   int rc;
+
   // Handler del Crypto API del kernel para un hash síncrono --> shash => Transformador:
   struct crypto_shash *tfm;
 
@@ -121,7 +122,7 @@ static int get_hmac_sha256 (const u8 *buf, int buf_len, u8 **hmac, int *hmac_len
   SHASH_DESC_ON_STACK (desc, tfm);
   desc->tfm = tfm;
 
-  // 5) flujo: init -> update -> final en un paso sobre buf (contenido) => Cálculo final del HMAC
+  // 5) Cálculo final del HMAC => flujo: init -> update -> final en un paso sobre buf (contenido)
   rc = crypto_shash_digest (desc, buf, buf_len, *hmac);
 
 out_free_tfm:
@@ -163,7 +164,7 @@ static int printH (int fd)
     "This is an authentic content to be validated by HMAC(SHA-256)!!";
   const int cont_len = sizeof (cont) - 1;	// NO contar '\0'
 
-  u8 *hmac = NULL;
+  u8 *hmac = NULL;  // u8* = unsigned char*
   int hmac_len = 0;
 
   char *hmac_b64 = NULL;
@@ -191,6 +192,7 @@ static int printH (int fd)
   }
 
   // 3) Comprobar que el fichero está VACÍO (size == 0) => Solo fichero fd vacío apto
+  // inode -> metadatos del fichero
   struct inode *inode = file_inode (f);
 
   fsize = i_size_read (inode);
@@ -246,7 +248,7 @@ static ssize_t mywrite (struct file *file, const char __user *ubuf, size_t count
   int fd;
   int c;
   char buf[BUFSIZE];
-  int written;
+  int w;
 
   // 1) Ver si es la primera vez que se llama a "write" para este fichero --> sino EOF => single-shot:
   if (*ppos > 0 || count > BUFSIZE) {
@@ -263,7 +265,7 @@ static ssize_t mywrite (struct file *file, const char __user *ubuf, size_t count
     return -EFAULT;
   }
 
-  c = strlen (buf);
+  c = sizeof (buf);
   printk (KERN_DEBUG "/proc/fddev write: written %d bytes from the user\n",
 	  c);
   *ppos = c;
@@ -280,15 +282,15 @@ static ssize_t mywrite (struct file *file, const char __user *ubuf, size_t count
   mutex_unlock (&mtx_fd);
 
   // 4) Escribir contenido del kernel certificado en fd -> HMAC(SHA-256) con clave K embebida:
-  written = printH (fd);
-  if (written < 0) {
+  w = printH (fd);
+  if (w < 0) {
     printk (KERN_ERR "Error mywrite: printH failed for fd %d: %d\n", fd,
-      written);
-    return written;
+      w);
+    return w;
   }
   printk (KERN_DEBUG
 	  "mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd %d (%d bytes written)\n",
-	  fd, written);
+	  fd, w);
 
   return c;
 }
@@ -324,7 +326,7 @@ static ssize_t myread (struct file *file, char __user *ubuf, size_t count, loff_
     return -EFAULT;
   }
 
-  // 4) Puntero de seguimiento (*ppos) del fichero en el último byte copiado en memoria de userspace (len)
+  // 4) Puntero seguimiento (*ppos) del fichero en el último byte copiado en memoria de userspace (len)
   *ppos = len;
   printk (KERN_DEBUG "/proc/fddev myread: read %d bytes by userspace\n", len);
 
