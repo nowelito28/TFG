@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
@@ -44,7 +46,8 @@ int main (int argc, char *argv[])
 
   // 3) Leer línea a línea hasta encontrar línea con el separador y guardar contenido (max 4KB):
   char *line = NULL;
-  int cap, len = 0;
+  size_t cap = 0;
+  int len = 0;
 
   int sep_found = 0;
 
@@ -82,8 +85,8 @@ int main (int argc, char *argv[])
   }
 
   // 4) Comprobar que se ha encontrado el separador y obtener el HMAC en base 64 en la última línea:
-  unsigned char* hmac_b64 = NULL;
-  unsigned int hmac_b64_len = 0;
+  char* hmac_b64 = NULL;
+  int hmac_b64_len = 0;
 
   if (!sep_found) {
     free(content);
@@ -101,17 +104,17 @@ int main (int argc, char *argv[])
   printf ("Extracted content:\n%s\n", content);
   printf ("Extracted HMAC(Base64):\n%s\n", hmac_b64);
 
-  free(content);
-
   // 5) Calcular HMAC(SHA-256) del contenido leído con la clave K embebida --> openssl:
   unsigned char hmac[EVP_MAX_MD_SIZE];
   unsigned int hmac_len = 0;
 
-  if (!HMAC (EVP_sha256 (), K, K_len, content, content_len, hmac, &hmac_len)) {
+  if (!HMAC (EVP_sha256 (), K, K_len, (const unsigned char *)content, content_len, hmac, &hmac_len)) {
     free(hmac_b64);
     fclose (stream);
     errx (EXIT_FAILURE, "HMAC(EVP_sha256) failed\n");
   }
+
+  free(content);
 
   // 6) Codificar HMAC calculado a Base64 (ASCII):
   unsigned int hmac_bs64_calc_len = EVP_ENCODE_LENGTH (hmac_len);

@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 // Valor de 4KB arbitrario de prueba -> leer resultado del kernel
 enum
@@ -27,9 +29,9 @@ int main (int argc, char *argv[])
   }
 
   FILE *stream = fdopen(fd, "r+");
-  if (!fd_stream) {
-      close(fd);
-      err(EXIT_FAILURE, "Error creating stream for %s", path);
+  if (!stream) {
+    close(fd);
+    err(EXIT_FAILURE, "Error creating stream for %s", path);
   }
 
   // 2) Abrir el fichero de /proc (/proc/fddev):
@@ -51,11 +53,18 @@ int main (int argc, char *argv[])
 
   // 4) Escribir en el fichero de /proc (/proc/fddev) el 'fd' (sin el '/0') del fichero creado (file_handoff):
   // Cerrar stream y descriptor de fichero de /proc ya que no lo necesitamos más
-  if (fwrite(fd_str, 1, strlen(fd_str), proc_stream) != strlen(fd_str) || fflush(proc_stream) != 0) {
+  if (fwrite(fd_str, 1, strlen(fd_str), proc_stream) != strlen(fd_str)) {
       fclose(proc_stream);
       fclose(stream);
       err(EXIT_FAILURE, "Error writing in %s", proc_path);
   }
+
+  if (fflush(proc_stream) != 0) {   // VER EL ERROR QUE SALE
+    fclose(proc_stream);
+    fclose(stream);
+    err(EXIT_FAILURE, "Error flushing to %s", proc_path);
+  }
+  
   printf("File descriptor written in %s:\n%s\n", proc_path, fd_str);
   fclose(proc_stream);
 

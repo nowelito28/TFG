@@ -16,7 +16,9 @@ localhost:TFG:# dmesg | tail
 [ 5024.747443] New proc file created: /proc/fddev
 localhost:TFG:# cd ..
 localhost:TFG:# gcc -c -Wshadow -Wvla -Wall user_wr.c
-localhost:TFG:# gcc -o user_wr user_wr.o -lcrypto           
+localhost:TFG:# gcc -o user_wr user_wr.o
+localhost:TFG:# gcc -g -c -Wshadow -Wvla -Wall user_check.c
+localhost:TFG:# gcc -g -o user_check user_check.o -lcrypto
 localhost:TFG:# ./user_wr
 File descriptor written in /proc/fddev:
 3

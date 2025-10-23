@@ -125,7 +125,7 @@ out_free_tfm:
 
 // Calcular HMAC(SHA-256) a Base 64
 // Devuelve => 0 en éxito o <0 en error
-static int get_hmac_b64 (const u8 *hmac, int hmac_len, char **hmac_b64, int *hmac_b64len)
+static int get_hmac_b64 (const u8 *hmac, int hmac_len, u8 **hmac_b64, int *hmac_b64len)
 {
   // 1) Calcular espacio de Base64(HMAC):
   int hmac_b64cap = BASE64_CHARS (hmac_len);
@@ -159,14 +159,14 @@ static int printh (struct file *f)
   u8 *hmac = NULL;  // u8* = unsigned char*
   int hmac_len = 0;
 
-  unsigned char *hmac_b64 = NULL;
+  u8 *hmac_b64 = NULL;
   int hmac_b64len = 0;
 
   // 1) Calcular (HMAC(SHA 256)) con clave K):
   rv = get_hmac_sha256 (cont, cont_len, &hmac, &hmac_len);
   if (rv < 0) {
     printk (KERN_ERR
-      "Error printH: generating HMAC failed for fd %d: %d\n", fd, rv);
+      "Error printH: generating HMAC failed: %d\n", rv);
     goto out;
   }
 
@@ -180,13 +180,11 @@ static int printh (struct file *f)
   // 3) Escribir contenido y HMAC en el fichero fd -> cont + sep + HMAC(base 64):
   rv = write_cont_hmac (f, cont, cont_len, hmac_b64, hmac_b64len);
   if (rv < 0) {
-    printk (KERN_ERR "Error printH: writing content in fd %d: %d\n", fd,
-      rv);
+    printk (KERN_ERR "Error printH: writing content: %d\n", rv);
     goto out_free_hmacs;
   }
   printk (KERN_INFO
-	  "printH: file fd=%d has been written with content certificated by HMAC(SHA-256)\n",
-	  fd);
+	  "printH: file has been written with content certificated by HMAC(SHA-256)\n");
 
 out_free_hmacs:
   kfree (hmac_b64);
@@ -222,8 +220,8 @@ static ssize_t mywrite (struct file *file, const char __user *ubuf, size_t count
 
   rv = sizeof (buf);
   printk (KERN_DEBUG "/proc/fddev write: written %d bytes from the user\n",
-	  c);
-  *ppos = c;
+	  rv);
+  *ppos = rv;
 
   // 3) Parsear descriptor de fichero que le pasa el user (fd) a int 
   // -> kstrtoint(char[], base, &res)
@@ -269,7 +267,7 @@ static ssize_t mywrite (struct file *file, const char __user *ubuf, size_t count
   }
 
   // 8) Escribir contenido del kernel certificado en fd -> HMAC(SHA-256) con clave K embebida:
-  rv = printh (fd);
+  rv = printh (f);
   if (rv < 0) {
     printk (KERN_ERR "Error mywrite: printH failed for fd %d: %d\n", fd,
       rv);
@@ -291,7 +289,6 @@ static ssize_t myread (struct file *file, char __user *ubuf, size_t count, loff_
 {
   char buf[] = "LKM ready to receive file descriptors from user.";
   int len = strlen(buf);
-  int fd;
 
   // 1) Ver si es la primera vez que se llama a "read" para este fichero --> sino EOF => single-shot 
   if (*ppos > 0 || count < len) {
