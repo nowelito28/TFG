@@ -1,12 +1,8 @@
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <err.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <fcntl.h>
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
@@ -148,6 +144,6 @@ int main (int argc, char *argv[])
   free(hmac_b64);
   free(hmac_b64_calc);
   fclose (stream);
-  
+
   exit (EXIT_SUCCESS);
 }

@@ -1,15 +1,8 @@
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <err.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <openssl/hmac.h>
-#include <openssl/evp.h>
-#include <openssl/crypto.h>
+#include <fcntl.h>
 
 // Valor de 4KB arbitrario de prueba -> leer resultado del kernel
 enum
