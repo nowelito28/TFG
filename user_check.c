@@ -118,8 +118,7 @@ int main (int argc, char *argv[])
 
   // 6) Codificar HMAC calculado a Base64 (ASCII):
   unsigned int hmac_bs64_calc_len = EVP_ENCODE_LENGTH (hmac_len);
-  unsigned char *hmac_b64_calc =
-    (unsigned char *) malloc (hmac_bs64_calc_len + 1);
+  unsigned char *hmac_b64_calc = (unsigned char *) malloc (hmac_bs64_calc_len + 1);
   if (!hmac_b64_calc) {
     free(hmac_b64);
     fclose (stream);

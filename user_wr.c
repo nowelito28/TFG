@@ -42,9 +42,9 @@ int main (int argc, char *argv[])
 
   FILE *proc_stream = fdopen(fd_proc, "w");
   if (!proc_stream) {
-      fclose(stream);
-      close(fd_proc);
-      err(EXIT_FAILURE, "Error creating stream for %s", proc_path);
+    fclose(stream);
+    close(fd_proc);
+    err(EXIT_FAILURE, "Error creating stream for %s", proc_path);
   }
 
   // 3) Convertir el fd (int) a string para escribirlo en /proc/fddev
@@ -54,9 +54,9 @@ int main (int argc, char *argv[])
   // 4) Escribir en el fichero de /proc (/proc/fddev) el 'fd' (sin el '/0') del fichero creado (file_handoff):
   // Cerrar stream y descriptor de fichero de /proc ya que no lo necesitamos más
   if (fwrite(fd_str, 1, strlen(fd_str), proc_stream) != strlen(fd_str)) {
-      fclose(proc_stream);
-      fclose(stream);
-      err(EXIT_FAILURE, "Error writing in %s", proc_path);
+    fclose(proc_stream);
+    fclose(stream);
+    err(EXIT_FAILURE, "Error writing in %s", proc_path);
   }
 
   if (fflush(proc_stream) != 0) {   // VER EL ERROR QUE SALE
@@ -79,16 +79,16 @@ int main (int argc, char *argv[])
   }
 
   if (fseek(stream, 0, SEEK_SET) != 0) {
-      free(result);
-      fclose(stream);
-      err(EXIT_FAILURE, "fseek failed on %s", path);
+    free(result);
+    fclose(stream);
+    err(EXIT_FAILURE, "fseek failed on %s", path);
   }
 
   size_t bytes_r = fread(result, 1, LEN, stream);
   if (bytes_r == 0 && ferror(stream)) {
-      free(result);
-      fclose(stream);
-      err(EXIT_FAILURE, "Error reading from %s", path);
+    free(result);
+    fclose(stream);
+    err(EXIT_FAILURE, "Error reading from %s", path);
   }
 
   printf ("%s\n", result);
