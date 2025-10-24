@@ -44,7 +44,8 @@ int main (int argc, char *argv[])
     err (EXIT_FAILURE, "fdopen failed\n");
   }
 
-  // 3) Leer línea a línea hasta encontrar línea con el separador y guardar contenido (max 4KB):
+  // 3) Leer línea a línea hasta encontrar línea con el separador y guardar contenido (max 4KB)
+  // Quitar el último '\n' del contenido leído -> lo poner el módulo para poder separar el contenido del separador:
   char *line = NULL;
   size_t cap = 0;
   int len = 0;
@@ -84,6 +85,10 @@ int main (int argc, char *argv[])
     err (EXIT_FAILURE, "Lines reading with buffering failed\n");
   }
 
+  if (content_len > 0 && content[content_len - 1] == '\n') {
+    content_len--;
+  }
+
   // 4) Comprobar que se ha encontrado el separador y obtener el HMAC en base 64 en la última línea:
   char* hmac_b64 = NULL;
   int hmac_b64_len = 0;
@@ -93,7 +98,7 @@ int main (int argc, char *argv[])
     fclose (stream);
     errx (EXIT_FAILURE, "Separator not found\n");
   }
-                                                        // CORREGIRRR => NO COGER EL '\n' DEL FINAL --> SE CALCULA MAL EL HMAC!!
+
   hmac_b64_len = getline(&hmac_b64, &cap, stream);
   if (hmac_b64_len == -1) {
     free(content);
