@@ -10,6 +10,30 @@
 enum
 { LEN = 4096 };
 
+// Asegurarnos que se realiza la escritura completa: 
+// Devuelve bytes escritos (>0 -> puede ser <len) <-> -1 en error
+static int
+write_full (int fd, const char *buf, int len)
+{
+  ssize_t off = 0;
+  int w = 0;
+
+  while (off < len)
+  {
+    w = write (fd, buf + off, len - off);
+
+    if (w < 0)
+    {
+      if (errno == EINTR) // reintentar si fue interrumpido	
+        continue;
+      return -1;
+    }
+
+    off += w;
+  }
+  return off;
+}
+
 
 // Crear fichero (file_handoff) cuyo fd se lo pasamos al fichero creado en /proc por el LKM
 int main (int argc, char *argv[])
@@ -40,33 +64,19 @@ int main (int argc, char *argv[])
     err (EXIT_FAILURE, "Error opening %s", proc_path);
   }
 
-  FILE *proc_stream = fdopen(fd_proc, "w");
-  if (!proc_stream) {
-    fclose(stream);
-    close(fd_proc);
-    err(EXIT_FAILURE, "Error creating stream for %s", proc_path);
-  }
-
   // 3) Convertir el fd (int) a string para escribirlo en /proc/fddev
   char fd_str[12];
   snprintf (fd_str, sizeof (fd_str), "%d", fd);
 
   // 4) Escribir en el fichero de /proc (/proc/fddev) el 'fd' (sin el '/0') del fichero creado (file_handoff):
-  // Cerrar stream y descriptor de fichero de /proc ya que no lo necesitamos más
-  if (fwrite(fd_str, 1, strlen(fd_str), proc_stream) != strlen(fd_str)) {
-    fclose(proc_stream);
-    fclose(stream);
-    err(EXIT_FAILURE, "Error writing in %s", proc_path);
+  // No utilizar buffering (stdio) para ficheros en /proc => conflictos
+  if (write_full (fd_proc, fd_str, strlen (fd_str)) <= 0) {
+    close (fd_proc);
+    fclose (stream);
+    err (EXIT_FAILURE, "Error writing in %s", proc_path);
   }
-
-  if (fflush(proc_stream) != 0) {   // VER EL ERROR QUE SALE
-    fclose(proc_stream);
-    fclose(stream);
-    err(EXIT_FAILURE, "Error flushing to %s", proc_path);
-  }
-  
-  printf("File descriptor written in %s:\n%s\n", proc_path, fd_str);
-  fclose(proc_stream);
+  printf("File descriptor written in %s:\n%d\n", proc_path, fd);
+  close (fd_proc);
 
   // 5) Mover puntero de lectura al inicio inicio del stream (off = 0 -> SEEK_SET (desde el inicio))
   // reservar memoria para el contenido del fichero (max 4KB) -> mostrar su contenido
