@@ -126,15 +126,18 @@ int main (int argc, char *argv[])
   }
 
   int w = EVP_EncodeBlock (hmac_b64_calc, hmac, hmac_len);
+  if (w != hmac_bs64_calc_len) {
+        free(hmac_b64);
+        free(hmac_b64_calc);
+        fclose(stream);
+        errx(EXIT_FAILURE, "EVP_EncodeBlock unexpected length");
+    }
 
   // 7) Comparar HMAC(Base64) leído del fichero con el HMAC(Base64) calculado -> como cadena de caracteres:
-  int ok = -1;
-
-  if (w == hmac_b64_len) {
-    ok = (CRYPTO_memcmp (hmac_b64_calc, hmac_b64, w) == 0); 
-  }
+  int ok = CRYPTO_memcmp (hmac_b64_calc, hmac_b64, w) == 0; 
 
   if (!ok) {
+    fprintf(stderr, "[calc:%d] '%s'\n[file:%d] '%s'\n", w, hmac_b64_calc, strlen(hmac_b64), hmac_b64);
     free(hmac_b64);
     free(hmac_b64_calc);
     fclose(stream);

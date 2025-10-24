@@ -218,7 +218,7 @@ static ssize_t mywrite (struct file *file, const char __user *ubuf, size_t count
     return -EFAULT;
   }
 
-  rv = sizeof (buf);
+  rv = strlen (buf);
   printk (KERN_DEBUG "/proc/fddev write: written %d bytes from the user\n",
 	  rv);
   *ppos = rv;
