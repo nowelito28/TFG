@@ -19,6 +19,38 @@ pstore/blk.c:199:	return kernel_write(psblk_file, buf, bytes, &pos);
 autofs/waitq.c:57:		wr = __kernel_write(file, data, bytes, NULL);
 
 localhost:fs:# less +535 -N read_write.c
+504 /* caller is responsible for file_start_write/file_end_write */
+505 ssize_t __kernel_write_iter(struct file *file, struct iov_iter *from, lo
+505 ff_t *pos)
+506 {
+507         struct kiocb kiocb;
+508         ssize_t ret;
+509 
+510         if (WARN_ON_ONCE(!(file->f_mode & FMODE_WRITE)))
+511                 return -EBADF;
+512         if (!(file->f_mode & FMODE_CAN_WRITE))
+513                 return -EINVAL;
+514         /*
+515          * Also fail if ->write_iter and ->write are both wired up as th
+515 at
+516          * implies very convoluted semantics.
+517          */
+518         if (unlikely(!file->f_op->write_iter || file->f_op->write))
+519                 return warn_unsupported(file, "write");
+520 
+521         init_sync_kiocb(&kiocb, file);
+522         kiocb.ki_pos = pos ? *pos : 0;
+523         ret = file->f_op->write_iter(&kiocb, from);
+524         if (ret > 0) {
+525                 if (pos)
+526                         *pos = kiocb.ki_pos;
+527                 fsnotify_modify(file);
+528                 add_wchar(current, ret);
+529         }
+530         inc_syscw(current);
+531         return ret;
+532 }
+533 
 534 /* caller is responsible for file_start_write/file_end_write */
 535 ssize_t __kernel_write(struct file *file, const void *buf, size_t count,    535  loff_t *pos)
 536 {
