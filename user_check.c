@@ -93,7 +93,7 @@ int main (int argc, char *argv[])
     fclose (stream);
     errx (EXIT_FAILURE, "Separator not found\n");
   }
-
+                                                        // CORREGIRRR => NO COGER EL '\n' DEL FINAL --> SE CALCULA MAL EL HMAC!!
   hmac_b64_len = getline(&hmac_b64, &cap, stream);
   if (hmac_b64_len == -1) {
     free(content);
@@ -125,19 +125,13 @@ int main (int argc, char *argv[])
     errx (EXIT_FAILURE, "malloc failed for hmac_b64_calc\n");
   }
 
-  int w = EVP_EncodeBlock (hmac_b64_calc, hmac, hmac_len);
-  if (w != hmac_bs64_calc_len) {
-        free(hmac_b64);
-        free(hmac_b64_calc);
-        fclose(stream);
-        errx(EXIT_FAILURE, "EVP_EncodeBlock unexpected length");
-    }
+  int real_calc_len = EVP_EncodeBlock (hmac_b64_calc, hmac, hmac_len);
 
   // 7) Comparar HMAC(Base64) leído del fichero con el HMAC(Base64) calculado -> como cadena de caracteres:
-  int ok = CRYPTO_memcmp (hmac_b64_calc, hmac_b64, w) == 0; 
+  int ok = CRYPTO_memcmp (hmac_b64_calc, hmac_b64, real_calc_len) == 0; 
 
   if (!ok) {
-    fprintf(stderr, "[calc:%d] '%s'\n[file:%d] '%s'\n", w, hmac_b64_calc, strlen(hmac_b64), hmac_b64);
+    fprintf(stderr, "[calc:%d] '%s'\n[file:%d] '%s'\n", real_calc_len, hmac_b64_calc, hmac_b64_len, hmac_b64);
     free(hmac_b64);
     free(hmac_b64_calc);
     fclose(stream);
