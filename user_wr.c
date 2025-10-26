@@ -12,25 +12,24 @@ enum
 
 // Asegurarnos que se realiza la escritura completa: 
 // Devuelve bytes escritos (>0 -> puede ser <len) <-> -1 en error
-static int
-write_full (int fd, const char *buf, int len)
+static int write_full (int fd, const char *buf, int len)
 {
   ssize_t off = 0;
   int w = 0;
 
-  while (off < len)
-  {
+  while (off < len) {
     w = write (fd, buf + off, len - off);
 
-    if (w < 0)
-    {
+    if (w < 0) {
       if (errno == EINTR) // reintentar si fue interrumpido	
         continue;
+
       return -1;
     }
 
     off += w;
   }
+
   return off;
 }
 
