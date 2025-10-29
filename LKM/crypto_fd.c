@@ -40,15 +40,15 @@ static int write_full (struct file *f, const char *buf, int len)
   loff_t *ppos = &f->f_pos;
 
   while (off < len) {
-      w = kernel_write (f, buf + off, len - off, ppos);
+    w = kernel_write (f, buf + off, len - off, ppos);
 
-      if (w < 0)
-	      return w;
+    if (w < 0)
+      return w;
 
-      if (w == 0)
-	      return -EIO;
+    if (w == 0)
+      return -EIO;
 
-      off += w;
+    off += w;
   }
   
   return off;
