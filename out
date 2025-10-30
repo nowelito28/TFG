@@ -52,3 +52,41 @@ localhost:TFG:# dmesg | tail
 [ 5625.866237] Proc file deleted: /proc/fddev
 
 
+
+
+
+
+
+
+
+noel@localhost:~/Desktop/TFG$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c 
+check_hmac.c: In function ‘read_until_separator’:
+check_hmac.c:68:9: error: label ‘free_cont’ used but not defined
+   68 |         goto free_cont;
+      |         ^~~~
+check_hmac.c:35:9: error: label ‘err_fhandoff’ used but not defined
+   35 |         goto err_fhandoff;
+      |         ^~~~
+check_hmac.c: In function ‘read_hmac_line’:
+check_hmac.c:82:9: error: label ‘free_cont’ used but not defined
+   82 |         goto free_cont;
+      |         ^~~~
+check_hmac.c: In function ‘calculate_hmac’:
+check_hmac.c:106:9: error: label ‘free_all’ used but not defined
+  106 |         goto free_all;
+      |         ^~~~
+check_hmac.c: In function ‘encode_base64’:
+check_hmac.c:125:9: error: label ‘free_all’ used but not defined
+  125 |         goto free_all;
+      |         ^~~~
+check_hmac.c: In function ‘verify_hmac’:
+check_hmac.c:149:9: error: label ‘free_all’ used but not defined
+  149 |         goto free_all;
+      |         ^~~~
+check_hmac.c: In function ‘main’:
+check_hmac.c:214:1: warning: label ‘free_cont’ defined but not used [-Wunused-label]
+  214 | free_cont:
+      | ^~~~~~~~~
+check_hmac.c:207:1: warning: label ‘free_all’ defined but not used [-Wunused-label]
+  207 | free_all:
+      | ^~~~~~~~

@@ -29,8 +29,7 @@ void read_until_separator (FILE *f, char **content, int *content_len)
 
     int sep_found = 0;
 
-    int *content_len = 0;
-    char **content = (char *) malloc(LEN);
+    *content = (char *) malloc(LEN);
     if (!(*content)) {
         warnx("malloc failed for the content\n");
         goto err_fhandoff;
@@ -61,7 +60,7 @@ void read_until_separator (FILE *f, char **content, int *content_len)
     }
 
     if (*content_len > 0 && *content[*content_len - 1] == '\n') {
-        *content_len--;
+        *content_len =- 1;
     }
 
     if (!sep_found) {
@@ -99,7 +98,7 @@ void extract_data (FILE *fhandoff, char **content, char **hmac_b64)
 
 
 // Calcular el HMAC(SHA-256) del contenido con la clave K embebida
-void calculate_hmac(const char *content, int content_len,
+void calculate_hmac(const unsigned char *content, int content_len,
                  unsigned char **hmac_calc, unsigned int *hmac_calc_len)
 {
     if (!HMAC (EVP_sha256 (), K, K_len, content, content_len, *hmac_calc, hmac_calc_len)) {
@@ -110,11 +109,11 @@ void calculate_hmac(const char *content, int content_len,
 
 
 // Codificar a Base64 el HMAC calculado (ASCII)
-void encode_base64(const unsigned char *hmac_calc, unsigned int hmac_calc_len,
-                  char **hmac_b64_calc, int *hmac_b64_calc_len)
+void encode_base64(unsigned char *hmac_calc, unsigned int hmac_calc_len,
+                  unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
 {
     *hmac_b64_calc_len = EVP_ENCODE_LENGTH (hmac_calc_len);
-    *hmac_b64_calc = (unsigned char *) malloc (hmac_b64_calc_len + 1);
+    *hmac_b64_calc = (unsigned char *) malloc (*hmac_b64_calc_len + 1);
     if (!hmac_b64_calc) {
         warnx("malloc failed for HMAC encoded in base 64\n");
         goto free_all;
@@ -130,20 +129,20 @@ void encode_base64(const unsigned char *hmac_calc, unsigned int hmac_calc_len,
 
 // Calcular HMAC(SHA-256) con clave K embebida y codificar a Base64
 void calc_and_encode_hmac(const char *content, int content_len, 
-                        char **hmac_b64_calc, int **hmac_b64_calc_len)
+                        unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
 {
     unsigned char *hmac_calc[EVP_MAX_MD_SIZE];
     unsigned int hmac_calc_len = 0;
 
-    calculate_hmac((const unsigned char *)content, content_len, &hmac_calc, &hmac_calc_len);
+    calculate_hmac((const unsigned char *)content, content_len, hmac_calc, &hmac_calc_len);
 
-    encode_base64(hmac_calc, hmac_calc_len, hmac_b64_calc, hmac_b64_calc_len);
+    encode_base64((unsigned char *)*hmac_calc, hmac_calc_len, hmac_b64_calc, hmac_b64_calc_len);
 }
 
 
 // Comprobar HMAC extraída y calculada son iguales
 void verify_hmac(const char *hmac_b64, int hmac_b64_len,
-                const char *hmac_b64_calc, int hmac_b64_calc_len)
+                unsigned char *hmac_b64_calc, int hmac_b64_calc_len)
 {
     if (CRYPTO_memcmp (hmac_b64_calc, hmac_b64, hmac_b64_calc_len)) {
         warnx("HMAC verification failed: Invalid HMAC\n");
@@ -191,10 +190,7 @@ int main (int argc, char *argv[])
     unsigned char *hmac_b64_calc = NULL;
     int hmac_b64_calc_len = 0;
 
-    if (calc_and_encode_hmac(content, content_len, &hmac_b64_calc, &hmac_b64_calc_len)) {
-        warnx("HMAC calculation and/or encoding failed\n");
-        goto free_all;
-    }
+    calc_and_encode_hmac(content, content_len, &hmac_b64_calc, &hmac_b64_calc_len);
 
     free(content);
     content = NULL;
