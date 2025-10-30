@@ -53,6 +53,7 @@ localhost:TFG:# dmesg | tail
 
 
 
+noel@localhost:~/Desktop/TFG/LKM$ clang-format -style=file -i crypto_fd.c
 
 
 
