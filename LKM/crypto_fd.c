@@ -153,7 +153,7 @@ static int printh(struct file *f) {
   int rv = 0;
 
   const char cont[] =
-      "This is an authentic content to be validated by HMAC(SHA-256)!!";
+      "\nThis is an authentic content to be validated by HMAC(SHA-256)!!\n";
   const int cont_len = sizeof(cont) - 1; // NO contar '\0'
 
   u8 *hmac = NULL; // u8* = unsigned char*
