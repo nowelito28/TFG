@@ -43,8 +43,9 @@ int main (int argc, char *argv[])
   const char *f_handoff = argv[1];        // ./file_handoff
   const char *f_proc = argv[2];   //  /proc/fddev
 
-  // 1) Descriptor de fichero (fd) --> lo crear y si existe => lo trunca (vacía) --> se abre con todos los permisos:
-  int fd_handoff = open (f_handoff, O_CREAT | O_RDWR | O_TRUNC, 0666);
+  // 1) Descriptor de fichero (fd) --> lo crear y si existe => lo trunca (vacía)
+  // Modo append -> atomicidad del puntero de escritura:
+  int fd_handoff = open (f_handoff, O_CREAT | O_RDWR | O_APPEND | O_TRUNC, 0666);
   if (fd_handoff < 0) {
     err (EXIT_FAILURE, "Error opening/creating the file %s", f_handoff);
   }

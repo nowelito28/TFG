@@ -9,7 +9,7 @@
 #include <linux/kstrtox.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
-#include <linux/mutex.h>
+#include <linux/security.h>
 #include <linux/proc_fs.h>
 #include <linux/slab.h>
 #include <linux/string.h>
@@ -194,6 +194,39 @@ out:
   return rv;
 }
 
+// Validar metadatos del fichero -> inode:
+// 1. Verificar modos de escritura y append para el fichero
+// 2. Permisos LSM de write y append seguros internos del fichero
+// rv --> =0 => OK <-> <0 => -EACCES
+// => Evitar condiciones de carrera con el fichero de escritura
+// 3. Fichero está VACÍO (size == 0) => Solo fichero fd vacío
+static int val_metadata(struct FILE *f) {
+  struct inode *inode = file_inode(f);
+  int rv, fsize = 0;
+
+  if (!(f->f_mode & FMODE_WRITE) || !(f->f_mode & FMODE_APPEND)) {
+    printk(KERN_ERR "Error printH: fd given must be writable (O_WRONLY/O_RDWR)\n",
+           fd);
+    return -EBADF;
+  }
+
+  rv = inode_permission(inode, MAY_WRITE | MAY_APPEND);
+  if (rv < 0) {
+    printk(KERN_ERR "Error printH: permissions VFS/LSM denied: %d\n", rv);
+    return rv;
+  }
+
+  fsize = i_size_read(inode);
+  if (fsize != 0) {
+    printk(KERN_ERR
+           "Error printH: fd given must refer to an empty file (size=%d)\n",
+           fsize);
+    return -ENOTEMPTY;
+  }
+
+  return rv;
+}
+
 // Se ejecuta al escribir en /proc/fddev desde espacio de user
 // Escribe contenido del kernel certificado en fd (userpace)
 // Devuelve bytes escritos/pos en /proc/fddev (rv) en éxito <-> <0 en error <->
@@ -245,28 +278,13 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
     return -EBADF;
   }
 
-  // 6) Comprobar que el fd permite ESCRIBIR (no hace falta leer)
-  if (!(f->f_mode & FMODE_WRITE)) {
-    printk(KERN_ERR "Error printH: fd %d must be writable (O_WRONLY/O_RDWR)\n",
-           fd);
-    rv = -EBADF;
+  // 6) Comprobar metadatos del fichero
+  rv = val_metadata(f);
+  if (rv < 0) {
     goto out_put;
   }
 
-  // 7) Comprobar que el fichero está VACÍO (size == 0) => Solo fichero fd vacío
-  // apto inode -> metadatos del fichero
-  struct inode *inode = file_inode(f);
-
-  fsize = i_size_read(inode);
-  if (fsize != 0) {
-    printk(KERN_ERR
-           "Error printH: fd %d must refer to an empty file (size=%d)\n",
-           fd, fsize);
-    rv = -ENOTEMPTY;
-    goto out_put;
-  }
-
-  // 8) Escribir contenido del kernel certificado en fd -> HMAC(SHA-256) con
+  // 7) Escribir contenido del kernel certificado en fd -> HMAC(SHA-256) con
   // clave K embebida:
   rv = printh(f);
   if (rv < 0) {
