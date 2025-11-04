@@ -71,11 +71,6 @@ make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
       |                                                   ^~~~~~~~~~~~
       |                                                   FMODE_OPENED
 /home/noel/Desktop/TFG/LKM/crypto_fd.c:208:51: note: each undeclared identifier is reported only once for each function it appears in
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:213:8: error: implicit declaration of function ‘vfs_permission’; did you mean ‘path_permission’? [-Werror=implicit-function-declaration]
-  213 |   rv = vfs_permission(f, MAY_WRITE | MAY_APPEND);
-      |        ^~~~~~~~~~~~~~
-      |        path_permission
-cc1: some warnings being treated as errors
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
 make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
 make[1]: *** [Makefile:224: __sub-make] Error 2

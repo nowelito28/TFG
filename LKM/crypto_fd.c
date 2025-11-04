@@ -198,7 +198,7 @@ out:
 // Validar metadatos del fichero -> inode:
 // 1. Verificar modos de escritura y append para el fichero
 // 2. Permisos LSM de write y append seguros internos del fichero
-// rv --> =0 => OK <-> <0 => -EACCES
+// rv --> =0 => OK <-> <0 => -EACCES --> hook de seguridad
 // => Evitar condiciones de carrera con el fichero de escritura
 // 3. Fichero está VACÍO (size == 0) => Solo fichero fd vacío
 static int val_metadata(struct file *f) {
@@ -210,7 +210,7 @@ static int val_metadata(struct file *f) {
     return -EBADF;
   }
 
-  rv = vfs_permission(f, MAY_WRITE | MAY_APPEND);
+  rv = security_file_permission(f, MAY_WRITE | MAY_APPEND);
   if (rv < 0) {
     printk(KERN_ERR "Error printH: permissions VFS/LSM denied: %d\n", rv);
     return rv;
