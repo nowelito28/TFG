@@ -61,7 +61,7 @@ check_hmac: Content read exceeds 4KB buffer before separator
 
 
 
-noel@localhost:~/Desktop/TFG/LKM$ make
+localhost:LKM:# make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
@@ -72,4 +72,5 @@ make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1897: modp
 make[1]: *** [Makefile:224: __sub-make] Error 2
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 make: *** [Makefile:19: all] Error 2
+
 
