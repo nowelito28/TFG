@@ -210,7 +210,7 @@ static int val_metadata(struct file *f) {
     return -EBADF;
   }
 
-  rv = security_file_permission(f, MAY_WRITE | MAY_APPEND);
+  rv = file_permission(f, MAY_WRITE | MAY_APPEND);
   if (rv < 0) {
     printk(KERN_ERR "Error printH: permissions VFS/LSM denied: %d\n", rv);
     return rv;
