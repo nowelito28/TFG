@@ -19,19 +19,16 @@ LKM ready to receive file descriptors from user.#
 ...
 [ 5346.210726] /proc/fddev: read handler
 [ 5346.210834] /proc/fddev myread: read 48 bytes by userspace
-[ 5346.211015] /proc/fddev: Only one read allowed or very few bytes requested   # Devido a que cat intenta hacer varias lecturas al fichero -> pero single-shot read
+[ 5346.211015] /proc/fddev: Only one read allowed or very few bytes requested   # Debido a que cat intenta hacer varias lecturas al fichero -> pero single-shot read
 localhost:TFG:# cd ..
-localhost:TFG:# gcc -c -Wshadow -Wvla -Wall user_wr.c
-localhost:TFG:# gcc -o user_wr user_wr.o
-localhost:TFG:# gcc -g -c -Wshadow -Wvla -Wall user_check.c
-localhost:TFG:# gcc -g -o user_check user_check.o -lcrypto
-localhost:TFG:# ./user_wr ./file_handoff /proc/fddev       
+localhost:TFG:# gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+localhost:TFG:# gcc -o mk_fhandoff mk_fhandoff.o
+localhost:TFG:# gcc -g -c -Wshadow -Wvla -Wall check_hmac.c 
+localhost:TFG:# gcc -g -o check_hmac check_hmac.o -lcrypto
+localhost:TFG:# ./mk_fhandoff ./file_handoff /proc/fddev
 File descriptor written in /proc/fddev:
 3
-Content dispatched by kernel in ./file_handoff(./file_handoff):
-This is an authentic content to be validated by HMAC(SHA-256)!!
--HMAC(SHA-256)-
-gY5JcHf8WXN1Cg1z73aVdAleOvjM/4kYd97bxemoFes=
+
 localhost:TFG:# ./user_check ./file_handoff                
 Extracted content:
 This is an authentic content to be validated by HMAC(SHA-256)!!
@@ -39,6 +36,7 @@ This is an authentic content to be validated by HMAC(SHA-256)!!
 Extracted HMAC(Base64):
 gY5JcHf8WXN1Cg1z73aVdAleOvjM/4kYd97bxemoFes=
 HMAC verification successful: Valid HMAC
+
 localhost:TFG:# dmesg | tail 
 ...
 [ 5579.056050] /proc/fddev: write handler
@@ -55,6 +53,9 @@ localhost:TFG:# dmesg | tail
 
 noel@localhost:~/Desktop/TFG/LKM$ clang-format -style=file -i crypto_fd.c
 
+
+localhost:TFG:# ./check_hmac ./file_handoff             
+check_hmac: Content read exceeds 4KB buffer before separator
 
 
 

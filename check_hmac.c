@@ -75,13 +75,12 @@ int read_until_separator (FILE *f, char **content, int *content_len)
 
 // Leer de FILE HMAC(Base64) en la última línea
 // Devuelve 0 en éxito <-> 1 en error
-int read_hmac_line (FILE *f, char **hmac_b64)
+int read_hmac_line (FILE *f, char **hmac_b64, int *hmac_b64_len)
 {
-    int hmac_b64_len = 0;
     size_t cap = 0;
 
-    hmac_b64_len = getline(hmac_b64, &cap, f);
-    if (hmac_b64_len == -1) {
+    *hmac_b64_len = getline(hmac_b64, &cap, f);
+    if (*hmac_b64_len == -1) {
         warnx("Error reading HMAC\n");
         return 1;
     }
@@ -92,13 +91,11 @@ int read_hmac_line (FILE *f, char **hmac_b64)
 
 // Extraer contenido y HMAC(Base64) del fichero stream dado (fhandoff)
 // Devuelve 0 en éxito <-> 1 en error
-int extract_data (FILE *fhandoff, char **content, char **hmac_b64)
+int extract_data (FILE *fhandoff, char **content, int *content_len, char **hmac_b64, int *hmac_b64_len)
 {
-    int content_len;
-
     // 1) Extraer contenido hasta el separador y HMAC(Base64) en la última línea
-    if (!read_until_separator(fhandoff, content, &content_len) &&
-        !read_hmac_line(fhandoff, hmac_b64)) {
+    if (!read_until_separator(fhandoff, content, content_len) &&
+        !read_hmac_line(fhandoff, hmac_b64, hmac_b64_len)) {
         return 1;
     }
 
@@ -200,13 +197,10 @@ int main (int argc, char *argv[])
     char *hmac_b64 = NULL;
     int hmac_b64_len = 0;
 
-    if (!extract_data(fhandoff, &content, &hmac_b64)) {
+    if (!extract_data(fhandoff, &content, &content_len, &hmac_b64, &hmac_b64_len)) {
         goto free_cont;
     }
     fclose (fhandoff);
-
-    content_len = sizeof(content);
-    hmac_b64_len = sizeof(hmac_b64);
 
     printf ("Extracted content:\n%s\n", content);
     printf ("Extracted HMAC(Base64):\n%s\n", hmac_b64);
