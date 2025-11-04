@@ -1,0 +1,94 @@
+localhost:TFG:# cd LKM
+localhost:TFG:# ./gen_k_embedded.sh
+OK: generated k_embedded.h with key K (64 bytes).
+localhost:TFG:# make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/noel/Desktop/TFG/crypto_fd.o
+  MODPOST /home/noel/Desktop/TFG/Module.symvers
+  CC [M]  /home/noel/Desktop/TFG/crypto_fd.mod.o
+  LD [M]  /home/noel/Desktop/TFG/crypto_fd.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+localhost:TFG:# insmod crypt_fd.ko
+localhost:TFG:# dmesg | tail 
+...        
+[ 5325.263069] K (64Bytes) loaded = 7b:ee:12:58:6f:a8:70:cd:76:71:8b:17:3f:93:e7:6e:35:f6:17:de:26:59:c9:7e:2b:f8:dc:35:99:3a:d0:11:37:d4:cd:88:a4:a4:ea:0f:f1:f2:ed:2e:08:07:97:0b:71:0e:4d:e4:58:32:00:5a:c9:79:bf:79:4d:d0:ee:d9
+[ 5325.263174] New proc file created: /proc/fddev
+localhost:TFG:# cat /proc/fddev             
+LKM ready to receive file descriptors from user.# 
+...
+[ 5346.210726] /proc/fddev: read handler
+[ 5346.210834] /proc/fddev myread: read 48 bytes by userspace
+[ 5346.211015] /proc/fddev: Only one read allowed or very few bytes requested   # Debido a que cat intenta hacer varias lecturas al fichero -> pero single-shot read
+localhost:TFG:# cd ..
+localhost:TFG:# gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+localhost:TFG:# gcc -o mk_fhandoff mk_fhandoff.o
+localhost:TFG:# gcc -g -c -Wshadow -Wvla -Wall check_hmac.c 
+localhost:TFG:# gcc -g -o check_hmac check_hmac.o -lcrypto
+localhost:TFG:# ./mk_fhandoff ./file_handoff /proc/fddev
+File descriptor written in /proc/fddev:
+3
+
+localhost:TFG:# ./user_check ./file_handoff                
+Extracted content:
+This is an authentic content to be validated by HMAC(SHA-256)!!
+
+Extracted HMAC(Base64):
+gY5JcHf8WXN1Cg1z73aVdAleOvjM/4kYd97bxemoFes=
+HMAC verification successful: Valid HMAC
+
+localhost:TFG:# dmesg | tail 
+...
+[ 5579.056050] /proc/fddev: write handler
+[ 5579.056086] /proc/fddev write: written 1 bytes from the user
+[ 5579.056351] printH: file has been written with content certificated by HMAC(SHA-256)
+[ 5579.056366] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (124 bytes written)
+localhost:TFG:# cd LKM
+localhost:TFG:# rmmod crypto_fd                         
+localhost:TFG:# dmesg | tail
+...
+[ 5625.866237] Proc file deleted: /proc/fddev
+
+
+
+noel@localhost:~/Desktop/TFG/LKM$ clang-format -style=file -i crypto_fd.c
+
+
+localhost:TFG:# ./check_hmac ./file_handoff             
+check_hmac: Content read exceeds 4KB buffer before separator
+
+
+
+
+
+noel@localhost:~/Desktop/TFG$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c 
+check_hmac.c: In function ‘read_until_separator’:
+check_hmac.c:68:9: error: label ‘free_cont’ used but not defined
+   68 |         goto free_cont;
+      |         ^~~~
+check_hmac.c:35:9: error: label ‘err_fhandoff’ used but not defined
+   35 |         goto err_fhandoff;
+      |         ^~~~
+check_hmac.c: In function ‘read_hmac_line’:
+check_hmac.c:82:9: error: label ‘free_cont’ used but not defined
+   82 |         goto free_cont;
+      |         ^~~~
+check_hmac.c: In function ‘calculate_hmac’:
+check_hmac.c:106:9: error: label ‘free_all’ used but not defined
+  106 |         goto free_all;
+      |         ^~~~
+check_hmac.c: In function ‘encode_base64’:
+check_hmac.c:125:9: error: label ‘free_all’ used but not defined
+  125 |         goto free_all;
+      |         ^~~~
+check_hmac.c: In function ‘verify_hmac’:
+check_hmac.c:149:9: error: label ‘free_all’ used but not defined
+  149 |         goto free_all;
+      |         ^~~~
+check_hmac.c: In function ‘main’:
+check_hmac.c:214:1: warning: label ‘free_cont’ defined but not used [-Wunused-label]
+  214 | free_cont:
+      | ^~~~~~~~~
+check_hmac.c:207:1: warning: label ‘free_all’ defined but not used [-Wunused-label]
+  207 | free_all:
+      | ^~~~~~~~
