@@ -200,13 +200,12 @@ out:
 // rv --> =0 => OK <-> <0 => -EACCES
 // => Evitar condiciones de carrera con el fichero de escritura
 // 3. Fichero está VACÍO (size == 0) => Solo fichero fd vacío
-static int val_metadata(struct FILE *f) {
+static int val_metadata(struct file *f) {
   struct inode *inode = file_inode(f);
   int rv, fsize = 0;
 
   if (!(f->f_mode & FMODE_WRITE) || !(f->f_mode & FMODE_APPEND)) {
-    printk(KERN_ERR "Error printH: fd given must be writable (O_WRONLY/O_RDWR)\n",
-           fd);
+    printk(KERN_ERR "Error printH: fd given must be writable (O_WRONLY/O_RDWR)\n");
     return -EBADF;
   }
 
@@ -233,7 +232,7 @@ static int val_metadata(struct FILE *f) {
 // 0 EOF
 static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
                        loff_t *ppos) {
-  int fd, rv, fsize = 0;
+  int fd, rv = 0;
   char buf[BUFSIZE];
 
   // 1) Ver si es la primera vez que se llama a "write" para este fichero -->

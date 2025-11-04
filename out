@@ -61,34 +61,45 @@ check_hmac: Content read exceeds 4KB buffer before separator
 
 
 
-noel@localhost:~/Desktop/TFG$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c 
-check_hmac.c: In function ‘read_until_separator’:
-check_hmac.c:68:9: error: label ‘free_cont’ used but not defined
-   68 |         goto free_cont;
-      |         ^~~~
-check_hmac.c:35:9: error: label ‘err_fhandoff’ used but not defined
-   35 |         goto err_fhandoff;
-      |         ^~~~
-check_hmac.c: In function ‘read_hmac_line’:
-check_hmac.c:82:9: error: label ‘free_cont’ used but not defined
-   82 |         goto free_cont;
-      |         ^~~~
-check_hmac.c: In function ‘calculate_hmac’:
-check_hmac.c:106:9: error: label ‘free_all’ used but not defined
-  106 |         goto free_all;
-      |         ^~~~
-check_hmac.c: In function ‘encode_base64’:
-check_hmac.c:125:9: error: label ‘free_all’ used but not defined
-  125 |         goto free_all;
-      |         ^~~~
-check_hmac.c: In function ‘verify_hmac’:
-check_hmac.c:149:9: error: label ‘free_all’ used but not defined
-  149 |         goto free_all;
-      |         ^~~~
-check_hmac.c: In function ‘main’:
-check_hmac.c:214:1: warning: label ‘free_cont’ defined but not used [-Wunused-label]
-  214 | free_cont:
-      | ^~~~~~~~~
-check_hmac.c:207:1: warning: label ‘free_all’ defined but not used [-Wunused-label]
-  207 | free_all:
-      | ^~~~~~~~
+noel@localhost:~/Desktop/TFG/LKM$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
+/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘val_metadata’:
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:207:51: error: ‘FMODE_APPEND’ undeclared (first use in this function); did you mean ‘FMODE_OPENED’?
+  207 |   if (!(f->f_mode & FMODE_WRITE) || !(f->f_mode & FMODE_APPEND)) {
+      |                                                   ^~~~~~~~~~~~
+      |                                                   FMODE_OPENED
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:207:51: note: each undeclared identifier is reported only once for each function it appears in
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:212:25: error: passing argument 1 of ‘inode_permission’ from incompatible pointer type [-Werror=incompatible-pointer-types]
+  212 |   rv = inode_permission(inode, MAY_WRITE | MAY_APPEND);
+      |                         ^~~~~
+      |                         |
+      |                         struct inode *
+In file included from /home/noel/Desktop/TFG/LKM/crypto_fd.c:6:
+./include/linux/fs.h:2895:22: note: expected ‘struct mnt_idmap *’ but argument is of type ‘struct inode *’
+ 2895 | int inode_permission(struct mnt_idmap *, struct inode *, int);
+      |                      ^~~~~~~~~~~~~~~~~~
+./include/linux/fs.h:100:33: warning: passing argument 2 of ‘inode_permission’ makes pointer from integer without a cast [-Wint-conversion]
+  100 | #define MAY_WRITE               0x00000002
+      |                                 ^
+      |                                 |
+      |                                 int
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:212:32: note: in expansion of macro ‘MAY_WRITE’
+  212 |   rv = inode_permission(inode, MAY_WRITE | MAY_APPEND);
+      |                                ^~~~~~~~~
+./include/linux/fs.h:2895:42: note: expected ‘struct inode *’ but argument is of type ‘int’
+ 2895 | int inode_permission(struct mnt_idmap *, struct inode *, int);
+      |                                          ^~~~~~~~~~~~~~
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:212:8: error: too few arguments to function ‘inode_permission’
+  212 |   rv = inode_permission(inode, MAY_WRITE | MAY_APPEND);
+      |        ^~~~~~~~~~~~~~~~
+./include/linux/fs.h:2895:5: note: declared here
+ 2895 | int inode_permission(struct mnt_idmap *, struct inode *, int);
+      |     ^~~~~~~~~~~~~~~~
+cc1: some warnings being treated as errors
+make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
+make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
+make[1]: *** [Makefile:224: __sub-make] Error 2
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+make: *** [Makefile:19: all] Error 2
