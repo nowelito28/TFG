@@ -205,7 +205,7 @@ static int val_metadata(struct file *f) {
   struct inode *inode = file_inode(f);
   int rv, fsize = 0;
 
-  if (!(f->f_mode & FMODE_WRITE) || !(f->f_mode & FMODE_APPEND)) {
+  if (!(f->f_mode & FMODE_WRITE) || !(f->f_flags & O_APPEND)) {
     printk(KERN_ERR "Error printH: fd given must be writable (O_WRONLY/O_RDWR)\n");
     return -EBADF;
   }

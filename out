@@ -65,14 +65,10 @@ noel@localhost:~/Desktop/TFG/LKM$ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘val_metadata’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:208:51: error: ‘FMODE_APPEND’ undeclared (first use in this function); did you mean ‘FMODE_OPENED’?
-  208 |   if (!(f->f_mode & FMODE_WRITE) || !(f->f_mode & FMODE_APPEND)) {
-      |                                                   ^~~~~~~~~~~~
-      |                                                   FMODE_OPENED
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:208:51: note: each undeclared identifier is reported only once for each function it appears in
-make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
-make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
+  MODPOST /home/noel/Desktop/TFG/LKM/Module.symvers
+ERROR: modpost: "security_file_permission" [/home/noel/Desktop/TFG/LKM/crypto_fd.ko] undefined!
+make[3]: *** [scripts/Makefile.modpost:145: /home/noel/Desktop/TFG/LKM/Module.symvers] Error 1
+make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1897: modpost] Error 2
 make[1]: *** [Makefile:224: __sub-make] Error 2
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 make: *** [Makefile:19: all] Error 2
