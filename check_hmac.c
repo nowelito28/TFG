@@ -15,9 +15,11 @@
 // Valor de 4KB arbitrario (espacio suficiente) -> leer resultado del kernel
 enum { LEN = 4096 };
 
-// Separador y longitud -> detectar al leer línea a línea:
-const char sep[] = "-HMAC(SHA-256)-\n";
-const int sep_len = sizeof (sep) - 1;	// NO contar '\0'
+// Separador entre el contenido del fichero y el contenido del kernel:
+const char sep[] = "--KERNEL--\n";
+
+// Separador entre el contenido del kernel y el HMAC en base 64:
+const char sep_hmac[] = "--HMAC(SHA-256)--\n";
 
 
 // Leer de FILE hasta encontrar separador -> leer LEN bytes max arbitrários
@@ -29,6 +31,7 @@ int read_until_separator (FILE *f, char **content, int *content_len)
     int len = 0;
 
     int sep_found = 0;
+    int sep_hmac_found = 0;
 
     *content = (char *) malloc(LEN);
     if (!(*content)) {
@@ -38,8 +41,13 @@ int read_until_separator (FILE *f, char **content, int *content_len)
 
     while ((len = getline(&line, &cap, f)) != -1) {
 
-        if (strcmp(line, sep) == 0) {
+        if ((strcmp(line, sep) == 0) && !sep_found) {
             sep_found = 1;
+            continue;
+        }
+
+        if (strcmp(line, sep_hmac) == 0) {
+            sep_hmac_found = 1;
             break;
         }
 
@@ -64,7 +72,7 @@ int read_until_separator (FILE *f, char **content, int *content_len)
         *content_len =- 1;
     }
 
-    if (sep_found == 0) {
+    if (sep_hmac_found == 0) {
         warnx("Separator not found\n");
         return 1;
     }
@@ -93,7 +101,6 @@ int read_hmac_line (FILE *f, char **hmac_b64, int *hmac_b64_len)
 // Devuelve 0 en éxito <-> 1 en error
 int extract_data (FILE *fhandoff, char **content, int *content_len, char **hmac_b64, int *hmac_b64_len)
 {
-    // 1) Extraer contenido hasta el separador y HMAC(Base64) en la última línea
     if (!read_until_separator(fhandoff, content, content_len) &&
         !read_hmac_line(fhandoff, hmac_b64, hmac_b64_len)) {
         return 1;
@@ -165,11 +172,11 @@ int verify_hmac(const char *hmac_b64, int hmac_b64_len,
                 unsigned char *hmac_b64_calc, int hmac_b64_calc_len)
 {
     if (CRYPTO_memcmp (hmac_b64_calc, hmac_b64, hmac_b64_calc_len)) {
-        warnx("HMAC verification failed: Invalid HMAC\n");
+        warnx("\nHMAC verification failed: Invalid HMAC\n");
         return 1;
     }
 
-    printf("HMAC verification successful: Valid HMAC\n");
+    printf("\nHMAC verification successful: Valid HMAC\n");
     return 0;
 }
 
@@ -202,7 +209,7 @@ int main (int argc, char *argv[])
     }
     fclose (fhandoff);
 
-    printf ("Extracted content:\n%s\n", content);
+    printf ("Extracted kernel content:\n%s\n", content);
     printf ("Extracted HMAC(Base64):\n%s\n", hmac_b64);
 
 
