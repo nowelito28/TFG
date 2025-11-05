@@ -41,8 +41,10 @@ int read_until_separator (FILE *f, char **content, int *content_len)
 
     while ((len = getline(&line, &cap, f)) != -1) {
 
-        if ((strcmp(line, sep) == 0) && !sep_found) {
-            sep_found = 1;
+        if (!sep_found) {
+            if (strcmp(line, sep) == 0) {
+                sep_found = 1;
+            }
             continue;
         }
 
@@ -51,7 +53,7 @@ int read_until_separator (FILE *f, char **content, int *content_len)
             break;
         }
 
-        if (sep_found && (*content_len + len > LEN)) {
+        if (*content_len + len > LEN) {
             free(line);
             warnx("Content read exceeds 4KB buffer before separator\n");
             return 1;
@@ -68,8 +70,8 @@ int read_until_separator (FILE *f, char **content, int *content_len)
         return 1;
     }
 
-    if (*content_len > 0 && *content[*content_len - 1] == '\n') {
-        *content_len =- 1;
+    if (*content_len > 0 && (*content)[*content_len - 1] == '\n') {
+        *content_len -= 1;
     }
 
     if (sep_hmac_found == 0) {
@@ -113,9 +115,9 @@ int extract_data (FILE *fhandoff, char **content, int *content_len, char **hmac_
 // Calcular el HMAC(SHA-256) del contenido con la clave K embebida
 // Devuelve 0 en éxito <-> 1 en error
 int calculate_hmac(const unsigned char *content, int content_len,
-                 unsigned char **hmac_calc, unsigned int *hmac_calc_len)
+                 unsigned char *hmac_calc, unsigned int *hmac_calc_len)
 {
-    if (!HMAC (EVP_sha256 (), K, K_len, content, content_len, *hmac_calc, hmac_calc_len)) {
+    if (!HMAC (EVP_sha256 (), K, K_len, content, content_len, hmac_calc, hmac_calc_len)) {
         warnx("HMAC calculation failed\n");
         return 1;
     }
@@ -151,14 +153,15 @@ int encode_base64(unsigned char *hmac_calc, unsigned int hmac_calc_len,
 int calc_and_encode_hmac(const char *content, int content_len, 
                         unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
 {
-    unsigned char *hmac_calc[EVP_MAX_MD_SIZE];
+    unsigned char hmac_calc[EVP_MAX_MD_SIZE];
     unsigned int hmac_calc_len = 0;
 
     if (!calculate_hmac((const unsigned char *)content, content_len, hmac_calc, &hmac_calc_len)) {
         return 1;
     }
+    printf("%s\n", hmac_calc);
 
-    if (!encode_base64((unsigned char *)*hmac_calc, hmac_calc_len, hmac_b64_calc, hmac_b64_calc_len)) {
+    if (!encode_base64(hmac_calc, hmac_calc_len, hmac_b64_calc, hmac_b64_calc_len)) {
         return 1;
     }
 
@@ -220,6 +223,7 @@ int main (int argc, char *argv[])
     if (!calc_and_encode_hmac(content, content_len, &hmac_b64_calc, &hmac_b64_calc_len)) {
         goto free_all;
     }
+    printf("%s\n", hmac_b64_calc);
 
     free(content);
     content = NULL;

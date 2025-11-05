@@ -1,19 +1,36 @@
-localhost:TFG:# vim ./file_handoff
-localhost:TFG:# cat ./file_handoff
-holaa que pasa aquiii
-
-
-a ver si 
-
-FUNCIONAA EL APPEND DE CONTENIDO
-
-
-
-
-DEL --KERNEL--
---KERNEL--
+noel@localhost:~/Desktop/TFG$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c
+noel@localhost:~/Desktop/TFG$ gcc -g -o check_hmac check_hmac.o -lcrypto
+noel@localhost:~/Desktop/TFG$ ./check_hmac ./file_handoff
+Extracted kernel content:
 This is an authentic content to be validated by HMAC(SHA-256)!!
---HMAC(SHA-256)--
+
+Extracted HMAC(Base64):
 gY5JcHf8WXN1Cg1z73aVdAleOvjM/4kYd97bxemoFes=
-localhost:TFG:# ./check_hmac ./file_handoff
-[1]    5426 segmentation fault  ./check_hmac ./file_handoff
+
+
+HMAC verification successful: Valid HMAC
+noel@localhost:~/Desktop/TFG$ vim file_handoff 
+noel@localhost:~/Desktop/TFG$ ./check_hmac ./file_handoff
+Extracted kernel content:
+This is an authentic content to be validated by HMAC(SHA-256)!!
+
+Extracted HMAC(Base64):
+5JcHf8WXN1Cg1z73aVdAleOvjM/4kYd97bxemoFes=
+
+
+HMAC verification successful: Valid HMAC
+noel@localhost:~/Desktop/TFG$ falla el HMAC NO ES ESEEE
+
+
+noel@localhost:~/Desktop/TFG$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c
+noel@localhost:~/Desktop/TFG$ gcc -g -o check_hmac check_hmac.o -lcrypto
+noel@localhost:~/Desktop/TFG$ ./check_hmac ./file_handoff
+Extracted kernel content:
+This is an authentic content to be validated by HMAC(SHA-256)!!
+
+Extracted HMAC(Base64):
+gY5JcHf8WXN1Cg1z73aVdAleOvjM/4kYd97bxemoFes=
+
+Segmentation fault
+
+
