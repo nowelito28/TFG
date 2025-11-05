@@ -36,9 +36,8 @@ int read_until_separator (FILE *f, char **content, int *content_len)
         return 1;
     }
 
-    while ((len = getline(&line, &cap, f)) != 1) {
+    while ((len = getline(&line, &cap, f)) != -1) {
 
-        fprintf(stderr, "%s\n", line);
         if (strcmp(line, sep) == 0) {
             sep_found = 1;
             break;
