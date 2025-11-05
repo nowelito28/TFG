@@ -51,7 +51,7 @@ int read_until_separator (FILE *f, char **content, int *content_len)
             break;
         }
 
-        if (*content_len + len > LEN) {
+        if (sep_found && (*content_len + len > LEN)) {
             free(line);
             warnx("Content read exceeds 4KB buffer before separator\n");
             return 1;
