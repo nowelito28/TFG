@@ -156,12 +156,11 @@ int calc_and_encode_hmac(const char *content, int content_len,
     unsigned char hmac_calc[EVP_MAX_MD_SIZE];
     unsigned int hmac_calc_len = 0;
 
-    if (!calculate_hmac((const unsigned char *)content, content_len, hmac_calc, &hmac_calc_len)) {
+    if (calculate_hmac((const unsigned char *)content, content_len, hmac_calc, &hmac_calc_len)) {
         return 1;
     }
-    printf("%s\n", hmac_calc);
 
-    if (!encode_base64(hmac_calc, hmac_calc_len, hmac_b64_calc, hmac_b64_calc_len)) {
+    if (encode_base64(hmac_calc, hmac_calc_len, hmac_b64_calc, hmac_b64_calc_len)) {
         return 1;
     }
 
