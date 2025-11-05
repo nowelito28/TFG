@@ -103,8 +103,9 @@ int read_hmac_line (FILE *f, char **hmac_b64, int *hmac_b64_len)
 // Devuelve 0 en éxito <-> 1 en error
 int extract_data (FILE *fhandoff, char **content, int *content_len, char **hmac_b64, int *hmac_b64_len)
 {
-    if (read_until_separator(fhandoff, content, content_len) &&
+    if (read_until_separator(fhandoff, content, content_len) ||
         read_hmac_line(fhandoff, hmac_b64, hmac_b64_len)) {
+        printf("errror");
         return 1;
     }
 
@@ -223,10 +224,10 @@ int main (int argc, char *argv[])
     if (calc_and_encode_hmac(content, content_len, &hmac_b64_calc, &hmac_b64_calc_len)) {
         goto free_all;
     }
-    printf("%s\n", hmac_b64_calc);
-
     free(content);
     content = NULL;
+
+    printf("Calculated HMAC(Base64): \n%s\n", hmac_b64_calc);
 
     // 4) Comparar HMAC(Base64) leída del fichero con el HMAC(Base64) calculado:
     int ext = verify_hmac(hmac_b64, hmac_b64_len, hmac_b64_calc, hmac_b64_calc_len);
