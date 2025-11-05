@@ -12,7 +12,7 @@ make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 localhost:TFG:# insmod crypt_fd.ko
 localhost:TFG:# dmesg | tail 
 ...        
-[ 5325.263069] K (64Bytes) loaded = 7b:ee:12:58:6f:a8:70:cd:76:71:8b:17:3f:93:e7:6e:35:f6:17:de:26:59:c9:7e:2b:f8:dc:35:99:3a:d0:11:37:d4:cd:88:a4:a4:ea:0f:f1:f2:ed:2e:08:07:97:0b:71:0e:4d:e4:58:32:00:5a:c9:79:bf:79:4d:d0:ee:d9
+[ 5325.263069] K (64Bytes) loaded = 4a:d3:21:da:c3:6c:38:13:b1:70:48:ac:b2:6b:f7:e4:1b:7d:56:f2:fe:69:b4:59:0e:31:d6:a7:f1:ee:40:8a:17:97:4e:b0:7a:40:39:40:3f:29:27:d8:a9:84:da:01:12:70:23:dd:87:02:1b:b9:af:8c:ee:e2:90:7c:00:10
 [ 5325.263174] New proc file created: /proc/fddev
 localhost:TFG:# cat /proc/fddev             
 LKM ready to receive file descriptors from user.# 
@@ -28,21 +28,22 @@ localhost:TFG:# gcc -g -o check_hmac check_hmac.o -lcrypto
 localhost:TFG:# ./mk_fhandoff ./file_handoff /proc/fddev
 File descriptor written in /proc/fddev:
 3
-
 localhost:TFG:# ./user_check ./file_handoff                
-Extracted content:
+Extracted kernel content:
 This is an authentic content to be validated by HMAC(SHA-256)!!
 
 Extracted HMAC(Base64):
-gY5JcHf8WXN1Cg1z73aVdAleOvjM/4kYd97bxemoFes=
-HMAC verification successful: Valid HMAC
+/eCwJwS6HwpcLVAN2MIVQdYgISd1zK0Ev0GSrxH7IWw=
+Calculated HMAC(Base64): 
+/eCwJwS6HwpcLVAN2MIVQdYgISd1zK0Ev0GSrxH7IWw=
 
+HMAC verification successful: Valid HMAC
 localhost:TFG:# dmesg | tail 
 ...
 [ 5579.056050] /proc/fddev: write handler
 [ 5579.056086] /proc/fddev write: written 1 bytes from the user
 [ 5579.056351] printH: file has been written with content certificated by HMAC(SHA-256)
-[ 5579.056366] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (124 bytes written)
+[ 5579.056366] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (138 bytes written)
 localhost:TFG:# cd LKM
 localhost:TFG:# rmmod crypto_fd                         
 localhost:TFG:# dmesg | tail
@@ -52,25 +53,5 @@ localhost:TFG:# dmesg | tail
 
 
 noel@localhost:~/Desktop/TFG/LKM$ clang-format -style=file -i crypto_fd.c
-
-
-localhost:TFG:# ./check_hmac ./file_handoff             
-check_hmac: Content read exceeds 4KB buffer before separator
-
-
-
-
-
-localhost:LKM:# make
-make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
-make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-  CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
-  MODPOST /home/noel/Desktop/TFG/LKM/Module.symvers
-ERROR: modpost: "security_file_permission" [/home/noel/Desktop/TFG/LKM/crypto_fd.ko] undefined!
-make[3]: *** [scripts/Makefile.modpost:145: /home/noel/Desktop/TFG/LKM/Module.symvers] Error 1
-make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1897: modpost] Error 2
-make[1]: *** [Makefile:224: __sub-make] Error 2
-make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-make: *** [Makefile:19: all] Error 2
 
 

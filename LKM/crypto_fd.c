@@ -2,6 +2,7 @@
 #include <linux/base64.h>
 #include <linux/crypto.h>
 #include <linux/err.h>
+#include <linux/fcntl.h>
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/init.h>
@@ -9,12 +10,11 @@
 #include <linux/kstrtox.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
-#include <linux/security.h>
 #include <linux/proc_fs.h>
+#include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
-#include <linux/fcntl.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
@@ -28,9 +28,13 @@ MODULE_AUTHOR("Noel");
 // /proc/fddev
 static struct proc_dir_entry *ent;
 
-// Separador textual entre el contenido y el HMAC en base 64:
-static const char sep[] = "\n-HMAC(SHA-256)-\n";
+// Separador entre el contenido del fichero y el contenido del kernel:
+static const char sep[] = "\n--KERNEL--\n";
 static const char sep_len = sizeof(sep) - 1; // NO contar '\0'
+
+// Separador entre el contenido del kernel y el HMAC en base 64:
+static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
+static const char sep_hmac_len = sizeof(sep_hmac) - 1; // NO contar '\0'
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
 // del fichero: Devuelve bytes escritos (off) en éxito <-> <0 en error <-> 0 si
@@ -54,18 +58,23 @@ static int write_full(struct file *f, const char *buf, int len) {
   return off;
 }
 
-// Escribir en fichero f (de fd) -> cont + sep + HMAC
+// Escribir en fichero f (de fd) -> sep_cont + cont + sep_hmac + HMAC
 // Devuelve (total) => >0 = bytes escritos totales <-> <0 = error
 static int write_cont_hmac(struct file *f, const char *cont, int cont_len,
                            const char *hmac_b64, int hmac_b64len) {
   int w, total = 0;
+
+  w = write_full(f, sep, sep_len);
+  if (w < 0)
+    return w;
+  total += w;
 
   w = write_full(f, cont, cont_len);
   if (w < 0)
     return w;
   total += w;
 
-  w = write_full(f, sep, sep_len);
+  w = write_full(f, sep_hmac, sep_hmac_len);
   if (w < 0)
     return w;
   total += w;
@@ -154,7 +163,7 @@ static int printh(struct file *f) {
   int rv = 0;
 
   const char cont[] =
-      "\nThis is an authentic content to be validated by HMAC(SHA-256)!!\n";
+      "This is an authentic content to be validated by HMAC(SHA-256)!!";
   const int cont_len = sizeof(cont) - 1; // NO contar '\0'
 
   u8 *hmac = NULL; // u8* = unsigned char*
@@ -177,8 +186,8 @@ static int printh(struct file *f) {
     goto out_free_hmac;
   }
 
-  // 3) Escribir contenido y HMAC en el fichero fd -> cont + sep + HMAC(base
-  // 64):
+  // 3) Escribir contenido y HMAC en el fichero fd -> sep_cont + cont + sep_hmac
+  // + HMAC(base 64):
   rv = write_cont_hmac(f, cont, cont_len, hmac_b64, hmac_b64len);
   if (rv < 0) {
     printk(KERN_ERR "Error printH: writing content: %d\n", rv);
@@ -200,13 +209,12 @@ out:
 // 2. Permisos LSM de write y append seguros internos del fichero
 // rv --> =0 => OK <-> <0 => -EACCES --> hook de seguridad
 // => Evitar condiciones de carrera con el fichero de escritura
-// 3. Fichero está VACÍO (size == 0) => Solo fichero fd vacío
 static int val_metadata(struct file *f) {
-  struct inode *inode = file_inode(f);
-  int rv, fsize = 0;
+  int rv = 0;
 
   if (!(f->f_mode & FMODE_WRITE) || !(f->f_flags & O_APPEND)) {
-    printk(KERN_ERR "Error printH: fd given must be writable (O_WRONLY/O_RDWR)\n");
+    printk(KERN_ERR
+           "Error printH: fd given must be writable (O_WRONLY/O_RDWR)\n");
     return -EBADF;
   }
 
@@ -214,14 +222,6 @@ static int val_metadata(struct file *f) {
   if (rv < 0) {
     printk(KERN_ERR "Error printH: permissions VFS/LSM denied: %d\n", rv);
     return rv;
-  }
-
-  fsize = i_size_read(inode);
-  if (fsize != 0) {
-    printk(KERN_ERR
-           "Error printH: fd given must refer to an empty file (size=%d)\n",
-           fsize);
-    return -ENOTEMPTY;
   }
 
   return rv;
@@ -291,8 +291,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
     printk(KERN_ERR "Error mywrite: printH failed for fd %d: %d\n", fd, rv);
     goto out_put;
   }
-  printk(KERN_DEBUG "mywrite: printH OK (content certificated by "
-                    "HMAC(SHA-256)) for fd %d (%d bytes written)\n",
+  printk(KERN_DEBUG "mywrite: printH OK for fd %d (%d bytes written)\n",
                     fd, rv);
 
 out_put:
