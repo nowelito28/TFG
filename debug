@@ -1,0 +1,5 @@
+noel@localhost:~/Desktop/TFG$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c
+noel@localhost:~/Desktop/TFG$ gcc -g -o check_hmac check_hmac.o -lcrypto
+noel@localhost:~/Desktop/TFG$ ./check_hmac ./file_handoff
+check_hmac: Separator not found
+

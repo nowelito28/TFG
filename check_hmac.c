@@ -38,6 +38,7 @@ int read_until_separator (FILE *f, char **content, int *content_len)
 
     while ((len = getline(&line, &cap, f)) != 1) {
 
+        fprintf(stderr, "%s\n", line);
         if (strcmp(line, sep) == 0) {
             sep_found = 1;
             break;
@@ -52,7 +53,7 @@ int read_until_separator (FILE *f, char **content, int *content_len)
         memcpy(*content + *content_len, line, len);
         *content_len += len;
     }
-
+    
     free(line);
 
     if (len == -1) {
@@ -64,7 +65,7 @@ int read_until_separator (FILE *f, char **content, int *content_len)
         *content_len =- 1;
     }
 
-    if (!sep_found) {
+    if (sep_found == 0) {
         warnx("Separator not found\n");
         return 1;
     }
