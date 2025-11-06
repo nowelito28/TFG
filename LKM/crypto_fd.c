@@ -46,7 +46,7 @@ static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 // Cabecera para registro de procesos:
-static const char header[] = "USER       PID     STAT START COMMAND\n";
+static const char header[] = "USER       PID     STAT   START  COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
@@ -73,7 +73,7 @@ static int write_full(struct file *f, const char *buf, int len) {
 
 // Función aux -> rellenar hasta el final del buffer (asumir terminar en '\0')
 static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
-  int padding;
+  int padding = 0;
 
   // Calcular padding
   if (curr_len >= buf_len) {
@@ -144,9 +144,8 @@ static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
 // Devuelve UID (str 11 caracts con espacios de relleno)
 static char *get_uid_str(kuid_t uid_struct) {
   const int buf_size = 12;
-  char uid_buf[buf_size];
+  static char uid_buf[12];
   int uid_len = 0;
-  int padding = 0;
   
   int uid = from_kuid(&init_user_ns, uid_struct);
 
@@ -166,13 +165,13 @@ static char *get_uid_str(kuid_t uid_struct) {
 
 // Función aux para sacar el PID:
 static char *get_pid_str(int pid) {
-  const int buf_size = 6;
-  static char pid_buf[buf_size];
+  const int buf_size = 8;
+  static char pid_buf[8];
   int pid_len = 0;
 
   pid_len = int_to_str(pid, pid_buf, buf_size);
 
-  pad_str_rigth(pid_buf, pid_len, buf_size, ' ');
+  pad_str_right(pid_buf, pid_len, buf_size, ' ');
 
   return pid_buf;
 }
@@ -180,7 +179,7 @@ static char *get_pid_str(int pid) {
 // Función aux para sacar STAT:
 static char *get_stat_str(struct task_struct *task) {
   const int buf_size = 6;
-  static char stat_buf[buf_size];
+  static char stat_buf[6];
   int i = 0;
 
   // Carácter de estado principal:
@@ -210,7 +209,7 @@ static char *get_stat_str(struct task_struct *task) {
     stat_buf[i++] = '+';
   }
 
-  pad_str_rigth(stat_buf, strlen(stat_buf), buf_size, ' ');
+  pad_str_right(stat_buf, strlen(stat_buf), buf_size, ' ');
 
   return stat_buf;
 }
@@ -218,7 +217,7 @@ static char *get_stat_str(struct task_struct *task) {
 // Función aux para sacar START -> HH:MM (5 chars + 3 espacios):
 static char *get_start_str(struct task_struct *task) {
   const int buf_size = 9;
-  static char start_buf[buf_size];
+  static char start_buf[9];
   int i = 0;
 
   struct timespec64 start_time_ts;
@@ -243,7 +242,7 @@ static char *get_start_str(struct task_struct *task) {
   start_buf[i++] = (start_time_tm.tm_min / 10) + '0';
   start_buf[i++] = (start_time_tm.tm_min % 10) + '0';
 
-  pad_str_rigth(start_buf, strlen(start_buf), buf_size, ' ');
+  pad_str_right(start_buf, strlen(start_buf), buf_size, ' ');
 
   return start_buf;
 }
@@ -251,7 +250,7 @@ static char *get_start_str(struct task_struct *task) {
 // Función aux para sacar TIME -> Tiempo de CPU HH:MM (5 chars + 2 espacios):
 static char *get_time_str(struct task_struct *task) {
   const int buf_size = 8;
-  static char time_buf[buf_size];
+  static char time_buf[8];
   int i = 0;
 
   // 1. Tiempo total de CPU:
@@ -273,15 +272,14 @@ static char *get_time_str(struct task_struct *task) {
   time_buf[i++] = (secs / 10) + '0';
   time_buf[i++] = (secs % 10) + '0';
 
-  pad_str_rigth(time_buf, strlen(time_buf), buf_size, ' ');
+  pad_str_right(time_buf, strlen(time_buf), buf_size, ' ');
 
   return time_buf;
 }
 
 // Función aux para sacar el COMMAND (18 chars max):
 static char *get_command_str(struct task_struct *task) {
-  const int buf_size = 20;
-  static char comm_buf[buf_size];
+  static char comm_buf[20];
   int i = 0;
 
   // Copiar nombre del comando (task->comm) de forma segura:
@@ -398,14 +396,12 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 static int get_ps_aux(u8 **cont, int *cont_len) {
   struct task_struct *task;
 
-  int safed = 0;
-
   *cont = (u8 *)kmalloc(MAX_PROC_SIZE, GFP_KERNEL);
   if (!*cont)
     return -ENOMEM;
 
   // 1) Copiar la cabecera y actualizar len:
-  if (safe_chunk(cont, cont_len, header, header_len) < 0)
+  if (safe_chunk(cont, cont_len, (char *)header, header_len) < 0)
     goto out_fail;
 
   // 2) Recorrer todos los procesos del sistema

@@ -6,42 +6,12 @@ make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 /home/noel/Desktop/TFG/LKM/crypto_fd.c:98:3: warning: ISO C90 forbids variable length array ‘temp’ [-Wvla]
    98 |   char temp[buf_len];
       |   ^~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_uid_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:147:3: warning: ISO C90 forbids array ‘uid_buf’ whose size cannot be evaluated [-Wvla]
-  147 |   char uid_buf[buf_size];
-      |   ^~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:164:10: warning: function returns address of local variable [-Wreturn-local-addr]
-  164 |   return uid_buf;
-      |          ^~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:149:7: warning: unused variable ‘padding’ [-Wunused-variable]
-  149 |   int padding = 0;
-      |       ^~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_pid_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:170:3: warning: ISO C90 forbids array ‘pid_buf’ whose size cannot be evaluated [-Wvla]
-  170 |   static char pid_buf[buf_size];
-      |   ^~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:170:15: error: storage size of ‘pid_buf’ isn’t constant
-  170 |   static char pid_buf[buf_size];
-      |               ^~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:175:3: error: implicit declaration of function ‘pad_str_rigth’; did you mean ‘pad_str_right’? [-Werror=implicit-function-declaration]
-  175 |   pad_str_rigth(pid_buf, pid_len, buf_size, ' ');
-      |   ^~~~~~~~~~~~~
-      |   pad_str_right
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:170:15: warning: unused variable ‘pid_buf’ [-Wunused-variable]
-  170 |   static char pid_buf[buf_size];
-      |               ^~~~~~~
 /home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_stat_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:183:3: warning: ISO C90 forbids array ‘stat_buf’ whose size cannot be evaluated [-Wvla]
-  183 |   static char stat_buf[buf_size];
-      |   ^~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:183:15: error: storage size of ‘stat_buf’ isn’t constant
-  183 |   static char stat_buf[buf_size];
-      |               ^~~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:202:11: error: ‘struct task_struct’ has no member named ‘cputime_expires’
-  202 |   if (task->cputime_expires > 0) {
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:201:11: error: ‘struct task_struct’ has no member named ‘cputime_expires’
+  201 |   if (task->cputime_expires > 0) {
       |           ^~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:203:50: error: passing argument 1 of ‘atomic_read’ from incompatible pointer type [-Werror=incompatible-pointer-types]
-  203 |     if (thread_group_leader(task) && atomic_read(&task->usage) > 1) {
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:202:50: error: passing argument 1 of ‘atomic_read’ from incompatible pointer type [-Werror=incompatible-pointer-types]
+  202 |     if (thread_group_leader(task) && atomic_read(&task->usage) > 1) {
       |                                                  ^~~~~~~~~~~~
       |                                                  |
       |                                                  refcount_t * {aka struct refcount_struct *}
@@ -51,75 +21,16 @@ In file included from ./include/linux/atomic.h:82,
 ./include/linux/atomic/atomic-instrumented.h:30:29: note: expected ‘const atomic_t *’ but argument is of type ‘refcount_t *’ {aka ‘struct refcount_struct *’}
    30 | atomic_read(const atomic_t *v)
       |             ~~~~~~~~~~~~~~~~^
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:209:45: error: invalid use of undefined type ‘struct tty_struct’
-  209 |   if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:208:45: error: invalid use of undefined type ‘struct tty_struct’
+  208 |   if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
       |                                             ^~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:209:72: error: invalid use of undefined type ‘struct tty_struct’
-  209 | >signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:208:72: error: invalid use of undefined type ‘struct tty_struct’
+  208 | >signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
       |                                                             ^~
 
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:183:15: warning: unused variable ‘stat_buf’ [-Wunused-variable]
-  183 |   static char stat_buf[buf_size];
-      |               ^~~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_start_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:221:3: warning: ISO C90 forbids array ‘start_buf’ whose size cannot be evaluated [-Wvla]
-  221 |   static char start_buf[buf_size];
-      |   ^~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:221:15: error: storage size of ‘start_buf’ isn’t constant
-  221 |   static char start_buf[buf_size];
-      |               ^~~~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:221:15: warning: unused variable ‘start_buf’ [-Wunused-variable]
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_time_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:254:3: warning: ISO C90 forbids array ‘time_buf’ whose size cannot be evaluated [-Wvla]
-  254 |   static char time_buf[buf_size];
-      |   ^~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:254:15: error: storage size of ‘time_buf’ isn’t constant
-  254 |   static char time_buf[buf_size];
-      |               ^~~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:254:15: warning: unused variable ‘time_buf’ [-Wunused-variable]
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_command_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:284:3: warning: ISO C90 forbids array ‘comm_buf’ whose size cannot be evaluated [-Wvla]
-  284 |   static char comm_buf[buf_size];
-      |   ^~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:284:15: error: storage size of ‘comm_buf’ isn’t constant
-  284 |   static char comm_buf[buf_size];
-      |               ^~~~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:284:15: warning: unused variable ‘comm_buf’ [-Wunused-variable]
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_ps_aux’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:408:34: warning: passing argument 3 of ‘safe_chunk’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
-  408 |   if (safe_chunk(cont, cont_len, header, header_len) < 0)
-      |                                  ^~~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:128:57: note: expected ‘char *’ but argument is of type ‘const char *’
-  128 | static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
-      |                                                   ~~~~~~^~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:401:7: warning: unused variable ‘safed’ [-Wunused-variable]
-  401 |   int safed = 0;
-      |       ^~~~~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_pid_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:178:1: error: control reaches end of non-void function [-Werror=return-type]
-  178 | }
-      | ^
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_stat_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:216:1: error: control reaches end of non-void function [-Werror=return-type]
-  216 | }
-      | ^
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_start_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:249:1: error: control reaches end of non-void function [-Werror=return-type]
-  249 | }
-      | ^
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_time_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:279:1: error: control reaches end of non-void function [-Werror=return-type]
-  279 | }
-      | ^
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_command_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:296:1: error: control reaches end of non-void function [-Werror=return-type]
-  296 | }
-      | ^
 cc1: some warnings being treated as errors
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
 make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
 make[1]: *** [Makefile:224: __sub-make] Error 2
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 make: *** [Makefile:19: all] Error 2
-localhost:LKM:# 
-
