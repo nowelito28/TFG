@@ -3,12 +3,19 @@ make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM 
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
 /home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_stat_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:218:22: error: ‘struct signal_struct’ has no member named ‘pgrp’
-  218 |   if (sig->tty && sig->pgrp != sig->session) {
-      |                      ^~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:218:35: error: ‘struct signal_struct’ has no member named ‘session’
-  218 |   if (sig->tty && sig->pgrp != sig->session) {
-      |                                   ^~
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:28: error: implicit declaration of function ‘task_tty’; did you mean ‘start_tty’? [-Werror=implicit-function-declaration]
+  215 |   struct tty_struct *tty = task_tty(task);
+      |                            ^~~~~~~~
+      |                            start_tty
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:28: warning: initialization of ‘struct tty_struct *’ from ‘int’ makes pointer from integer without a cast [-Wint-conversion]
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:227:9: error: implicit declaration of function ‘tty_pgrp’; did you mean ‘task_pgrp’? [-Werror=implicit-function-declaration]
+  227 |     if (tty_pgrp(tty) == task_pgrp_nr(task)) {
+      |         ^~~~~~~~
+      |         task_pgrp
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:232:5: error: implicit declaration of function ‘put_tty’ [-Werror=implicit-function-declaration]
+  232 |     put_tty(tty);
+      |     ^~~~~~~
+cc1: some warnings being treated as errors
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
 make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
 make[1]: *** [Makefile:224: __sub-make] Error 2

@@ -22,6 +22,7 @@
 #include <linux/sched/task.h>
 #include <linux/jiffies.h>
 #include <linux/rtc.h>
+#include <linux/tty.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
@@ -190,9 +191,6 @@ static char *get_stat_str(struct task_struct *task) {
   static char stat_buf[6];
   int i = 0;
 
-  // Puntero a struct de signal del proceso:
-  struct signal_struct *sig = task->signal;
-
   // Carácter de estado principal:
   stat_buf[i] = task_state_to_char(task);
 
@@ -213,11 +211,31 @@ static char *get_stat_str(struct task_struct *task) {
     stat_buf[i++] = 'l';
   }
 
+  // TTY del proceso:
+  struct tty_struct *tty = task_tty(task);
 
-  // Proceso en foreground de su GID:
-  if (sig->tty && sig->pgrp != sig->session) {
-    stat_buf[i++] = '+';
+  if (tty) {
+
+    //pgrp de la TTY:
+    //pid_t tty_pgrp = tty_prgp(tty);
+
+    // pgrp del proceso actual:
+    //pid_t proc_prgp = task_pgrp_nr(task);
+
+
+    // Si existe TTY -> y grupo de TTY == grupo del proceso => foreground
+    if (tty_pgrp(tty) == task_pgrp_nr(task)) {
+      stat_buf[i++] = '+';
+    }
+
+    // Liberar referencia 
+    put_tty(tty);
   }
+
+  /*// Proceso en foreground de su GID:
+  if (task->signal->tty && task->signal->pgrp != task_pgrp(task)) {
+    stat_buf[i++] = '+';
+  }*/
 
   pad_str_right(stat_buf, strlen(stat_buf), buf_size, ' ');
 
