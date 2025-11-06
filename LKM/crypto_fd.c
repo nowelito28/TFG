@@ -19,7 +19,7 @@
 #include <linux/time.h>
 #include <linux/uidgid.h>
 #include <linux/cred.h>
-#include <linux/sched.h>
+#include <linux/sched/task.h>
 #include <linux/jiffies.h>
 #include <linux/rtc.h>
 
@@ -94,9 +94,13 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
 
 // Convertir int a str de forma segura:
 // Devuelve len de la cadena escrita (buf_len - 1 = max dígitos)
+// Hecho para buffers pequeños de max 100 bytes
 static int int_to_str(int val, char *buf, int buf_len) {
-  char temp[buf_len];
+  char temp[BUFSIZE];
   int i, j, len = 0;
+
+  if (buf_len > BUFSIZE)
+    return -ENOSPC;
 
   // Pasar dígitos a cadena de caracteres -> invertido:
   if (val == 0) {
@@ -157,6 +161,8 @@ static char *get_uid_str(kuid_t uid_struct) {
   // Resto de UIDs -> pasar a UID a str
   // y rellenar espacios hasta 11 caract (huecos)
   uid_len = int_to_str(uid, uid_buf, buf_size);
+  if (uid_len < 0)
+    return NULL;
 
   pad_str_right(uid_buf, uid_len, buf_size, ' ');
 
@@ -170,6 +176,8 @@ static char *get_pid_str(int pid) {
   int pid_len = 0;
 
   pid_len = int_to_str(pid, pid_buf, buf_size);
+  if (pid_len < 0)
+    return NULL;
 
   pad_str_right(pid_buf, pid_len, buf_size, ' ');
 
@@ -197,12 +205,11 @@ static char *get_stat_str(struct task_struct *task) {
     stat_buf[i++] = 's';
   }
 
-  // Multi-threaded -> CPU inactivo:
-  if (task->cputime_expires > 0) {
-    if (thread_group_leader(task) && atomic_read(&task->usage) > 1) {
-      stat_buf[i++] = 'l';
-    }
+  // Multi-threaded -> Líder de hilo:
+  if (thread_group_leader(task) && get_nr_threads(task) > 1) {
+    stat_buf[i++] = 'l';
   }
+
 
   // Proceso en foreground de su GID:
   if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
@@ -417,18 +424,22 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
 
     // USER -> UID:
     char *uid_str = get_uid_str(task_uid(task));
+    if (!uid_str)
+      goto out_fail;
     if (safe_chunk(cont, cont_len, uid_str, strlen(uid_str)) < 0)
       goto out_fail;
 
     // PID:
     char *pid_str = get_pid_str(task_pid_nr(task));
+    if (!pid_str)
+      goto out_fail;
     if (safe_chunk(cont, cont_len, pid_str, strlen(pid_str)) < 0)
       goto out_fail;
 
     // STAT:
     char *stat_str = get_stat_str(task);
-    if (stat_str == NULL)
-        goto out_unlock;
+    if (!stat_str)
+        goto out_fail;
     if (safe_chunk(cont, cont_len, stat_str, strlen(stat_str)) < 0)
       goto out_fail;
 
@@ -449,7 +460,6 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
 
   }
 
-out_unlock:
   rcu_read_unlock();
   
   printk(KERN_INFO "get_ps_aux: Generated ps_aux-like output of %d bytes.\n", *cont_len);

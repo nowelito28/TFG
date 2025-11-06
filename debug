@@ -2,33 +2,14 @@ localhost:LKM:# make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘int_to_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:98:3: warning: ISO C90 forbids variable length array ‘temp’ [-Wvla]
-   98 |   char temp[buf_len];
-      |   ^~~~
 /home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_stat_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:201:11: error: ‘struct task_struct’ has no member named ‘cputime_expires’
-  201 |   if (task->cputime_expires > 0) {
-      |           ^~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:202:50: error: passing argument 1 of ‘atomic_read’ from incompatible pointer type [-Werror=incompatible-pointer-types]
-  202 |     if (thread_group_leader(task) && atomic_read(&task->usage) > 1) {
-      |                                                  ^~~~~~~~~~~~
-      |                                                  |
-      |                                                  refcount_t * {aka struct refcount_struct *}
-In file included from ./include/linux/atomic.h:82,
-                 from ./include/crypto/hash.h:11,
-                 from /home/noel/Desktop/TFG/LKM/crypto_fd.c:1:
-./include/linux/atomic/atomic-instrumented.h:30:29: note: expected ‘const atomic_t *’ but argument is of type ‘refcount_t *’ {aka ‘struct refcount_struct *’}
-   30 | atomic_read(const atomic_t *v)
-      |             ~~~~~~~~~~~~~~~~^
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:208:45: error: invalid use of undefined type ‘struct tty_struct’
-  208 |   if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:45: error: invalid use of undefined type ‘struct tty_struct’
+  215 |   if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
       |                                             ^~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:208:72: error: invalid use of undefined type ‘struct tty_struct’
-  208 | >signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:72: error: invalid use of undefined type ‘struct tty_struct’
+  215 | >signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
       |                                                             ^~
 
-cc1: some warnings being treated as errors
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
 make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
 make[1]: *** [Makefile:224: __sub-make] Error 2
