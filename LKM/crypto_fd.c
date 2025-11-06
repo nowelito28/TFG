@@ -15,13 +15,19 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
+#include <linux/sched/signal.h>
+#include <linux/time.h>
+#include <linux/uidgid.h>
+#include <linux/cred.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
 
-enum { BUFSIZE = 100 };
+enum { BUFSIZE = 100,
+      MAX_PROC_SIZE = 4096,
+      PS_LINE_SIZE = 256,};
 
-MODULE_LICENSE("Dual BSD/GPL");
+MODULE_LICENSE("Dual BSD/GP");
 MODULE_AUTHOR("Noel");
 
 // Puntero de referencia/entrada al fichero que crearemos en /proc -->
@@ -30,11 +36,15 @@ static struct proc_dir_entry *ent;
 
 // Separador entre el contenido del fichero y el contenido del kernel:
 static const char sep[] = "\n--KERNEL--\n";
-static const char sep_len = sizeof(sep) - 1; // NO contar '\0'
+static const int sep_len = sizeof(sep) - 1; // NO contar '\0'
 
 // Separador entre el contenido del kernel y el HMAC en base 64:
 static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
-static const char sep_hmac_len = sizeof(sep_hmac) - 1; // NO contar '\0'
+static const int sep_hmac_len = sizeof(sep_hmac) - 1;
+
+// Cabecera para registro de procesos:
+static const char header[] = "USER       PID     STAT START COMMAND\n";
+static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
 // del fichero: Devuelve bytes escritos (off) en éxito <-> <0 en error <-> 0 si
@@ -156,37 +166,96 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
   return 0;
 }
 
+// Obtener información de procesos del kernel para tratarlo como contenido
+// Devuelve 0 éxito <-> <0 en error
+static int get_ps_aux_from_kernel(u8 **cont, int *cont_len) {
+  struct task_struct *task;
+
+  struct timespec64 uptime;
+  long start_jiffies;
+  long secs_running;
+
+  *cont = kmalloc(MAX_PROC_OUTPUT_SIZE, GFP_KERNEL);
+  if (!*cont)
+    return -ENOMEM;
+
+  // 1) Copiar la cabecera y actualizar len:
+  memcpy(*cont + *cont_len, header, header_len);
+  *cont_len += header_len;
+
+  // 2) Recorrer todos los procesos del sistema
+  // requiere lock de lectura RCU
+  rcu_read_lock();
+
+  for_each_process(task) {
+
+    if (*cont_len >= MAX_PROC_SIZE - PS_LINE_SIZE) {
+      printk(KERN_WARNING "get_ps_aux: Process buffer full -> Truncating ps output.\n");
+      break;
+    }
+
+    // Obtiene fecha de inicio del proceso (uptime del sistema):
+    ktime_get_uptime_ts64(&uptime);
+
+    // Tiempo de inicio en jiffies -> pasado a segundos
+    start_jiffies = (long)task->start_time;
+    secs_running = (uptime.tv_sec - start_jiffies / HZ);
+
+    // Formato de nuestro ps_aux (USER, PID, STAT, START(secs desde inicio), COMMAND)
+    *cont_len += snprintf(*cont + *cont_len, MAX_PROC_SIZE - *cont_len,
+                          "root       %-6d  %c    %02ld:%02ld  [%s]\n",
+                          task_pid_nr(task),
+                          task_state_to_char(task), // Estado del proceso (R, S, D, Z, T...)
+                          secs_running / 60,
+                          secs_running % 60,
+                          task->comm); // Nombre del comando
+
+  }
+
+  rcu_read_unlock();
+  
+  printk(KERN_INFO "get_ps_aux: Generated ps_aux-like output of %d bytes.\n", *cont_len);
+  return 0;
+}
+
 // Función para calcular el HMAC del contenido que queremos poner
 // en el fichero dado por 'fd' en mywrite ('f') con HMAC(SHA-256) con clave K
+// u8* = unsigned char*
 // Devuelve (rv) => >0 = bytes añadidos <=> <0 = error
 static int printh(struct file *f) {
   int rv = 0;
 
-  const char cont[] =
-      "This is an authentic content to be validated by HMAC(SHA-256)!!";
-  const int cont_len = sizeof(cont) - 1; // NO contar '\0'
+  u8 *cont = NULL;
+  int cont_len = 0;
 
-  u8 *hmac = NULL; // u8* = unsigned char*
+  u8 *hmac = NULL;
   int hmac_len = 0;
 
   u8 *hmac_b64 = NULL;
   int hmac_b64len = 0;
 
-  // 1) Calcular (HMAC(SHA 256)) con clave K):
+  // 1) Información de procesos desde el kernel:
+  rv = get_ps_aux_from_kernel(&cont, &cont_len);
+  if (rv < 0) {
+    printk(KERN_ERR "Error printH: get_ps_aux_from_kernel failed: %d\n", rv);
+    goto out;
+  }
+
+  // 2) Calcular (HMAC(SHA 256)) con clave K):
   rv = get_hmac_sha256(cont, cont_len, &hmac, &hmac_len);
   if (rv < 0) {
     printk(KERN_ERR "Error printH: generating HMAC failed: %d\n", rv);
     goto out;
   }
 
-  // 2) Pasar el HMAC a Base64:
+  // 3) Pasar el HMAC a Base64:
   rv = get_hmac_b64(hmac, hmac_len, &hmac_b64, &hmac_b64len);
   if (rv < 0) {
     printk(KERN_ERR "Error printH: parsing HMAC to Base 64: %d\n", rv);
     goto out_free_hmac;
   }
 
-  // 3) Escribir contenido y HMAC en el fichero fd -> sep_cont + cont + sep_hmac
+  // 4) Escribir contenido y HMAC en el fichero fd -> sep_cont + cont + sep_hmac
   // + HMAC(base 64):
   rv = write_cont_hmac(f, cont, cont_len, hmac_b64, hmac_b64len);
   if (rv < 0) {
