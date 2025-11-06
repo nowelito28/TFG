@@ -3,13 +3,12 @@ make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM 
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
 /home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_stat_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:45: error: invalid use of undefined type ‘struct tty_struct’
-  215 |   if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
-      |                                             ^~
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:72: error: invalid use of undefined type ‘struct tty_struct’
-  215 | >signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
-      |                                                             ^~
-
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:218:22: error: ‘struct signal_struct’ has no member named ‘pgrp’
+  218 |   if (sig->tty && sig->pgrp != sig->session) {
+      |                      ^~
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:218:35: error: ‘struct signal_struct’ has no member named ‘session’
+  218 |   if (sig->tty && sig->pgrp != sig->session) {
+      |                                   ^~
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
 make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
 make[1]: *** [Makefile:224: __sub-make] Error 2

@@ -190,6 +190,9 @@ static char *get_stat_str(struct task_struct *task) {
   static char stat_buf[6];
   int i = 0;
 
+  // Puntero a struct de signal del proceso:
+  struct signal_struct *sig = task->signal;
+
   // Carácter de estado principal:
   stat_buf[i] = task_state_to_char(task);
 
@@ -212,7 +215,7 @@ static char *get_stat_str(struct task_struct *task) {
 
 
   // Proceso en foreground de su GID:
-  if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
+  if (sig->tty && sig->pgrp != sig->session) {
     stat_buf[i++] = '+';
   }
 
