@@ -19,6 +19,9 @@
 #include <linux/time.h>
 #include <linux/uidgid.h>
 #include <linux/cred.h>
+#include <linux/sched.h>
+#include <linux/jiffies.h>
+#include <linux/rtc.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
@@ -66,6 +69,230 @@ static int write_full(struct file *f, const char *buf, int len) {
   }
 
   return off;
+}
+
+// Función aux -> rellenar hasta el final del buffer (asumir terminar en '\0')
+static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
+  int padding;
+
+  // Calcular padding
+  if (curr_len >= buf_len) {
+    padding = 0;
+    curr_len = buf_len;
+  } else {
+    padding = (buf_len - 1) - curr_len;
+  }
+
+  // Aplicar relleno
+  if (padding > 0) {
+    memset(buf + curr_len, pad_char, padding);
+    curr_len += padding;
+  }
+
+  return buf_len;
+}
+
+// Convertir int a str de forma segura:
+// Devuelve len de la cadena escrita (buf_len - 1 = max dígitos)
+static int int_to_str(int val, char *buf, int buf_len) {
+  char temp[buf_len];
+  int i, j, len = 0;
+
+  // Pasar dígitos a cadena de caracteres -> invertido:
+  if (val == 0) {
+    temp[i++] = '0';
+
+  } else {
+    int t = val;
+
+    while (t > 0 && i < (buf_len - 1)) {
+      temp[i] = (t % 10) + '0';
+      t /= 10;
+      i++;
+    }
+
+  }
+
+  len = i;
+
+  // Invertir la cadena de dígitos (los hemos puesto al revés) y guardar:
+  for (i = len - 1; i >= 0 && j < buf_len; i--) {
+    buf[j++] = temp[i];
+  }
+
+  return j;
+}
+
+// Función aux para guardar contenido y avanzar (forma segura)
+// Devuelve len bytes guardados (>=0) <-> <0 error
+static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
+  int max_len = MAX_PROC_SIZE - *current_len;
+
+  if (max_len < src_len) {
+    return -ENOSPC;
+  }
+
+  // Copiar el contenido
+  memcpy(*dst + *current_len, src, src_len);
+
+  // Actualizar la longitud escrita
+  *current_len += src_len;
+  return src_len;
+}
+
+// Función aux -> mapear UID
+// Devuelve UID (str 11 caracts con espacios de relleno)
+static char *get_uid_str(kuid_t uid_struct) {
+  const int buf_size = 12;
+  char uid_buf[buf_size];
+  int uid_len = 0;
+  int padding = 0;
+  
+  int uid = from_kuid(&init_user_ns, uid_struct);
+
+  // Identificar el root:
+  if (uid == 0) {
+    return "root       ";
+  }
+
+  // Resto de UIDs -> pasar a UID a str
+  // y rellenar espacios hasta 11 caract (huecos)
+  uid_len = int_to_str(uid, uid_buf, buf_size);
+
+  pad_str_right(uid_buf, uid_len, buf_size, ' ');
+
+  return uid_buf;
+}
+
+// Función aux para sacar el PID:
+static char *get_pid_str(int pid) {
+  const int buf_size = 6;
+  static char pid_buf[buf_size];
+  int pid_len = 0;
+
+  pid_len = int_to_str(pid, pid_buf, buf_size);
+
+  pad_str_rigth(pid_buf, pid_len, buf_size, ' ');
+
+  return pid_buf;
+}
+
+// Función aux para sacar STAT:
+static char *get_stat_str(struct task_struct *task) {
+  const int buf_size = 6;
+  static char stat_buf[buf_size];
+  int i = 0;
+
+  // Carácter de estado principal:
+  stat_buf[i] = task_state_to_char(task);
+
+  // Flags adicionales:
+
+  // Prioridad alta:
+  if (task_nice(task) < 0) {
+    stat_buf[i++] = '<'; 
+  }
+
+  // Proceso del kernel:
+  if (task->flags & PF_KTHREAD) {
+    stat_buf[i++] = 's';
+  }
+
+  // Multi-threaded -> CPU inactivo:
+  if (task->cputime_expires > 0) {
+    if (thread_group_leader(task) && atomic_read(&task->usage) > 1) {
+      stat_buf[i++] = 'l';
+    }
+  }
+
+  // Proceso en foreground de su GID:
+  if (task->signal->tty && task->signal->tty->pgrp != task->signal->tty->session) {
+    stat_buf[i++] = '+';
+  }
+
+  pad_str_rigth(stat_buf, strlen(stat_buf), buf_size, ' ');
+
+  return stat_buf;
+}
+
+// Función aux para sacar START -> HH:MM (5 chars + 3 espacios):
+static char *get_start_str(struct task_struct *task) {
+  const int buf_size = 9;
+  static char start_buf[buf_size];
+  int i = 0;
+
+  struct timespec64 start_time_ts;
+  struct tm start_time_tm;
+
+  // 1. Tiempo de inicio absoluto 
+  // (Quitar segs desde boot y sumar segs de jiffies):
+  ktime_get_real_ts64(&start_time_ts);
+  start_time_ts.tv_sec -= (ktime_get_ns() / NSEC_PER_SEC);
+  start_time_ts.tv_sec += (task->start_time / HZ);
+
+  // 2. Convertir a estructura tm (hora del día):
+  time64_to_tm(start_time_ts.tv_sec, 0, &start_time_tm);
+
+  // 3. Guardar HH:MM (5 chars + 3 espacios):
+  // Horas (HH)
+  start_buf[i] = (start_time_tm.tm_hour / 10) + '0';
+  start_buf[i++] = (start_time_tm.tm_hour % 10) + '0';
+  // Separador
+  start_buf[i++] = ':';
+  // Mins (MM)
+  start_buf[i++] = (start_time_tm.tm_min / 10) + '0';
+  start_buf[i++] = (start_time_tm.tm_min % 10) + '0';
+
+  pad_str_rigth(start_buf, strlen(start_buf), buf_size, ' ');
+
+  return start_buf;
+}
+
+// Función aux para sacar TIME -> Tiempo de CPU HH:MM (5 chars + 2 espacios):
+static char *get_time_str(struct task_struct *task) {
+  const int buf_size = 8;
+  static char time_buf[buf_size];
+  int i = 0;
+
+  // 1. Tiempo total de CPU:
+  unsigned long time_jiffies = task->utime + task->stime;
+
+  // 2. Convertir a segundos:
+  long secs_running = jiffies_to_msecs(time_jiffies) / 1000;
+
+  int mins = secs_running / 60;
+  int secs = secs_running % 60;
+
+  // 3. Guardar MM:SS (5 chars + 2 espacios):
+  // Mins (MM)
+  time_buf[i] = (mins / 10) + '0';
+  time_buf[i++] = (mins % 10) + '0';
+  // Separador
+  time_buf[i++] = ':'; 
+  // Segs (SS)
+  time_buf[i++] = (secs / 10) + '0';
+  time_buf[i++] = (secs % 10) + '0';
+
+  pad_str_rigth(time_buf, strlen(time_buf), buf_size, ' ');
+
+  return time_buf;
+}
+
+// Función aux para sacar el COMMAND (18 chars max):
+static char *get_command_str(struct task_struct *task) {
+  const int buf_size = 20;
+  static char comm_buf[buf_size];
+  int i = 0;
+
+  // Copiar nombre del comando (task->comm) de forma segura:
+  int comm_len = strnlen(task->comm, TASK_COMM_LEN);
+
+  memcpy(comm_buf + i, task->comm, comm_len);
+  i += comm_len;
+
+  comm_buf[i++] = '\n';
+
+  return  comm_buf;
 }
 
 // Escribir en fichero f (de fd) -> sep_cont + cont + sep_hmac + HMAC
@@ -168,20 +395,18 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 
 // Obtener información de procesos del kernel para tratarlo como contenido
 // Devuelve 0 éxito <-> <0 en error
-static int get_ps_aux_from_kernel(u8 **cont, int *cont_len) {
+static int get_ps_aux(u8 **cont, int *cont_len) {
   struct task_struct *task;
 
-  struct timespec64 uptime;
-  long start_jiffies;
-  long secs_running;
+  int safed = 0;
 
-  *cont = kmalloc(MAX_PROC_OUTPUT_SIZE, GFP_KERNEL);
+  *cont = (u8 *)kmalloc(MAX_PROC_SIZE, GFP_KERNEL);
   if (!*cont)
     return -ENOMEM;
 
   // 1) Copiar la cabecera y actualizar len:
-  memcpy(*cont + *cont_len, header, header_len);
-  *cont_len += header_len;
+  if (safe_chunk(cont, cont_len, header, header_len) < 0)
+    goto out_fail;
 
   // 2) Recorrer todos los procesos del sistema
   // requiere lock de lectura RCU
@@ -194,28 +419,52 @@ static int get_ps_aux_from_kernel(u8 **cont, int *cont_len) {
       break;
     }
 
-    // Obtiene fecha de inicio del proceso (uptime del sistema):
-    ktime_get_uptime_ts64(&uptime);
+    // USER -> UID:
+    char *uid_str = get_uid_str(task_uid(task));
+    if (safe_chunk(cont, cont_len, uid_str, strlen(uid_str)) < 0)
+      goto out_fail;
 
-    // Tiempo de inicio en jiffies -> pasado a segundos
-    start_jiffies = (long)task->start_time;
-    secs_running = (uptime.tv_sec - start_jiffies / HZ);
+    // PID:
+    char *pid_str = get_pid_str(task_pid_nr(task));
+    if (safe_chunk(cont, cont_len, pid_str, strlen(pid_str)) < 0)
+      goto out_fail;
 
-    // Formato de nuestro ps_aux (USER, PID, STAT, START(secs desde inicio), COMMAND)
-    *cont_len += snprintf(*cont + *cont_len, MAX_PROC_SIZE - *cont_len,
-                          "root       %-6d  %c    %02ld:%02ld  [%s]\n",
-                          task_pid_nr(task),
-                          task_state_to_char(task), // Estado del proceso (R, S, D, Z, T...)
-                          secs_running / 60,
-                          secs_running % 60,
-                          task->comm); // Nombre del comando
+    // STAT:
+    char *stat_str = get_stat_str(task);
+    if (stat_str == NULL)
+        goto out_unlock;
+    if (safe_chunk(cont, cont_len, stat_str, strlen(stat_str)) < 0)
+      goto out_fail;
+
+    // START:
+    char *start_str = get_start_str(task);
+    if (safe_chunk(cont, cont_len, start_str, strlen(start_str)) < 0)
+      goto out_fail;
+
+    // TIME:
+    char *time_str = get_time_str(task);
+    if (safe_chunk(cont, cont_len, time_str, strlen(time_str)) < 0)
+      goto out_fail;
+
+    // COMMAND:
+    char *command_str = get_command_str(task);
+    if (safe_chunk(cont, cont_len, command_str, strlen(command_str)) < 0)
+      goto out_fail;
 
   }
 
+out_unlock:
   rcu_read_unlock();
   
   printk(KERN_INFO "get_ps_aux: Generated ps_aux-like output of %d bytes.\n", *cont_len);
   return 0;
+
+out_fail:
+  if (*cont)
+    kfree(*cont);
+  *cont = NULL;
+  *cont_len = 0;
+  return -ENOSPC;
 }
 
 // Función para calcular el HMAC del contenido que queremos poner
@@ -234,8 +483,8 @@ static int printh(struct file *f) {
   u8 *hmac_b64 = NULL;
   int hmac_b64len = 0;
 
-  // 1) Información de procesos desde el kernel:
-  rv = get_ps_aux_from_kernel(&cont, &cont_len);
+  // 1) Información de procesos desde el kernel (contenido):
+  rv = get_ps_aux(&cont, &cont_len);
   if (rv < 0) {
     printk(KERN_ERR "Error printH: get_ps_aux_from_kernel failed: %d\n", rv);
     goto out;
