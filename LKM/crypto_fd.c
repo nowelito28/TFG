@@ -23,7 +23,8 @@
 #include <linux/jiffies.h>
 #include <linux/rtc.h>
 #include <linux/tty.h>
-#include <linux/pid_namespace.h>
+#include <linux/pid.h>
+#include <linux/rcupdate.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
@@ -32,7 +33,7 @@ enum { BUFSIZE = 100,
       MAX_PROC_SIZE = 4096,
       PS_LINE_SIZE = 256,};
 
-MODULE_LICENSE("Dual BSD/GP");
+MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Noel");
 
 // Puntero de referencia/entrada al fichero que crearemos en /proc -->
@@ -125,6 +126,7 @@ static int int_to_str(int val, char *buf, int buf_len) {
   for (i = len - 1; i >= 0 && j < buf_len; i--) {
     buf[j++] = temp[i];
   }
+  printk(KERN_DEBUG "UID: %s", buf);
 
   return j;
 }
@@ -141,6 +143,7 @@ static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
   // Copiar el contenido
   memcpy(*dst + *current_len, src, src_len);
 
+  printk(KERN_DEBUG "result:\n %s", *dst);
   // Actualizar la longitud escrita
   *current_len += src_len;
   return src_len;
@@ -155,9 +158,10 @@ static char *get_uid_str(kuid_t uid_struct) {
   
   int uid = from_kuid(&init_user_ns, uid_struct);
 
+  printk(KERN_DEBUG "1111");
   // Identificar el root:
   if (uid == 0) {
-    return "root       ";
+    return "root       \n";
   }
 
   // Resto de UIDs -> pasar a UID a str
@@ -167,7 +171,7 @@ static char *get_uid_str(kuid_t uid_struct) {
     return NULL;
 
   pad_str_right(uid_buf, uid_len, buf_size, ' ');
-
+  printk(KERN_DEBUG "2222");
   return uid_buf;
 }
 
@@ -181,6 +185,7 @@ static char *get_pid_str(int pid) {
   if (pid_len < 0)
     return NULL;
 
+  printk(KERN_DEBUG "3333");
   pad_str_right(pid_buf, pid_len, buf_size, ' ');
 
   return pid_buf;
@@ -207,36 +212,31 @@ static char *get_stat_str(struct task_struct *task) {
     stat_buf[i++] = 's';
   }
 
-  // Multi-threaded -> Líder de hilo:
+  // Multi-threaded -> Líder de grupo multi-hilo:
   if (thread_group_leader(task) && get_nr_threads(task) > 1) {
     stat_buf[i++] = 'l';
   }
 
-  // TTY del proceso:
-  struct tty_struct *tty = get_current_tty();
+  // Ver si está en foreground de su TTY (del proceso):
+  struct signal_struct *sig = READ_ONCE(task->signal);
 
-  if (tty) {
+  if (sig) {
+    struct tty_struct *tty = rcu_dereference(sig->tty);
 
-    //pgrp de la TTY:
-    //pid_t tty_pgrp = tty_prgp(tty);
+    if (tty) {
+      struct pid *pg = tty_get_pgrp(tty);   // Ref del grupo (GID)
+      pid_t pgrp_nr = 0;
 
-    // pgrp del proceso actual:
-    //pid_t proc_prgp = task_pgrp_nr(task);
+      if (pg) {
+        pgrp_nr = pid_nr(pg);
+        put_pid(pg);
+      }
 
+      if (pgrp_nr == task_pgrp_nr(task))
+        stat_buf[i++] = '+';
 
-    // Si existe TTY -> y grupo de TTY == grupo del proceso => foreground
-    if (tty_pgrp(tty) == task_pgrp_nr(task)) {
-      stat_buf[i++] = '+';
     }
-
-    // Liberar referencia 
-    put_tty(tty);
   }
-
-  /*// Proceso en foreground de su GID:
-  if (task->signal->tty && task->signal->pgrp != task_pgrp(task)) {
-    stat_buf[i++] = '+';
-  }*/
 
   pad_str_right(stat_buf, strlen(stat_buf), buf_size, ' ');
 
@@ -450,7 +450,8 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
       goto out_fail;
     if (safe_chunk(cont, cont_len, uid_str, strlen(uid_str)) < 0)
       goto out_fail;
-
+    printk(KERN_DEBUG "cont:\n %s", *cont);
+/*
     // PID:
     char *pid_str = get_pid_str(task_pid_nr(task));
     if (!pid_str)
@@ -479,9 +480,8 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
     char *command_str = get_command_str(task);
     if (safe_chunk(cont, cont_len, command_str, strlen(command_str)) < 0)
       goto out_fail;
-
+*/
   }
-
   rcu_read_unlock();
   
   printk(KERN_INFO "get_ps_aux: Generated ps_aux-like output of %d bytes.\n", *cont_len);

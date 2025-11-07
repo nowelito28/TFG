@@ -1,18 +1,14 @@
-localhost:LKM:# make
-make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM modules
-make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-  CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
-/home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_stat_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:228:9: error: implicit declaration of function ‘tty_pgrp’; did you mean ‘task_pgrp’? [-Werror=implicit-function-declaration]
-  228 |     if (tty_pgrp(tty) == task_pgrp_nr(task)) {
-      |         ^~~~~~~~
-      |         task_pgrp
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:233:5: error: implicit declaration of function ‘put_tty’ [-Werror=implicit-function-declaration]
-  233 |     put_tty(tty);
-      |     ^~~~~~~
-cc1: some warnings being treated as errors
-make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
-make[2]: *** [/usr/src/linux-headers-6.12.41-current-bcm2711/Makefile:1945: /home/noel/Desktop/TFG/LKM] Error 2
-make[1]: *** [Makefile:224: __sub-make] Error 2
-make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-make: *** [Makefile:19: all] Error 2
+
+localhost:LKM:# insmod crypto_fd.ko                      
+localhost:LKM:# ../mk_fhandoff ./file_handoff /proc/fddev
+mk_fhandoff: Error writing in /proc/fddev: No space left on device
+localhost:LKM:# dmesg | tail                             
+               root       
+               root       
+               root       
+               root       
+               r
+[ 1692.310779] 1111
+[ 1692.310790] UID: 
+[ 1692.310807] Error printH: get_ps_aux_from_kernel failed: -28
+[ 1692.310847] Error mywrite: printH failed for fd 3: -28
