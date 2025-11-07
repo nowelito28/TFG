@@ -175,8 +175,8 @@ static char *get_uid_str(kuid_t uid_struct) {
 
 // Función aux para sacar el PID:
 static char *get_pid_str(int pid) {
-  const int buf_size = 8;
-  static char pid_buf[8];
+  const int buf_size = 9;
+  static char pid_buf[9];
   int pid_len = 0;
 
   pid_len = int_to_str(pid, pid_buf, buf_size);
@@ -190,12 +190,12 @@ static char *get_pid_str(int pid) {
 
 // Función aux para sacar STAT:
 static char *get_stat_str(struct task_struct *task) {
-  const int buf_size = 6;
-  static char stat_buf[6];
+  const int buf_size = 8;
+  static char stat_buf[8];
   int i = 0;
 
   // Carácter de estado principal:
-  stat_buf[i] = task_state_to_char(task);
+  stat_buf[i++] = task_state_to_char(task);
 
   // Flags adicionales:
 
@@ -234,8 +234,6 @@ static char *get_stat_str(struct task_struct *task) {
 
     }
   }
-//////////////////
-  stat_buf[i++] = '\n';
 
   pad_str_right(stat_buf, strlen(stat_buf), buf_size, ' ');
 
@@ -463,14 +461,12 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
         goto out_fail;
     if (safe_chunk(cont, cont_len, stat_str, strlen(stat_str)) < 0)
       goto out_fail;
-    //*cont[*cont_len] = '\n';
-    printk(KERN_DEBUG "cont:\n %s", *cont);
-/*
+
     // START:
     char *start_str = get_start_str(task);
     if (safe_chunk(cont, cont_len, start_str, strlen(start_str)) < 0)
       goto out_fail;
-
+/*
     // TIME:
     char *time_str = get_time_str(task);
     if (safe_chunk(cont, cont_len, time_str, strlen(time_str)) < 0)
