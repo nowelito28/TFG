@@ -30,7 +30,7 @@
 #include "k_embedded.h"
 
 enum { BUFSIZE = 100,
-      MAX_PROC_SIZE = 4096,
+      MAX_PROC_SIZE = 10240,
       PS_LINE_SIZE = 256,};
 
 MODULE_LICENSE("Dual BSD/GPL");
@@ -49,7 +49,7 @@ static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 // Cabecera para registro de procesos:
-static const char header[] = "USER       PID     STAT   START  COMMAND\n";
+static const char header[] = "USER/UID   PID     STAT   START  COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
@@ -100,7 +100,9 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
 // Hecho para buffers pequeños de max 100 bytes
 static int int_to_str(int val, char *buf, int buf_len) {
   char temp[BUFSIZE];
-  int i, j, len = 0;
+  int i = 0;
+  int j = 0;
+  int len = 0;
 
   if (buf_len > BUFSIZE)
     return -ENOSPC;
@@ -126,7 +128,6 @@ static int int_to_str(int val, char *buf, int buf_len) {
   for (i = len - 1; i >= 0 && j < buf_len; i--) {
     buf[j++] = temp[i];
   }
-  printk(KERN_DEBUG "UID: %s", buf);
 
   return j;
 }
@@ -143,7 +144,6 @@ static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
   // Copiar el contenido
   memcpy(*dst + *current_len, src, src_len);
 
-  printk(KERN_DEBUG "result:\n %s", *dst);
   // Actualizar la longitud escrita
   *current_len += src_len;
   return src_len;
@@ -158,10 +158,9 @@ static char *get_uid_str(kuid_t uid_struct) {
   
   int uid = from_kuid(&init_user_ns, uid_struct);
 
-  printk(KERN_DEBUG "1111");
   // Identificar el root:
   if (uid == 0) {
-    return "root       \n";
+    return "root       ";
   }
 
   // Resto de UIDs -> pasar a UID a str
@@ -171,7 +170,6 @@ static char *get_uid_str(kuid_t uid_struct) {
     return NULL;
 
   pad_str_right(uid_buf, uid_len, buf_size, ' ');
-  printk(KERN_DEBUG "2222");
   return uid_buf;
 }
 
@@ -185,7 +183,6 @@ static char *get_pid_str(int pid) {
   if (pid_len < 0)
     return NULL;
 
-  printk(KERN_DEBUG "3333");
   pad_str_right(pid_buf, pid_len, buf_size, ' ');
 
   return pid_buf;
@@ -237,6 +234,8 @@ static char *get_stat_str(struct task_struct *task) {
 
     }
   }
+//////////////////
+  stat_buf[i++] = '\n';
 
   pad_str_right(stat_buf, strlen(stat_buf), buf_size, ' ');
 
@@ -450,8 +449,7 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
       goto out_fail;
     if (safe_chunk(cont, cont_len, uid_str, strlen(uid_str)) < 0)
       goto out_fail;
-    printk(KERN_DEBUG "cont:\n %s", *cont);
-/*
+
     // PID:
     char *pid_str = get_pid_str(task_pid_nr(task));
     if (!pid_str)
@@ -465,7 +463,9 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
         goto out_fail;
     if (safe_chunk(cont, cont_len, stat_str, strlen(stat_str)) < 0)
       goto out_fail;
-
+    //*cont[*cont_len] = '\n';
+    printk(KERN_DEBUG "cont:\n %s", *cont);
+/*
     // START:
     char *start_str = get_start_str(task);
     if (safe_chunk(cont, cont_len, start_str, strlen(start_str)) < 0)
