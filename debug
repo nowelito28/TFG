@@ -3,17 +3,18 @@ make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/noel/Desktop/TFG/LKM 
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   CC [M]  /home/noel/Desktop/TFG/LKM/crypto_fd.o
 /home/noel/Desktop/TFG/LKM/crypto_fd.c: In function ‘get_stat_str’:
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:28: error: implicit declaration of function ‘task_tty’; did you mean ‘start_tty’? [-Werror=implicit-function-declaration]
-  215 |   struct tty_struct *tty = task_tty(task);
-      |                            ^~~~~~~~
-      |                            start_tty
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:215:28: warning: initialization of ‘struct tty_struct *’ from ‘int’ makes pointer from integer without a cast [-Wint-conversion]
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:227:9: error: implicit declaration of function ‘tty_pgrp’; did you mean ‘task_pgrp’? [-Werror=implicit-function-declaration]
-  227 |     if (tty_pgrp(tty) == task_pgrp_nr(task)) {
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:217:9: error: implicit declaration of function ‘task_tty’; did you mean ‘start_tty’? [-Werror=implicit-function-declaration]
+  217 |   tty = task_tty(task);
       |         ^~~~~~~~
-      |         task_pgrp
-/home/noel/Desktop/TFG/LKM/crypto_fd.c:232:5: error: implicit declaration of function ‘put_tty’ [-Werror=implicit-function-declaration]
-  232 |     put_tty(tty);
+      |         start_tty
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:217:7: warning: assignment to ‘struct tty_struct *’ from ‘int’ makes pointer from integer without a cast [-Wint-conversion]
+  217 |   tty = task_tty(task);
+      |       ^
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:229:9: error: implicit declaration of function ‘tty_prgp’ [-Werror=implicit-function-declaration]
+  229 |     if (tty_prgp(tty) == task_pgrp_nr(task)) {
+      |         ^~~~~~~~
+/home/noel/Desktop/TFG/LKM/crypto_fd.c:234:5: error: implicit declaration of function ‘put_tty’ [-Werror=implicit-function-declaration]
+  234 |     put_tty(tty);
       |     ^~~~~~~
 cc1: some warnings being treated as errors
 make[3]: *** [scripts/Makefile.build:244: /home/noel/Desktop/TFG/LKM/crypto_fd.o] Error 1
