@@ -214,7 +214,6 @@ static char *get_stat_str(struct task_struct *task) {
 
   // TTY del proceso:
   struct tty_struct *tty = get_current_tty();
-  tty = task_tty(task);
 
   if (tty) {
 
@@ -226,7 +225,7 @@ static char *get_stat_str(struct task_struct *task) {
 
 
     // Si existe TTY -> y grupo de TTY == grupo del proceso => foreground
-    if (tty_prgp(tty) == task_pgrp_nr(task)) {
+    if (tty_pgrp(tty) == task_pgrp_nr(task)) {
       stat_buf[i++] = '+';
     }
 
