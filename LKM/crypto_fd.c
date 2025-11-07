@@ -49,7 +49,7 @@ static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 // Cabecera para registro de procesos:
-static const char header[] = "USER/UID   PID     STAT   START   TIME   COMMAND\n";
+static const char header[] = "USER/UID   PID   STAT   START   TIME   COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
@@ -74,7 +74,7 @@ static int write_full(struct file *f, const char *buf, int len) {
   return off;
 }
 
-// Función aux -> rellenar hasta el final del buffer (asumir terminar en '\0')
+// Función aux -> rellenar hasta el final del buffer
 static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
   int padding = 0;
 
@@ -83,7 +83,7 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
     padding = 0;
     curr_len = buf_len;
   } else {
-    padding = (buf_len - 1) - curr_len;
+    padding = buf_len - curr_len;
   }
 
   // Aplicar relleno
@@ -152,22 +152,27 @@ static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
 // Función aux -> mapear UID
 // Devuelve UID (str 11 caracts con espacios de relleno)
 static char *get_uid_str(kuid_t uid_struct) {
-  const int buf_size = 12;
-  static char uid_buf[12];
+  const int buf_size = 11;
+  static char uid_buf[11];
   int uid_len = 0;
   
   int uid = from_kuid(&init_user_ns, uid_struct);
 
   // Identificar el root:
   if (uid == 0) {
-    return "root       ";
-  }
+    int i = 0;
 
-  // Resto de UIDs -> pasar a UID a str
-  // y rellenar espacios hasta 11 caract (huecos)
-  uid_len = int_to_str(uid, uid_buf, buf_size);
-  if (uid_len < 0)
-    return NULL;
+    uid_buf[i++] = 'r';
+    uid_buf[i++] = 'o';
+    uid_buf[i++] = 'o';
+    uid_buf[i++] = 't';
+
+  } else {  // Resto de UIDs -> pasar a UID a str
+    uid_len = int_to_str(uid, uid_buf, buf_size);
+
+    if (uid_len < 0)
+      return NULL;
+  }
 
   pad_str_right(uid_buf, uid_len, buf_size, ' ');
   return uid_buf;
@@ -175,8 +180,8 @@ static char *get_uid_str(kuid_t uid_struct) {
 
 // Función aux para sacar el PID:
 static char *get_pid_str(int pid) {
-  const int buf_size = 9;
-  static char pid_buf[9];
+  const int buf_size = 8;
+  static char pid_buf[8];
   int pid_len = 0;
 
   pid_len = int_to_str(pid, pid_buf, buf_size);
@@ -242,8 +247,8 @@ static char *get_stat_str(struct task_struct *task) {
 
 // Función aux para sacar START -> HH:MM (5 chars + 3 espacios):
 static char *get_start_str(struct task_struct *task) {
-  const int buf_size = 9;
-  static char start_buf[9];
+  const int buf_size = 8;
+  static char start_buf[8];
   int i = 0;
 
   struct timespec64 start_time_ts;
@@ -303,9 +308,9 @@ static char *get_time_str(struct task_struct *task) {
   return time_buf;
 }
 
-// Función aux para sacar el COMMAND (18 chars max):
+// Función aux para sacar el COMMAND (24 chars max + \n):
 static char *get_command_str(struct task_struct *task) {
-  static char comm_buf[20];
+  static char comm_buf[25];
   int i = 0;
 
   // Limpiar buffer al ser static
