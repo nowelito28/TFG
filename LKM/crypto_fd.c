@@ -49,7 +49,7 @@ static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 // Cabecera para registro de procesos:
-static const char header[] = "USER/UID   PID     STAT   START  COMMAND\n";
+static const char header[] = "USER/UID   PID     STAT   START   TIME   COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
@@ -466,7 +466,7 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
     char *start_str = get_start_str(task);
     if (safe_chunk(cont, cont_len, start_str, strlen(start_str)) < 0)
       goto out_fail;
-/*
+
     // TIME:
     char *time_str = get_time_str(task);
     if (safe_chunk(cont, cont_len, time_str, strlen(time_str)) < 0)
@@ -476,7 +476,7 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
     char *command_str = get_command_str(task);
     if (safe_chunk(cont, cont_len, command_str, strlen(command_str)) < 0)
       goto out_fail;
-*/
+
   }
   rcu_read_unlock();
   
