@@ -31,7 +31,13 @@
 
 enum { BUFSIZE = 100,
       MAX_PROC_SIZE = 10240,
-      PS_LINE_SIZE = 256,};
+      PS_LINE_SIZE = 256,
+    UID_SIZE = 11,
+    PID_SIZE = 8,
+    STAT_SIZE = 8,
+    START_SIZE = 8,
+    TIME_SIZE = 8,
+    CMD_SIZE = 25,};
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Noel");
@@ -152,8 +158,7 @@ static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
 // Función aux -> mapear UID
 // Devuelve UID (str 11 caracts con espacios de relleno)
 static char *get_uid_str(kuid_t uid_struct) {
-  const int buf_size = 11;
-  static char uid_buf[11];
+  static char uid_buf[UID_SIZE];
   int uid_len = 0;
   
   int uid = from_kuid(&init_user_ns, uid_struct);
@@ -168,35 +173,33 @@ static char *get_uid_str(kuid_t uid_struct) {
     uid_buf[i++] = 't';
 
   } else {  // Resto de UIDs -> pasar a UID a str
-    uid_len = int_to_str(uid, uid_buf, buf_size);
+    uid_len = int_to_str(uid, uid_buf, UID_SIZE);
 
     if (uid_len < 0)
       return NULL;
   }
 
-  pad_str_right(uid_buf, uid_len, buf_size, ' ');
+  pad_str_right(uid_buf, uid_len, UID_SIZE, ' ');
   return uid_buf;
 }
 
 // Función aux para sacar el PID:
 static char *get_pid_str(int pid) {
-  const int buf_size = 8;
-  static char pid_buf[8];
+  static char pid_buf[PID_SIZE];
   int pid_len = 0;
 
-  pid_len = int_to_str(pid, pid_buf, buf_size);
+  pid_len = int_to_str(pid, pid_buf, PID_SIZE);
   if (pid_len < 0)
     return NULL;
 
-  pad_str_right(pid_buf, pid_len, buf_size, ' ');
+  pad_str_right(pid_buf, pid_len, PID_SIZE, ' ');
 
   return pid_buf;
 }
 
 // Función aux para sacar STAT:
 static char *get_stat_str(struct task_struct *task) {
-  const int buf_size = 8;
-  static char stat_buf[8];
+  static char stat_buf[STAT_SIZE];
   int i = 0;
 
   // Carácter de estado principal:
@@ -240,15 +243,14 @@ static char *get_stat_str(struct task_struct *task) {
     }
   }
 
-  pad_str_right(stat_buf, strlen(stat_buf), buf_size, ' ');
+  pad_str_right(stat_buf, strlen(stat_buf), STAT_SIZE, ' ');
 
   return stat_buf;
 }
 
 // Función aux para sacar START -> HH:MM (5 chars + 3 espacios):
 static char *get_start_str(struct task_struct *task) {
-  const int buf_size = 8;
-  static char start_buf[8];
+  static char start_buf[START_SIZE];
   int i = 0;
 
   struct timespec64 start_time_ts;
@@ -273,15 +275,14 @@ static char *get_start_str(struct task_struct *task) {
   start_buf[i++] = (start_time_tm.tm_min / 10) + '0';
   start_buf[i++] = (start_time_tm.tm_min % 10) + '0';
 
-  pad_str_right(start_buf, strlen(start_buf), buf_size, ' ');
+  pad_str_right(start_buf, strlen(start_buf), START_SIZE, ' ');
 
   return start_buf;
 }
 
 // Función aux para sacar TIME -> Tiempo de CPU HH:MM (5 chars + 2 espacios):
 static char *get_time_str(struct task_struct *task) {
-  const int buf_size = 8;
-  static char time_buf[8];
+  static char time_buf[TIME_SIZE];
   int i = 0;
 
   // 1. Tiempo total de CPU:
@@ -303,14 +304,14 @@ static char *get_time_str(struct task_struct *task) {
   time_buf[i++] = (secs / 10) + '0';
   time_buf[i++] = (secs % 10) + '0';
 
-  pad_str_right(time_buf, strlen(time_buf), buf_size, ' ');
+  pad_str_right(time_buf, strlen(time_buf), TIME_SIZE, ' ');
 
   return time_buf;
 }
 
 // Función aux para sacar el COMMAND (24 chars max + \n):
 static char *get_command_str(struct task_struct *task) {
-  static char comm_buf[25];
+  static char comm_buf[CMD_SIZE];
   int i = 0;
 
   // Limpiar buffer al ser static
@@ -453,36 +454,36 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
     char *uid_str = get_uid_str(task_uid(task));
     if (!uid_str)
       goto out_fail;
-    if (safe_chunk(cont, cont_len, uid_str, sizeof(uid_str)) < 0)
+    if (safe_chunk(cont, cont_len, uid_str, UID_SIZE) < 0)
       goto out_fail;
 
     // PID:
     char *pid_str = get_pid_str(task_pid_nr(task));
     if (!pid_str)
       goto out_fail;
-    if (safe_chunk(cont, cont_len, pid_str, sizeof(pid_str)) < 0)
+    if (safe_chunk(cont, cont_len, pid_str, PID_SIZE) < 0)
       goto out_fail;
 
     // STAT:
     char *stat_str = get_stat_str(task);
     if (!stat_str)
         goto out_fail;
-    if (safe_chunk(cont, cont_len, stat_str, sizeof(stat_str)) < 0)
+    if (safe_chunk(cont, cont_len, stat_str, STAT_SIZE) < 0)
       goto out_fail;
 
     // START:
     char *start_str = get_start_str(task);
-    if (safe_chunk(cont, cont_len, start_str, sizeof(start_str)) < 0)
+    if (safe_chunk(cont, cont_len, start_str, START_SIZE) < 0)
       goto out_fail;
 
     // TIME:
     char *time_str = get_time_str(task);
-    if (safe_chunk(cont, cont_len, time_str, sizeof(time_str)) < 0)
+    if (safe_chunk(cont, cont_len, time_str, TIME_SIZE) < 0)
       goto out_fail;
 
     // COMMAND:
     char *command_str = get_command_str(task);
-    if (safe_chunk(cont, cont_len, command_str, sizeof(command_str)) < 0)
+    if (safe_chunk(cont, cont_len, command_str, CMD_SIZE) < 0)
       goto out_fail;
 
   }
