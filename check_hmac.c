@@ -12,11 +12,11 @@
 // const unsigned char K[]; const unsigned int K_len;
 #include "./LKM/k_embedded.h"
 
-// Valor de 4KB arbitrario (espacio suficiente) -> leer resultado del kernel
-enum { LEN = 4096 };
+// Valor de 10KB arbitrario (espacio suficiente) -> leer resultado del kernel
+enum { LEN = 10240 };
 
 // Separador entre el contenido del fichero y el contenido del kernel:
-const char sep[] = "--KERNEL--\n";
+const char sep[] = "--KERNEL-PS-AUX--\n";
 
 // Separador entre el contenido del kernel y el HMAC en base 64:
 const char sep_hmac[] = "--HMAC(SHA-256)--\n";
