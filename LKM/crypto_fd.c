@@ -308,6 +308,9 @@ static char *get_command_str(struct task_struct *task) {
   static char comm_buf[20];
   int i = 0;
 
+  // Limpiar buffer al ser static
+  memset(comm_buf, ' ', sizeof(comm_buf));
+
   // Copiar nombre del comando (task->comm) de forma segura:
   int comm_len = strnlen(task->comm, TASK_COMM_LEN);
 
@@ -445,36 +448,36 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
     char *uid_str = get_uid_str(task_uid(task));
     if (!uid_str)
       goto out_fail;
-    if (safe_chunk(cont, cont_len, uid_str, strlen(uid_str)) < 0)
+    if (safe_chunk(cont, cont_len, uid_str, sizeof(uid_str)) < 0)
       goto out_fail;
 
     // PID:
     char *pid_str = get_pid_str(task_pid_nr(task));
     if (!pid_str)
       goto out_fail;
-    if (safe_chunk(cont, cont_len, pid_str, strlen(pid_str)) < 0)
+    if (safe_chunk(cont, cont_len, pid_str, sizeof(pid_str)) < 0)
       goto out_fail;
 
     // STAT:
     char *stat_str = get_stat_str(task);
     if (!stat_str)
         goto out_fail;
-    if (safe_chunk(cont, cont_len, stat_str, strlen(stat_str)) < 0)
+    if (safe_chunk(cont, cont_len, stat_str, sizeof(stat_str)) < 0)
       goto out_fail;
 
     // START:
     char *start_str = get_start_str(task);
-    if (safe_chunk(cont, cont_len, start_str, strlen(start_str)) < 0)
+    if (safe_chunk(cont, cont_len, start_str, sizeof(start_str)) < 0)
       goto out_fail;
 
     // TIME:
     char *time_str = get_time_str(task);
-    if (safe_chunk(cont, cont_len, time_str, strlen(time_str)) < 0)
+    if (safe_chunk(cont, cont_len, time_str, sizeof(time_str)) < 0)
       goto out_fail;
 
     // COMMAND:
     char *command_str = get_command_str(task);
-    if (safe_chunk(cont, cont_len, command_str, strlen(command_str)) < 0)
+    if (safe_chunk(cont, cont_len, command_str, sizeof(command_str)) < 0)
       goto out_fail;
 
   }
