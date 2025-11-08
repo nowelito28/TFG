@@ -542,6 +542,9 @@ root       5418  R+     7:31    0:00   mk_fhandoff
 
 
 
-noel@localhost:~/Desktop/TFG/LKM$ clang-format -style=file -i crypto_fd.c
+noel@localhost:~/Desktop/TFG/LKM$ clang-format -style=file -i crypto_fd.c // ESTEE ES PEOR
+noel@localhost:~/Desktop/TFG/LKM$ indent -kr -i8 -ts8 -sob -bap -br -brf -bbo -bli0 -brs -fca -l80 -ss -ncs crypto_fd.c
+noel@localhost:~/Desktop/TFG$ indent -kr -i8 -ts8 -sob -l80 -bap -ss -ncs -fca -br -brf mk_fhandoff.c
+
 
 
