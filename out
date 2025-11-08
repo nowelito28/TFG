@@ -12,14 +12,14 @@ make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 localhost:TFG:# insmod crypt_fd.ko
 localhost:TFG:# dmesg | tail 
 ...        
-[ 5325.263069] K (64Bytes) loaded = 4a:d3:21:da:c3:6c:38:13:b1:70:48:ac:b2:6b:f7:e4:1b:7d:56:f2:fe:69:b4:59:0e:31:d6:a7:f1:ee:40:8a:17:97:4e:b0:7a:40:39:40:3f:29:27:d8:a9:84:da:01:12:70:23:dd:87:02:1b:b9:af:8c:ee:e2:90:7c:00:10
-[ 5325.263174] New proc file created: /proc/fddev
+[vie nov  7 19:45:58 2025] K (64Bytes) loaded = 4a:d3:21:da:c3:6c:38:13:b1:70:48:ac:b2:6b:f7:e4:1b:7d:56:f2:fe:69:b4:59:0e:31:d6:a7:f1:ee:40:8a:17:97:4e:b0:7a:40:39:40:3f:29:27:d8:a9:84:da:01:12:70:23:dd:87:02:1b:b9:af:8c:ee:e2:90:7c:00:10
+[vie nov  7 19:45:58 2025] New proc file created: /proc/fddev
 localhost:TFG:# cat /proc/fddev             
 LKM ready to receive file descriptors from user.# 
 ...
-[ 5346.210726] /proc/fddev: read handler
-[ 5346.210834] /proc/fddev myread: read 48 bytes by userspace
-[ 5346.211015] /proc/fddev: Only one read allowed or very few bytes requested   # Debido a que cat intenta hacer varias lecturas al fichero -> pero single-shot read
+[vie nov  7 19:45:58 2025] /proc/fddev: read handler
+[vie nov  7 19:45:58 2025] /proc/fddev myread: read 48 bytes by userspace
+[vie nov  7 19:45:58 2025] /proc/fddev: Only one read allowed or very few bytes requested   # Debido a que cat intenta hacer varias lecturas al fichero -> pero single-shot read
 localhost:TFG:# cd ..
 localhost:TFG:# gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
 localhost:TFG:# gcc -o mk_fhandoff mk_fhandoff.o
@@ -29,26 +29,516 @@ localhost:TFG:# ./mk_fhandoff ./file_handoff /proc/fddev
 File descriptor written in /proc/fddev:
 3
 localhost:TFG:# ./user_check ./file_handoff                
+localhost:TFG:# ./check_hmac ./file_handoff                
 Extracted kernel content:
-This is an authentic content to be validated by HMAC(SHA-256)!!
+USER/UID   PID   STAT   START   TIME   COMMAND
+root       1     S      8:21    4:58   systemd
+root       2     Ss     8:21    0:00   kthreadd
+root       3     Ss     8:21    0:00   pool_workqueue_
+root       4     I<s    8:21    0:00   kworker/R-kvfre
+root       5     I<s    8:21    0:00   kworker/R-rcu_g
+root       6     I<s    8:21    0:00   kworker/R-sync_
+root       7     I<s    8:21    0:00   kworker/R-slub_
+root       8     I<s    2:48    0:00   kworker/R-netns
+root       12    Is     2:48    7:08   kworker/u16:0
+root       13    I<s    2:48    0:00   kworker/R-mm_pe
+root       14    Is     2:48    0:00   rcu_tasks_kthre
+root       15    Is     2:48    0:00   rcu_tasks_rude_
+root       16    Is     2:48    0:00   rcu_tasks_trace
+root       17    Ss     2:48    3:20   ksoftirqd/0
+root       18    Is     2:48    0:00   rcu_preempt
+root       19    Ss     2:48    0:00   rcu_exp_par_gp_
+root       20    Ss     2:48    6:40   rcu_exp_gp_kthr
+root       21    Ss     2:48    3:20   migration/0
+root       22    Ss     3:15    0:00   cpuhp/0
+root       23    Ss     3:15    0:00   cpuhp/1
+root       24    Ss     3:15    0:00   migration/1
+root       25    Ss     3:15    0:00   ksoftirqd/1
+root       28    Ss     3:15    0:00   cpuhp/2
+root       29    Ss     3:15    3:20   migration/2
+root       30    Ss     3:15    0:00   ksoftirqd/2
+root       33    Ss     3:15    0:00   cpuhp/3
+root       34    Ss     3:15    0:00   migration/3
+root       35    Ss     3:15    6:40   ksoftirqd/3
+root       39    Is     7:41    3:52   kworker/u18:0
+root       40    Is     7:41    0:32   kworker/u19:0
+root       42    Ss     2:08    6:40   kdevtmpfs
+root       43    I<s    1:28    0:00   kworker/R-inet_
+root       44    Ss     3:41    0:00   kauditd
+root       45    Ss     3:55    0:00   khungtaskd
+root       46    Ss     3:55    0:00   oom_reaper
+root       48    I<s    3:55    0:00   kworker/R-write
+root       49    Ss     3:55    0:00   kcompactd0
+root       50    Ss     8:21    0:00   khugepaged
+root       51    I<s    8:21    0:00   kworker/R-kinte
+root       52    I<s    8:21    0:00   kworker/R-kbloc
+root       53    I<s    8:21    0:00   kworker/R-blkcg
+root       54    Is     2:21    0:32   kworker/u17:2
+root       55    Is     6:48    2:10   kworker/u17:3
+root       56    Ss     1:15    0:00   watchdogd
+root       57    Is     5:54    0:00   kworker/2:1
+root       58    I<s    5:03    0:32   kworker/0:1H
+root       59    I<s    8:29    0:00   kworker/R-rpcio
+root       60    I<s    8:48    0:00   kworker/R-xprti
+root       64    Ss     6:21    0:00   kswapd0
+root       65    I<s    8:33    0:00   kworker/R-nfsio
+root       66    I<s    2:57    0:00   kworker/R-kthro
+root       67    Is     1:13    3:20   kworker/0:2
+root       69    Is     4:10    0:00   kworker/u19:1
+root       75    Ss     9:39    0:00   irq/27-aerdrv
+root       77    Ss     0:07    0:00   hwrng
+root       78    I<s    1:51    0:00   kworker/R-iscsi
+root       79    I<s    2:19    0:00   kworker/R-nvme-
+root       80    I<s    2:38    0:00   kworker/R-nvme-
+root       81    I<s    2:55    0:00   kworker/R-nvme-
+root       83    I<s    1:14    0:00   kworker/R-DWC N
+root       84    I<s    1:52    0:00   kworker/R-uas
+root       85    S<s    1:02    6:40   vchiq-slot/0
+root       86    S<s    1:17    6:40   vchiq-recy/0
+root       87    S<s    1:28    0:00   vchiq-sync/0
+root       88    I<s    5:57    3:20   kworker/1:1H
+root       89    I<s    6:44    0:00   kworker/R-tls-s
+root       90    I<s    6:56    0:00   kworker/R-kstrp
+root       91    I<s    1:10    0:00   kworker/R-zswap
+root       92    I<s    6:11    3:20   kworker/u21:0
+root       93    I<s    6:18    0:00   kworker/u22:0
+root       94    I<s    6:24    0:00   kworker/u23:0
+root       95    I<s    6:30    0:00   kworker/u24:0
+root       96    I<s    6:35    0:00   kworker/u25:0
+root       102   Is     3:20    1:05   kworker/u19:2
+root       112   I<s    6:03    0:00   kworker/R-sdhci
+root       113   Ss     6:12    6:40   irq/40-mmc0
+root       114   Ds     9:07    3:52   kworker/u20:1
+root       139   I<s    0:03    0:00   kworker/3:1H
+root       143   I<s    5:41    6:40   kworker/2:1H
+root       148   I<s    9:42    0:00   kworker/R-mmc_c
+root       172   I<s    2:58    0:00   kworker/0:2H
+root       173   Is     9:35    0:32   kworker/u20:2
+root       209   Ss     1:59    0:00   jbd2/mmcblk0p2-
+root       210   I<s    2:18    0:00   kworker/R-ext4-
+root       225   I<s    1:31    0:00   kworker/R-mld
+root       226   I<s    1:49    0:00   kworker/R-ipv6_
+root       284   I<s    2:26    3:20   kworker/3:2H
+root       302   S      3:33    3:20   systemd-udevd
+root       347   Ss     1:14    0:00   vchiq-keep/0
+root       350   I<s    3:12    6:40   kworker/R-v3d_b
+root       352   I<s    2:51    0:00   kworker/R-v3d_r
+root       353   I<s    1:47    0:00   kworker/R-v3d_t
+root       354   I<s    6:13    0:00   kworker/R-v3d_c
+root       355   I<s    6:39    0:00   kworker/R-v3d_c
+root       356   I<s    6:53    0:00   kworker/R-v3d_c
+root       374   S<s    2:30    0:00   SMIO
+root       382   I<s    9:55    0:00   kworker/R-cfg80
+root       383   I<s    1:26    0:00   kworker/R-mmal-
+root       384   I<s    9:01    0:00   kworker/R-mmal-
+root       387   I<s    4:19    0:00   kworker/R-mmal-
+root       388   I<s    3:34    0:00   kworker/R-mmal-
+root       389   Ss     2:35    0:00   irq/43-vc4 hdmi
+root       390   Ss     6:07    0:00   irq/44-vc4 hdmi
+root       391   Ss     7:01    0:00   cec-vc4-hdmi-0
+root       392   Ss     8:05    0:00   irq/45-vc4 hdmi
+root       393   I<s    1:17    0:00   kworker/R-mmal-
+root       394   Ss     9:38    0:00   irq/46-vc4 hdmi
+root       395   I<s    0:37    0:00   kworker/R-mmal-
+root       396   I<s    2:47    0:00   kworker/R-mmal-
+root       404   Ss     7:06    0:00   irq/47-vc4 hdmi
+root       405   Ss     8:17    0:00   irq/48-vc4 hdmi
+root       406   Ss     8:35    0:00   cec-vc4-hdmi-1
+root       407   Ss     8:56    0:00   irq/49-vc4 hdmi
+root       408   Ss     6:30    0:00   irq/50-vc4 hdmi
+root       419   I<s    7:29    0:00   kworker/R-brcmf
+root       425   Ss     2:48    6:40   brcmf_wdog/mmc1
+root       433   Ss     0:04    0:00   card1-crtc0
+root       434   Ss     8:57    0:00   card1-crtc1
+root       435   Ss     9:09    0:00   card1-crtc2
+root       436   Ss     9:17    0:00   card1-crtc3
+root       437   Ss     9:30    0:00   card1-crtc4
+root       438   Ss     9:46    0:00   card1-crtc5
+root       479   I<s    3:12    2:10   kworker/u21:3
+root       566   I<s    7:18    0:00   kworker/R-ext4-
+root       598   S<     4:26    7:12   systemd-journal
+106        644   S      7:09    3:20   rpcbind
+992        645   S      0:31    7:12   systemd-resolve
+root       714   Sl     0:53    3:20   accounts-daemon
+root       718   S      3:36    3:20   bluetoothd
+root       726   S      0:50    3:20   cron
+101        735   S      3:15    7:12   dbus-daemon
+root       819   S      8:28    0:00   systemd-logind
+root       821   Sl     6:49    6:40   udisksd
+103        929   Sl     7:38    3:20   rsyslogd
+root       1046  Sl     8:16    6:40   rngd
+root       1079  Sl     4:22    3:20   NetworkManager
+root       1080  S      0:41    3:20   wpa_supplicant
+991        1109  Sl     3:46    3:20   polkitd
+root       1383  S      3:29    6:40   cupsd
+root       1390  Sl     7:41    3:20   unattended-upgr
+102        1394  S      0:54    6:40   vnstatd
+113        1417  S      8:38    3:20   chronyd
+113        1418  S      9:45    3:20   chronyd
+root       1529  Sl     5:59    6:40   gdm3
+root       1538  Sl     3:50    3:20   gdm-session-wor
+1000       1546  S      6:47    0:00   systemd
+1000       1547  S      8:51    6:40   (sd-pam)
+1000       1559  Sl     1:12    0:00   pipewire
+1000       1560  Sl     7:28    6:40   pipewire
+1000       1563  Sl     0:23    3:20   pulseaudio
+1000       1566  Sl+    1:30    3:20   gdm-wayland-ses
+1000       1574  S      1:35    7:12   dbus-daemon
+1000       1591  Sl+    2:25    6:40   gnome-session-b
+1000       1684  Sl     8:13    0:00   gcr-ssh-agent
+1000       1685  Sl     3:43    3:20   gnome-keyring-d
+1000       1686  Sl     1:38    0:00   gnome-session-c
+1000       1702  Sl     5:02    0:00   gvfsd
+1000       1728  Sl     1:53    0:00   gnome-session-b
+1000       1764  Sl     8:10    1:40   gnome-shell
+1000       1769  Sl     7:49    3:20   at-spi-bus-laun
+1000       1779  S      6:12    6:40   dbus-daemon
+root       1788  S<s    3:03    0:00   krfcommd
+1000       1882  Sl     1:46    6:40   at-spi2-registr
+109        1884  Sl     2:54    0:00   colord
+1000       1911  Sl     6:48    0:00   xdg-permission-
+root       1934  Sl     5:50    6:40   upowerd
+1000       1940  Sl     1:50    3:20   gsd-a11y-settin
+1000       1941  Sl     2:24    6:40   gsd-color
+1000       1942  Sl     0:09    6:40   gsd-datetime
+1000       1943  Sl     2:13    0:00   gsd-housekeepin
+1000       1945  Sl     1:17    6:40   gsd-keyboard
+1000       1946  Sl     7:28    0:00   gsd-media-keys
+1000       1947  Sl     7:48    0:00   gsd-power
+1000       1948  Sl     1:40    6:40   gsd-print-notif
+1000       1953  Sl     7:47    0:00   gsd-rfkill
+1000       1958  Sl     9:11    3:20   gsd-screensaver
+1000       1960  Sl     3:01    6:40   gsd-sharing
+1000       1962  Sl     8:55    6:40   gsd-smartcard
+1000       1965  Sl     0:15    3:20   gsd-sound
+1000       1966  Sl     0:02    0:00   gsd-disk-utilit
+1000       1969  Sl     2:21    3:20   gsd-wacom
+1000       2059  Sl     3:44    0:00   gsd-printer
+1000       2122  Sl     0:07    6:40   gvfs-udisks2-vo
+1000       2129  Sl     1:11    6:40   gvfs-mtp-volume
+1000       2146  Sl     2:17    6:40   gvfs-afc-volume
+1000       2153  Sl     8:39    0:00   gvfs-goa-volume
+1000       2158  Sl     7:47    0:00   gvfs-gphoto2-vo
+1000       2234  Sl     8:25    6:40   tracker-miner-f
+root       2241  Is     1:53    7:41   kworker/u16:2
+1000       2457  Rl     7:57    2:20   terminator
+1000       2584  S      1:41    6:40   bash
+root       2700  Is     7:49    7:08   kworker/u16:3
+1000       2756  Sl     1:16    1:07   code
+1000       2759  S      7:48    0:00   code
+1000       2760  S      3:14    6:40   code
+root       2762  Is     6:11    0:00   kworker/u20:4
+1000       2764  S      5:15    3:20   code
+1000       2786  Sl     4:44    3:20   chrome_crashpad
+1000       2789  Sl     8:24    9:39   Xwayland
+1000       2794  Sl     5:43    3:52   gsd-xsettings
+1000       2822  Sl     1:26    1:05   mutter-x11-fram
+1000       2843  Sl     6:42    0:00   xdg-desktop-por
+1000       2845  Sl     0:26    2:03   code
+1000       2854  Sl     6:59    0:00   xdg-document-po
+1000       2855  Sl     6:13    3:20   code
+1000       2861  S      3:22    3:20   fusermount3
+1000       2866  Sl     1:12    0:00   xdg-desktop-por
+1000       2894  Sl     5:30    3:20   xdg-desktop-por
+1000       2910  Sl     4:55    6:48   code
+1000       2931  Sl     1:27    1:23   code
+1000       2932  Rl     3:02    7:08   code
+1000       2951  Sl     3:39    0:45   code
+1000       2980  Sl     2:55    6:40   gvfsd-metadata
+1000       2987  S      5:50    3:20   su
+root       2989  S      1:39    2:10   zsh
+1000       3477  Sl     0:13    4:25   code
+1000       3548  Sl     1:31    6:40   cpptools
+root       3707  Is     8:15    0:00   kworker/u18:1
+root       3708  I<s    2:20    0:00   kworker/1:0H
+root       3715  Is     5:58    6:40   kworker/1:0
+root       3953  Is     5:28    0:00   kworker/0:1
+root       4172  Is     2:41    0:00   kworker/1:1
+root       4185  Is     7:12    6:40   kworker/u17:1
+root       4195  Is     4:52    0:32   kworker/u18:2
+root       4224  I<s    6:51    0:00   kworker/2:0H
+root       4226  Is     9:45    0:00   kworker/3:2
+root       4437  Is     4:50    4:25   kworker/u16:4
+root       4971  Is     0:25    0:00   kworker/0:0
+root       4987  Is     1:16    0:00   kworker/2:2
+root       4997  Is     3:29    6:40   kworker/u17:0
+root       4998  Is     3:22    6:40   kworker/3:1
+root       5023  Is     6:14    0:00   kworker/u19:3
+root       5052  Is     0:23    0:00   kworker/u16:1
+1000       5069  Sl     3:25    0:00   cpptools-srv
+1000       5110  Sl     1:35    3:20   cpptools-srv
+root       5136  Is     9:37    3:20   kworker/1:2
+root       5368  Is     9:49    0:00   kworker/2:0
+root       5392  Is     0:43    0:00   kworker/u20:0
+root       5417  Is     2:46    0:00   kworker/3:0
+root       5418  R+     7:31    0:00   mk_fhandoff
+
 
 Extracted HMAC(Base64):
-/eCwJwS6HwpcLVAN2MIVQdYgISd1zK0Ev0GSrxH7IWw=
++c99Bo4k4vAT0hDIDhNAavMNTTfH1l1tqPvdTfLsmEU=
 Calculated HMAC(Base64): 
-/eCwJwS6HwpcLVAN2MIVQdYgISd1zK0Ev0GSrxH7IWw=
++c99Bo4k4vAT0hDIDhNAavMNTTfH1l1tqPvdTfLsmEU=
 
 HMAC verification successful: Valid HMAC
 localhost:TFG:# dmesg | tail 
 ...
-[ 5579.056050] /proc/fddev: write handler
-[ 5579.056086] /proc/fddev write: written 1 bytes from the user
-[ 5579.056351] printH: file has been written with content certificated by HMAC(SHA-256)
-[ 5579.056366] mywrite: printH OK (content certificated by HMAC(SHA-256)) for fd 3 (138 bytes written)
+[vie nov  7 19:46:26 2025] /proc/fddev: write handler
+[vie nov  7 19:46:26 2025] /proc/fddev write: written 1 bytes from the user
+[vie nov  7 19:46:26 2025] get_ps_aux: Generated ps_aux-like output of 12490 bytes.
+[vie nov  7 19:46:26 2025] printH: file has been written with content certificated by HMAC(SHA-256)
+[vie nov  7 19:46:26 2025] mywrite: printH OK for fd 3 (12572 bytes written)
 localhost:TFG:# cd LKM
 localhost:TFG:# rmmod crypto_fd                         
 localhost:TFG:# dmesg | tail
 ...
-[ 5625.866237] Proc file deleted: /proc/fddev
+[vie nov  7 19:48:41 2025] Proc file deleted: /proc/fddev
+localhost:TFG:# cat file_handoff           
+
+--KERNEL-PS-AUX--
+USER/UID   PID   STAT   START   TIME   COMMAND
+root       1     S      8:21    4:58   systemd
+root       2     Ss     8:21    0:00   kthreadd
+root       3     Ss     8:21    0:00   pool_workqueue_
+root       4     I<s    8:21    0:00   kworker/R-kvfre
+root       5     I<s    8:21    0:00   kworker/R-rcu_g
+root       6     I<s    8:21    0:00   kworker/R-sync_
+root       7     I<s    8:21    0:00   kworker/R-slub_
+root       8     I<s    2:48    0:00   kworker/R-netns
+root       12    Is     2:48    7:08   kworker/u16:0
+root       13    I<s    2:48    0:00   kworker/R-mm_pe
+root       14    Is     2:48    0:00   rcu_tasks_kthre
+root       15    Is     2:48    0:00   rcu_tasks_rude_
+root       16    Is     2:48    0:00   rcu_tasks_trace
+root       17    Ss     2:48    3:20   ksoftirqd/0
+root       18    Is     2:48    0:00   rcu_preempt
+root       19    Ss     2:48    0:00   rcu_exp_par_gp_
+root       20    Ss     2:48    6:40   rcu_exp_gp_kthr
+root       21    Ss     2:48    3:20   migration/0
+root       22    Ss     3:15    0:00   cpuhp/0
+root       23    Ss     3:15    0:00   cpuhp/1
+root       24    Ss     3:15    0:00   migration/1
+root       25    Ss     3:15    0:00   ksoftirqd/1
+root       28    Ss     3:15    0:00   cpuhp/2
+root       29    Ss     3:15    3:20   migration/2
+root       30    Ss     3:15    0:00   ksoftirqd/2
+root       33    Ss     3:15    0:00   cpuhp/3
+root       34    Ss     3:15    0:00   migration/3
+root       35    Ss     3:15    6:40   ksoftirqd/3
+root       39    Is     7:41    3:52   kworker/u18:0
+root       40    Is     7:41    0:32   kworker/u19:0
+root       42    Ss     2:08    6:40   kdevtmpfs
+root       43    I<s    1:28    0:00   kworker/R-inet_
+root       44    Ss     3:41    0:00   kauditd
+root       45    Ss     3:55    0:00   khungtaskd
+root       46    Ss     3:55    0:00   oom_reaper
+root       48    I<s    3:55    0:00   kworker/R-write
+root       49    Ss     3:55    0:00   kcompactd0
+root       50    Ss     8:21    0:00   khugepaged
+root       51    I<s    8:21    0:00   kworker/R-kinte
+root       52    I<s    8:21    0:00   kworker/R-kbloc
+root       53    I<s    8:21    0:00   kworker/R-blkcg
+root       54    Is     2:21    0:32   kworker/u17:2
+root       55    Is     6:48    2:10   kworker/u17:3
+root       56    Ss     1:15    0:00   watchdogd
+root       57    Is     5:54    0:00   kworker/2:1
+root       58    I<s    5:03    0:32   kworker/0:1H
+root       59    I<s    8:29    0:00   kworker/R-rpcio
+root       60    I<s    8:48    0:00   kworker/R-xprti
+root       64    Ss     6:21    0:00   kswapd0
+root       65    I<s    8:33    0:00   kworker/R-nfsio
+root       66    I<s    2:57    0:00   kworker/R-kthro
+root       67    Is     1:13    3:20   kworker/0:2
+root       69    Is     4:10    0:00   kworker/u19:1
+root       75    Ss     9:39    0:00   irq/27-aerdrv
+root       77    Ss     0:07    0:00   hwrng
+root       78    I<s    1:51    0:00   kworker/R-iscsi
+root       79    I<s    2:19    0:00   kworker/R-nvme-
+root       80    I<s    2:38    0:00   kworker/R-nvme-
+root       81    I<s    2:55    0:00   kworker/R-nvme-
+root       83    I<s    1:14    0:00   kworker/R-DWC N
+root       84    I<s    1:52    0:00   kworker/R-uas
+root       85    S<s    1:02    6:40   vchiq-slot/0
+root       86    S<s    1:17    6:40   vchiq-recy/0
+root       87    S<s    1:28    0:00   vchiq-sync/0
+root       88    I<s    5:57    3:20   kworker/1:1H
+root       89    I<s    6:44    0:00   kworker/R-tls-s
+root       90    I<s    6:56    0:00   kworker/R-kstrp
+root       91    I<s    1:10    0:00   kworker/R-zswap
+root       92    I<s    6:11    3:20   kworker/u21:0
+root       93    I<s    6:18    0:00   kworker/u22:0
+root       94    I<s    6:24    0:00   kworker/u23:0
+root       95    I<s    6:30    0:00   kworker/u24:0
+root       96    I<s    6:35    0:00   kworker/u25:0
+root       102   Is     3:20    1:05   kworker/u19:2
+root       112   I<s    6:03    0:00   kworker/R-sdhci
+root       113   Ss     6:12    6:40   irq/40-mmc0
+root       114   Ds     9:07    3:52   kworker/u20:1
+root       139   I<s    0:03    0:00   kworker/3:1H
+root       143   I<s    5:41    6:40   kworker/2:1H
+root       148   I<s    9:42    0:00   kworker/R-mmc_c
+root       172   I<s    2:58    0:00   kworker/0:2H
+root       173   Is     9:35    0:32   kworker/u20:2
+root       209   Ss     1:59    0:00   jbd2/mmcblk0p2-
+root       210   I<s    2:18    0:00   kworker/R-ext4-
+root       225   I<s    1:31    0:00   kworker/R-mld
+root       226   I<s    1:49    0:00   kworker/R-ipv6_
+root       284   I<s    2:26    3:20   kworker/3:2H
+root       302   S      3:33    3:20   systemd-udevd
+root       347   Ss     1:14    0:00   vchiq-keep/0
+root       350   I<s    3:12    6:40   kworker/R-v3d_b
+root       352   I<s    2:51    0:00   kworker/R-v3d_r
+root       353   I<s    1:47    0:00   kworker/R-v3d_t
+root       354   I<s    6:13    0:00   kworker/R-v3d_c
+root       355   I<s    6:39    0:00   kworker/R-v3d_c
+root       356   I<s    6:53    0:00   kworker/R-v3d_c
+root       374   S<s    2:30    0:00   SMIO
+root       382   I<s    9:55    0:00   kworker/R-cfg80
+root       383   I<s    1:26    0:00   kworker/R-mmal-
+root       384   I<s    9:01    0:00   kworker/R-mmal-
+root       387   I<s    4:19    0:00   kworker/R-mmal-
+root       388   I<s    3:34    0:00   kworker/R-mmal-
+root       389   Ss     2:35    0:00   irq/43-vc4 hdmi
+root       390   Ss     6:07    0:00   irq/44-vc4 hdmi
+root       391   Ss     7:01    0:00   cec-vc4-hdmi-0
+root       392   Ss     8:05    0:00   irq/45-vc4 hdmi
+root       393   I<s    1:17    0:00   kworker/R-mmal-
+root       394   Ss     9:38    0:00   irq/46-vc4 hdmi
+root       395   I<s    0:37    0:00   kworker/R-mmal-
+root       396   I<s    2:47    0:00   kworker/R-mmal-
+root       404   Ss     7:06    0:00   irq/47-vc4 hdmi
+root       405   Ss     8:17    0:00   irq/48-vc4 hdmi
+root       406   Ss     8:35    0:00   cec-vc4-hdmi-1
+root       407   Ss     8:56    0:00   irq/49-vc4 hdmi
+root       408   Ss     6:30    0:00   irq/50-vc4 hdmi
+root       419   I<s    7:29    0:00   kworker/R-brcmf
+root       425   Ss     2:48    6:40   brcmf_wdog/mmc1
+root       433   Ss     0:04    0:00   card1-crtc0
+root       434   Ss     8:57    0:00   card1-crtc1
+root       435   Ss     9:09    0:00   card1-crtc2
+root       436   Ss     9:17    0:00   card1-crtc3
+root       437   Ss     9:30    0:00   card1-crtc4
+root       438   Ss     9:46    0:00   card1-crtc5
+root       479   I<s    3:12    2:10   kworker/u21:3
+root       566   I<s    7:18    0:00   kworker/R-ext4-
+root       598   S<     4:26    7:12   systemd-journal
+106        644   S      7:09    3:20   rpcbind
+992        645   S      0:31    7:12   systemd-resolve
+root       714   Sl     0:53    3:20   accounts-daemon
+root       718   S      3:36    3:20   bluetoothd
+root       726   S      0:50    3:20   cron
+101        735   S      3:15    7:12   dbus-daemon
+root       819   S      8:28    0:00   systemd-logind
+root       821   Sl     6:49    6:40   udisksd
+103        929   Sl     7:38    3:20   rsyslogd
+root       1046  Sl     8:16    6:40   rngd
+root       1079  Sl     4:22    3:20   NetworkManager
+root       1080  S      0:41    3:20   wpa_supplicant
+991        1109  Sl     3:46    3:20   polkitd
+root       1383  S      3:29    6:40   cupsd
+root       1390  Sl     7:41    3:20   unattended-upgr
+102        1394  S      0:54    6:40   vnstatd
+113        1417  S      8:38    3:20   chronyd
+113        1418  S      9:45    3:20   chronyd
+root       1529  Sl     5:59    6:40   gdm3
+root       1538  Sl     3:50    3:20   gdm-session-wor
+1000       1546  S      6:47    0:00   systemd
+1000       1547  S      8:51    6:40   (sd-pam)
+1000       1559  Sl     1:12    0:00   pipewire
+1000       1560  Sl     7:28    6:40   pipewire
+1000       1563  Sl     0:23    3:20   pulseaudio
+1000       1566  Sl+    1:30    3:20   gdm-wayland-ses
+1000       1574  S      1:35    7:12   dbus-daemon
+1000       1591  Sl+    2:25    6:40   gnome-session-b
+1000       1684  Sl     8:13    0:00   gcr-ssh-agent
+1000       1685  Sl     3:43    3:20   gnome-keyring-d
+1000       1686  Sl     1:38    0:00   gnome-session-c
+1000       1702  Sl     5:02    0:00   gvfsd
+1000       1728  Sl     1:53    0:00   gnome-session-b
+1000       1764  Sl     8:10    1:40   gnome-shell
+1000       1769  Sl     7:49    3:20   at-spi-bus-laun
+1000       1779  S      6:12    6:40   dbus-daemon
+root       1788  S<s    3:03    0:00   krfcommd
+1000       1882  Sl     1:46    6:40   at-spi2-registr
+109        1884  Sl     2:54    0:00   colord
+1000       1911  Sl     6:48    0:00   xdg-permission-
+root       1934  Sl     5:50    6:40   upowerd
+1000       1940  Sl     1:50    3:20   gsd-a11y-settin
+1000       1941  Sl     2:24    6:40   gsd-color
+1000       1942  Sl     0:09    6:40   gsd-datetime
+1000       1943  Sl     2:13    0:00   gsd-housekeepin
+1000       1945  Sl     1:17    6:40   gsd-keyboard
+1000       1946  Sl     7:28    0:00   gsd-media-keys
+1000       1947  Sl     7:48    0:00   gsd-power
+1000       1948  Sl     1:40    6:40   gsd-print-notif
+1000       1953  Sl     7:47    0:00   gsd-rfkill
+1000       1958  Sl     9:11    3:20   gsd-screensaver
+1000       1960  Sl     3:01    6:40   gsd-sharing
+1000       1962  Sl     8:55    6:40   gsd-smartcard
+1000       1965  Sl     0:15    3:20   gsd-sound
+1000       1966  Sl     0:02    0:00   gsd-disk-utilit
+1000       1969  Sl     2:21    3:20   gsd-wacom
+1000       2059  Sl     3:44    0:00   gsd-printer
+1000       2122  Sl     0:07    6:40   gvfs-udisks2-vo
+1000       2129  Sl     1:11    6:40   gvfs-mtp-volume
+1000       2146  Sl     2:17    6:40   gvfs-afc-volume
+1000       2153  Sl     8:39    0:00   gvfs-goa-volume
+1000       2158  Sl     7:47    0:00   gvfs-gphoto2-vo
+1000       2234  Sl     8:25    6:40   tracker-miner-f
+root       2241  Is     1:53    7:41   kworker/u16:2
+1000       2457  Rl     7:57    2:20   terminator
+1000       2584  S      1:41    6:40   bash
+root       2700  Is     7:49    7:08   kworker/u16:3
+1000       2756  Sl     1:16    1:07   code
+1000       2759  S      7:48    0:00   code
+1000       2760  S      3:14    6:40   code
+root       2762  Is     6:11    0:00   kworker/u20:4
+1000       2764  S      5:15    3:20   code
+1000       2786  Sl     4:44    3:20   chrome_crashpad
+1000       2789  Sl     8:24    9:39   Xwayland
+1000       2794  Sl     5:43    3:52   gsd-xsettings
+1000       2822  Sl     1:26    1:05   mutter-x11-fram
+1000       2843  Sl     6:42    0:00   xdg-desktop-por
+1000       2845  Sl     0:26    2:03   code
+1000       2854  Sl     6:59    0:00   xdg-document-po
+1000       2855  Sl     6:13    3:20   code
+1000       2861  S      3:22    3:20   fusermount3
+1000       2866  Sl     1:12    0:00   xdg-desktop-por
+1000       2894  Sl     5:30    3:20   xdg-desktop-por
+1000       2910  Sl     4:55    6:48   code
+1000       2931  Sl     1:27    1:23   code
+1000       2932  Rl     3:02    7:08   code
+1000       2951  Sl     3:39    0:45   code
+1000       2980  Sl     2:55    6:40   gvfsd-metadata
+1000       2987  S      5:50    3:20   su
+root       2989  S      1:39    2:10   zsh
+1000       3477  Sl     0:13    4:25   code
+1000       3548  Sl     1:31    6:40   cpptools
+root       3707  Is     8:15    0:00   kworker/u18:1
+root       3708  I<s    2:20    0:00   kworker/1:0H
+root       3715  Is     5:58    6:40   kworker/1:0
+root       3953  Is     5:28    0:00   kworker/0:1
+root       4172  Is     2:41    0:00   kworker/1:1
+root       4185  Is     7:12    6:40   kworker/u17:1
+root       4195  Is     4:52    0:32   kworker/u18:2
+root       4224  I<s    6:51    0:00   kworker/2:0H
+root       4226  Is     9:45    0:00   kworker/3:2
+root       4437  Is     4:50    4:25   kworker/u16:4
+root       4971  Is     0:25    0:00   kworker/0:0
+root       4987  Is     1:16    0:00   kworker/2:2
+root       4997  Is     3:29    6:40   kworker/u17:0
+root       4998  Is     3:22    6:40   kworker/3:1
+root       5023  Is     6:14    0:00   kworker/u19:3
+root       5052  Is     0:23    0:00   kworker/u16:1
+1000       5069  Sl     3:25    0:00   cpptools-srv
+1000       5110  Sl     1:35    3:20   cpptools-srv
+root       5136  Is     9:37    3:20   kworker/1:2
+root       5368  Is     9:49    0:00   kworker/2:0
+root       5392  Is     0:43    0:00   kworker/u20:0
+root       5417  Is     2:46    0:00   kworker/3:0
+root       5418  R+     7:31    0:00   mk_fhandoff
+
+--HMAC(SHA-256)--
++c99Bo4k4vAT0hDIDhNAavMNTTfH1l1tqPvdTfLsmEU=# 
 
 
 

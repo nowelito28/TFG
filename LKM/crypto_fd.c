@@ -31,7 +31,7 @@
 
 enum {
   BUFSIZE = 100,
-  MAX_PROC_SIZE = 10240,
+  MAX_PROC_SIZE = 20480,
   UID_SIZE = 11,
   PID_SIZE = 6,
   STAT_SIZE = 7,
@@ -430,14 +430,13 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 // Info de los procesos de la máquina y guardarla:
 // Devuelve 0 éxito <-> 1 en error
 static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
-  printk(KERN_DEBUG "0000");
+
   // USER -> UID:
   char *uid_str = get_uid_str(task_uid(task));
   if (!uid_str)
     goto out_fail;
   if (safe_chunk(cont, cont_len, uid_str, UID_SIZE) < 0)
     goto out_fail;
-  printk(KERN_DEBUG "1111");
 
   // PID:
   char *pid_str = get_pid_str(task_pid_nr(task));
@@ -445,7 +444,6 @@ static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
     goto out_fail;
   if (safe_chunk(cont, cont_len, pid_str, PID_SIZE) < 0)
     goto out_fail;
-  printk(KERN_DEBUG "2222");
 
   // STAT:
   char *stat_str = get_stat_str(task);
@@ -453,28 +451,22 @@ static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
     goto out_fail;
   if (safe_chunk(cont, cont_len, stat_str, STAT_SIZE) < 0)
     goto out_fail;
-  printk(KERN_DEBUG "3333");
 
   // START:
   char *start_str = get_start_str(task);
   if (safe_chunk(cont, cont_len, start_str, START_SIZE) < 0)
     goto out_fail;
-  printk(KERN_DEBUG "4444");
 
   // TIME:
   char *time_str = get_time_str(task);
   if (safe_chunk(cont, cont_len, time_str, TIME_SIZE) < 0)
     goto out_fail;
-  printk(KERN_DEBUG "5555");
-
 
   // COMMAND:
   int comm_len = 0;
   char *command_str = get_command_str(task, &comm_len);
   if (safe_chunk(cont, cont_len, command_str, comm_len) < 0)
     goto out_fail;
-
-  printk(KERN_DEBUG "cont: %s", *cont);
 
   return 0;
 
@@ -506,9 +498,10 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
       break;
     }
 
-    if (ps_data(task, cont, cont_len))
+    if (ps_data(task, cont, cont_len)) {
       printk(KERN_ERR "get_ps_aux: Extracting process data failed\n");
-    goto out_fail;
+      goto out_fail;
+    }
   }
   rcu_read_unlock();
 
