@@ -40,6 +40,7 @@ int main(int argc, char *argv[]) {
 
 	// 1) Descriptor de fichero (fd) --> lo crear, si existe => lo trunca
 	// Modo append -> atomicidad del puntero de escritura:
+	// Interfiere con trunc
 	int fd_handoff =
 	    open(f_handoff, O_CREAT | O_TRUNC | O_RDWR | O_APPEND, 0666);
 	if (fd_handoff < 0) {
