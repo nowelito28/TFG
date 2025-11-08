@@ -250,17 +250,17 @@ static char *get_start_str(struct task_struct *task) {
 	static char start_buf[START_SIZE];
 	int i = 0;
 
-	struct timespec64 start_time_ts;
+	//struct timespec64 start_time_ts;
 	struct tm start_time_tm;
 
 	// 1. Tiempo de inicio absoluto
 	// (Quitar segs desde boot y sumar segs de jiffies):
-	ktime_get_real_ts64(&start_time_ts);
-	start_time_ts.tv_sec -= (ktime_get_ns() / NSEC_PER_SEC);
-	start_time_ts.tv_sec += (task->start_time / HZ);
+	//ktime_get_real_ts64(&start_time_ts);
+	//start_time_ts.tv_sec -= (task->start_time / HZ);
+	unsigned long start_secs = jiffies_to_msecs(task->start_time) / 1000;
 
 	// 2. Convertir a estructura tm (hora del día):
-	time64_to_tm(start_time_ts.tv_sec, 0, &start_time_tm);
+	time64_to_tm(start_secs, 0, &start_time_tm);
 
 	// 3. Guardar HH:MM (5 chars + 3 espacios):
 	// Horas (HH)
@@ -725,7 +725,7 @@ static const struct proc_ops myops = {
 
 // Cargar LKM:
 static int simple_init(void) {
-	
+
 	// 1) Imprime K en hexadecimal en los logs del kernel
 	// (/var/log/kern.log)
 	// -> %*phC separa bytes con ':' => SOLO EN PRUEBAS
