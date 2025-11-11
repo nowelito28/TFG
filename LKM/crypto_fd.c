@@ -255,7 +255,7 @@ static char *get_start_str(struct task_struct *task) {
     	unsigned long start_secs = ts.tv_sec - (task->start_time / HZ);*/
 
 
-	unsigned long start_secs = task->start_time / HZ;  // jiffies a segundos
+	unsigned long start_secs = jiffies_to_msecs(task->start_time) / HZ;  // jiffies a segundos
 	// Convertir a estructura tm (hora del día):
 	struct tm start_time_tm;
 	time64_to_tm(start_secs, 0, &start_time_tm);
@@ -601,8 +601,8 @@ static int val_metadata(struct file *f) {
 	int rv = 0;
 
 	if (!(f->f_mode & FMODE_WRITE) || !(f->f_flags & O_APPEND)) {
-		printk(KERN_ERR "Error printH: fd given must be writable "
-		       "(O_WRONLY/O_RDWR)\n");
+		printk(KERN_ERR "Error printH: fd given must be writable"
+		       " and in append mode (O_WRONLY/O_RDWR | O_APPEND)\n");
 		return -EBADF;
 	}
 
