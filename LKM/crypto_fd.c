@@ -250,6 +250,18 @@ static char *get_start_str(struct task_struct *task) {
 	static char start_buf[START_SIZE];
 	int i = 0;
 
+	/*struct timespec64 ts;
+	ktime_get_real_ts64(&ts);  // Obtener el tiempo real en segundos y nanosegundos
+    	unsigned long start_secs = ts.tv_sec - (task->start_time / HZ);*/
+
+
+	unsigned long start_secs = task->start_time / HZ;  // jiffies a segundos
+	// Convertir a estructura tm (hora del día):
+	struct tm start_time_tm;
+	time64_to_tm(start_secs, 0, &start_time_tm);
+
+/*	
+
 	//struct timespec64 start_time_ts;
 	struct tm start_time_tm;
 
@@ -261,6 +273,8 @@ static char *get_start_str(struct task_struct *task) {
 
 	// 2. Convertir a estructura tm (hora del día):
 	time64_to_tm(start_secs, 0, &start_time_tm);
+*/
+
 
 	// 3. Guardar HH:MM (5 chars + 3 espacios):
 	// Horas (HH)
