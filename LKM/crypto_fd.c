@@ -101,43 +101,6 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
 	return buf_len;
 }
 
-// Convertir int a str de forma segura:
-// Devuelve len de la cadena escrita (buf_len - 1 = max dígitos)
-// Hecho para buffers pequeños de max 100 bytes
-static int int_to_str(int val, char *buf, int buf_len) {
-	char temp[BUFSIZE];
-	int i = 0;
-	int j = 0;
-	int len = 0;
-
-	if (buf_len > BUFSIZE)
-		return -ENOSPC;
-
-	// Pasar dígitos a cadena de caracteres -> invertido:
-	if (val == 0) {
-		temp[i++] = '0';
-
-	} else {
-		int t = val;
-
-		while (t > 0 && i < (buf_len - 1)) {
-			temp[i] = (t % 10) + '0';
-			t /= 10;
-			i++;
-		}
-	}
-
-	len = i;
-
-	// Invertir la cadena de dígitos (los hemos puesto al revés) y
-	// guardar:
-	for (i = len - 1; i >= 0 && j < buf_len; i--) {
-		buf[j++] = temp[i];
-	}
-
-	return j;
-}
-
 // Función aux para guardar contenido y avanzar (forma segura)
 // Devuelve len bytes guardados (>=0) <-> <0 error
 static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
@@ -162,21 +125,15 @@ static char *get_uid_str(kuid_t uid_struct) {
 
 	int uid = from_kuid(&init_user_ns, uid_struct);
 
-	// Identificar el root:
 	if (uid == 0) {
-		uid_buf[uid_len++] = 'r';
-		uid_buf[uid_len++] = 'o';
-		uid_buf[uid_len++] = 'o';
-		uid_buf[uid_len++] = 't';
-
-	} else {		// Resto de UIDs -> pasar a UID a str
-		uid_len = int_to_str(uid, uid_buf, UID_SIZE);
-
-		if (uid_len < 0)
-			return NULL;
+		snprintf(uid_buf, UID_SIZE, "root");
+	} else {
+		snprintf(uid_buf, UID_SIZE, "%d", uid);
 	}
 
+	uid_len = strnlen(uid_buf, UID_SIZE);
 	pad_str_right(uid_buf, uid_len, UID_SIZE, ' ');
+
 	return uid_buf;
 }
 
@@ -185,10 +142,9 @@ static char *get_pid_str(int pid) {
 	static char pid_buf[PID_SIZE];
 	int pid_len = 0;
 
-	pid_len = int_to_str(pid, pid_buf, PID_SIZE);
-	if (pid_len < 0)
-		return NULL;
+	snprintf(pid_buf, PID_SIZE, "%d", pid);
 
+	pid_len = strnlen(pid_buf, PID_SIZE);
 	pad_str_right(pid_buf, pid_len, PID_SIZE, ' ');
 
 	return pid_buf;
@@ -200,16 +156,12 @@ static char *get_command_str(struct task_struct *task, int *len) {
 	int i = 0;
 
 	// Copiar nombre del comando (task->comm) de forma segura:
-	int comm_len = strnlen(task->comm, TASK_COMM_LEN);
+	int comm_len = snprintf(comm_buf, CMD_SIZE, "%s\n", task->comm);
 
-	if (comm_len >= CMD_SIZE - 1)
+	if (comm_len >= CMD_SIZE)
 		comm_len = CMD_SIZE - 1;
 
-	memcpy(comm_buf + i, task->comm, comm_len);
-	i += comm_len;
-
-	comm_buf[i++] = '\n';
-	*len = i;
+	*len = comm_len;
 
 	return comm_buf;
 }
