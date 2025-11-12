@@ -34,12 +34,9 @@ enum {
 	MAX_PROC_SIZE = 20480,
 	UID_SIZE = 11,
 	PID_SIZE = 6,
-	STAT_SIZE = 7,
-	START_SIZE = 8,
-	TIME_SIZE = 7,
 	CMD_SIZE = 25,
 	PS_LINE_SIZE =
-	   UID_SIZE + PID_SIZE + STAT_SIZE + START_SIZE + TIME_SIZE + CMD_SIZE,
+	   UID_SIZE + PID_SIZE + CMD_SIZE,
 };
 
 MODULE_LICENSE("Dual BSD/GPL");
@@ -58,7 +55,7 @@ static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 // Cabecera para registro de procesos:
-static const char header[] = "USER/UID   PID   STAT   START   TIME   COMMAND\n";
+static const char header[] = "USER/UID   PID   COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
@@ -197,129 +194,6 @@ static char *get_pid_str(int pid) {
 	return pid_buf;
 }
 
-// Función aux para sacar STAT:
-static char *get_stat_str(struct task_struct *task) {
-	static char stat_buf[STAT_SIZE];
-	int i = 0;
-
-	// Carácter de estado principal:
-	stat_buf[i++] = task_state_to_char(task);
-
-	// Flags adicionales:
-
-	// Prioridad alta:
-	if (task_nice(task) < 0) {
-		stat_buf[i++] = '<';
-	}
-	// Proceso del kernel:
-	if (task->flags & PF_KTHREAD) {
-		stat_buf[i++] = 's';
-	}
-	// Multi-threaded -> Líder de grupo multi-hilo:
-	if (thread_group_leader(task) && get_nr_threads(task) > 1) {
-		stat_buf[i++] = 'l';
-	}
-	// Ver si está en foreground de su TTY (del proceso):
-	struct signal_struct *sig = READ_ONCE(task->signal);
-
-	if (sig) {
-		struct tty_struct *tty = rcu_dereference(sig->tty);
-
-		if (tty) {	// Ref del grupo (GID)
-			struct pid *pg = tty_get_pgrp(tty);
-
-			pid_t pgrp_nr = 0;
-
-			if (pg) {
-				pgrp_nr = pid_nr(pg);
-				put_pid(pg);
-			}
-
-			if (pgrp_nr == task_pgrp_nr(task))
-				stat_buf[i++] = '+';
-		}
-	}
-
-	pad_str_right(stat_buf, i, STAT_SIZE, ' ');
-
-	return stat_buf;
-}
-
-// Función aux para sacar START -> HH:MM (5 chars + 3 espacios):
-static char *get_start_str(struct task_struct *task) {
-	static char start_buf[START_SIZE];
-	int i = 0;
-
-	/*struct timespec64 ts;
-	ktime_get_real_ts64(&ts);  // Obtener el tiempo real en segundos y nanosegundos
-    	unsigned long start_secs = ts.tv_sec - (task->start_time / HZ);*/
-
-
-	unsigned long start_secs = jiffies_to_msecs(task->start_time) / HZ;  // jiffies a segundos
-	// Convertir a estructura tm (hora del día):
-	struct tm start_time_tm;
-	time64_to_tm(start_secs, 0, &start_time_tm);
-
-/*	
-
-	//struct timespec64 start_time_ts;
-	struct tm start_time_tm;
-
-	// 1. Tiempo de inicio absoluto
-	// (Quitar segs desde boot y sumar segs de jiffies):
-	//ktime_get_real_ts64(&start_time_ts);
-	//start_time_ts.tv_sec -= (task->start_time / HZ);
-	unsigned long start_secs = jiffies_to_msecs(task->start_time) / 1000;
-
-	// 2. Convertir a estructura tm (hora del día):
-	time64_to_tm(start_secs, 0, &start_time_tm);
-*/
-
-
-	// 3. Guardar HH:MM (5 chars + 3 espacios):
-	// Horas (HH)
-	start_buf[i] = (start_time_tm.tm_hour / 10) + '0';
-	start_buf[i++] = (start_time_tm.tm_hour % 10) + '0';
-	// Separador
-	start_buf[i++] = ':';
-	// Mins (MM)
-	start_buf[i++] = (start_time_tm.tm_min / 10) + '0';
-	start_buf[i++] = (start_time_tm.tm_min % 10) + '0';
-
-	pad_str_right(start_buf, i, START_SIZE, ' ');
-
-	return start_buf;
-}
-
-// Función aux para sacar TIME -> Tiempo de CPU HH:MM (5 chars + 2 espacios):
-static char *get_time_str(struct task_struct *task) {
-	static char time_buf[TIME_SIZE];
-	int i = 0;
-
-	// 1. Tiempo total de CPU:
-	unsigned long time_jiffies = task->utime + task->stime;
-
-	// 2. Convertir a segundos:
-	long secs_running = jiffies_to_msecs(time_jiffies) / 1000;
-
-	int mins = secs_running / 60;
-	int secs = secs_running % 60;
-
-	// 3. Guardar MM:SS (5 chars + 2 espacios):
-	// Mins (MM)
-	time_buf[i] = (mins / 10) + '0';
-	time_buf[i++] = (mins % 10) + '0';
-	// Separador
-	time_buf[i++] = ':';
-	// Segs (SS)
-	time_buf[i++] = (secs / 10) + '0';
-	time_buf[i++] = (secs % 10) + '0';
-
-	pad_str_right(time_buf, i, TIME_SIZE, ' ');
-
-	return time_buf;
-}
-
 // Función aux para sacar el COMMAND (24 chars max + \n):
 static char *get_command_str(struct task_struct *task, int *len) {
 	static char comm_buf[CMD_SIZE];
@@ -456,23 +330,6 @@ static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
 	if (!pid_str)
 		goto out_fail;
 	if (safe_chunk(cont, cont_len, pid_str, PID_SIZE) < 0)
-		goto out_fail;
-
-	// STAT:
-	char *stat_str = get_stat_str(task);
-	if (!stat_str)
-		goto out_fail;
-	if (safe_chunk(cont, cont_len, stat_str, STAT_SIZE) < 0)
-		goto out_fail;
-
-	// START:
-	char *start_str = get_start_str(task);
-	if (safe_chunk(cont, cont_len, start_str, START_SIZE) < 0)
-		goto out_fail;
-
-	// TIME:
-	char *time_str = get_time_str(task);
-	if (safe_chunk(cont, cont_len, time_str, TIME_SIZE) < 0)
 		goto out_fail;
 
 	// COMMAND:
