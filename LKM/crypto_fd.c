@@ -34,7 +34,7 @@ enum {
 	MAX_PROC_SIZE = 20480,
 	UID_SIZE = 11,
 	PID_SIZE = 11,
-	CMD_SIZE = 25,
+	CMD_SIZE = 50,
 	PS_LINE_SIZE =
 	   UID_SIZE + PID_SIZE + CMD_SIZE,
 };
@@ -153,10 +153,29 @@ static char *get_pid_str(int pid) {
 // Función aux para sacar el COMMAND (24 chars max + \n):
 static char *get_command_str(struct task_struct *task, int *len) {
 	static char comm_buf[CMD_SIZE];
+	int comm_len = 0;
 
 	// Copiar nombre del comando (task->comm) de forma segura:
-	int comm_len = snprintf(comm_buf, CMD_SIZE, "%s\n", task->comm);
+	// Proceo sin espacio en memoria -> kernel thread:
+	if (task->mm == NULL) {
+		comm_len = snprintf(comm_buf, CMD_SIZE, "[%s]\n", task->comm);
+	} else {
+		// Pocesos user -> ruta completa
+		struct file *exe_file = task->mm->exe_file;
 
+		if (exe_file) {
+			char *path = d_path(&exe_file->f_path, comm_buf, CMD_SIZE);
+
+			if (!IS_ERR(path)) {
+				comm_len = snprintf(comm_buf, CMD_SIZE, "%s\n", path);
+				goto cmmd_finished;
+			}
+		}
+
+		comm_len = snprintf(comm_buf, CMD_SIZE, "%s\n", task->comm);
+	}
+
+      cmmd_finished:
 	if (comm_len >= CMD_SIZE)
 		comm_len = CMD_SIZE - 1;
 
