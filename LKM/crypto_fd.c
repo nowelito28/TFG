@@ -343,15 +343,15 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 
 // Obtener información de procesos del kernel para tratarlo como contenido
 // Devuelve 0 éxito <-> <0 en error
-static int get_ps(u8 *cont, int *cont_len) {
+static int get_ps(u8 **cont, int *cont_len) {
 	struct task_struct *task;
 
-	cont = (u8 *) kmalloc(MAX_PROC_SIZE, GFP_KERNEL);
-	if (!cont)
+	*cont = (u8 *) kmalloc(MAX_PROC_SIZE, GFP_KERNEL);
+	if (!*cont)
 		return -ENOMEM;
 
 	// 1) Copiar la cabecera y actualizar len:
-	if (safe_chunk(cont, cont_len, (char *)header, header_len) < 0)
+	if (safe_chunk(*cont, cont_len, (char *)header, header_len) < 0)
 		goto out_fail;
 
 	// 2) Recorrer todos los procesos del sistema
@@ -365,7 +365,7 @@ static int get_ps(u8 *cont, int *cont_len) {
 			break;
 		}
 
-		if (ps_data(task, cont, cont_len)) {
+		if (ps_data(task, *cont, cont_len)) {
 			printk(KERN_ERR
 			       "get_ps: Extracting process data failed\n");
 			rcu_read_unlock();
@@ -380,10 +380,10 @@ static int get_ps(u8 *cont, int *cont_len) {
 	return 0;
 
       out_fail:
-	if (cont)
-		kfree(cont);
-	cont = NULL;
-	cont_len = 0;
+	if (*cont)
+		kfree(*cont);
+	*cont = NULL;
+	*cont_len = 0;
 	return -ENOSPC;
 }
 
@@ -404,7 +404,7 @@ static int printh(struct file *f) {
 	int hmac_b64len = 0;
 
 	// 1) Información de procesos desde el kernel (contenido):
-	rv = get_ps(cont, &cont_len);
+	rv = get_ps(&cont, &cont_len);
 	if (rv < 0) {
 		printk(KERN_ERR
 		       "Error printH: get_ps_aux failed: %d\n", rv);
