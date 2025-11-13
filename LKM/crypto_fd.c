@@ -34,9 +34,10 @@ enum {
 	MAX_PROC_SIZE = 20480,
 	UID_SIZE = 11,
 	PID_SIZE = 11,
+	GID_SIZE = 11,
 	CMD_SIZE = 50,
 	PS_LINE_SIZE =
-	   UID_SIZE + PID_SIZE + CMD_SIZE,
+	   UID_SIZE + PID_SIZE + + GID_SIZE + CMD_SIZE,
 };
 
 MODULE_LICENSE("Dual BSD/GPL");
@@ -55,7 +56,7 @@ static const char sep_hmac[] = "\n--HMAC--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 // Cabecera para registro de procesos:
-static const char header[] = "USER/UID   PID        COMMAND\n";
+static const char header[] = "UID        PID        GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
@@ -117,8 +118,7 @@ static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
 	return src_len;
 }
 
-// Función aux -> mapear UID
-// Devuelve UID (str 11 caracts con espacios de relleno)
+// Mapear UID
 static char *get_uid_str(kuid_t uid_struct) {
 	static char uid_buf[UID_SIZE];
 	int uid_len = 0;
@@ -126,31 +126,53 @@ static char *get_uid_str(kuid_t uid_struct) {
 	int uid = from_kuid(&init_user_ns, uid_struct);
 
 	if (uid == 0) {
-		snprintf(uid_buf, UID_SIZE, "root");
+		uid_len = snprintf(uid_buf, UID_SIZE, "root");
 	} else {
-		snprintf(uid_buf, UID_SIZE, "%d", uid);
+		uid_len = snprintf(uid_buf, UID_SIZE, "%d", uid);
 	}
 
-	uid_len = strnlen(uid_buf, UID_SIZE);
 	pad_str_right(uid_buf, uid_len, UID_SIZE, ' ');
 
 	return uid_buf;
 }
 
-// Función aux para sacar el PID:
+// Mapear PID:
 static char *get_pid_str(int pid) {
 	static char pid_buf[PID_SIZE];
-	int pid_len = 0;
 
-	snprintf(pid_buf, PID_SIZE, "%d", pid);
+	int pid_len = snprintf(pid_buf, PID_SIZE, "%d", pid);
 
-	pid_len = strnlen(pid_buf, PID_SIZE);
 	pad_str_right(pid_buf, pid_len, PID_SIZE, ' ');
 
 	return pid_buf;
 }
 
-// Función aux para sacar el COMMAND (24 chars max + \n):
+// Mapear GID:
+static char *get_gid_str(struct task_struct *task) {
+	static char gid_buf[GID_SIZE];
+	int gid_len = 0;
+
+	// Credenciales seguras del proceso:
+	const struct cred *cred = get_task_cred(task);
+	if (!cred)
+		return NULL;
+
+	// Obtener el GID y liberar credenciales:
+	int gid = from_kgid(&init_user_ns, cred->gid);
+	put_cred(cred);
+
+	if (gid == 0) {
+		gid_len = snprintf(gid_buf, GID_SIZE, "root");
+	} else {
+		gid_len = snprintf(gid_buf, GID_SIZE, "%d", gid);
+	}
+
+	pad_str_right(gid_buf, gid_len, GID_SIZE, ' ');
+
+	return gid_buf;
+}
+
+// Mapear COMMAND (49 chars max + \n):
 static char *get_command_str(struct task_struct *task, int *len) {
 	static char comm_buf[CMD_SIZE];
 	int comm_len = 0;
@@ -288,7 +310,7 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 // Devuelve 0 éxito <-> 1 en error
 static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
 
-	// USER -> UID:
+	// UID:
 	char *uid_str = get_uid_str(task_uid(task));
 	if (!uid_str)
 		goto out_fail;
@@ -300,6 +322,13 @@ static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
 	if (!pid_str)
 		goto out_fail;
 	if (safe_chunk(cont, cont_len, pid_str, PID_SIZE) < 0)
+		goto out_fail;
+
+	// GID:
+	char *gid_str = get_gid_str(task);
+	if (!gid_str)
+		goto out_fail;
+	if (safe_chunk(cont, cont_len, gid_str, GID_SIZE) < 0)
 		goto out_fail;
 
 	// COMMAND:
