@@ -104,14 +104,14 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
 
 // Función aux para guardar contenido y avanzar (forma segura)
 // Devuelve len bytes guardados (>=0) <-> <0 error
-static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
+static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len) {
 	int max_len = MAX_PROC_SIZE - *current_len;
 
 	if (max_len < src_len) {
 		return -ENOSPC;
 	}
 	// Copiar el contenido
-	memcpy(*dst + *current_len, src, src_len);
+	memcpy(dst + *current_len, src, src_len);
 
 	// Actualizar la longitud escrita
 	*current_len += src_len;
@@ -119,91 +119,84 @@ static int safe_chunk(u8 **dst, int *current_len, char *src, int src_len) {
 }
 
 // Mapear UID
-static char *get_uid_str(kuid_t uid_struct) {
-	static char uid_buf[UID_SIZE];
+static int get_uid_str(kuid_t uid_struct, char *uid_str) {
 	int uid_len = 0;
 
 	int uid = from_kuid(&init_user_ns, uid_struct);
 
 	if (uid == 0) {
-		uid_len = snprintf(uid_buf, UID_SIZE, "root");
+		uid_len = snprintf(uid_str, UID_SIZE, "0/root");
 	} else {
-		uid_len = snprintf(uid_buf, UID_SIZE, "%d", uid);
+		uid_len = snprintf(uid_str, UID_SIZE, "%d", uid);
 	}
 
-	pad_str_right(uid_buf, uid_len, UID_SIZE, ' ');
+	pad_str_right(uid_str, uid_len, UID_SIZE, ' ');
 
-	return uid_buf;
+	return uid_len;
 }
 
 // Mapear PID:
-static char *get_pid_str(int pid) {
-	static char pid_buf[PID_SIZE];
+static int get_pid_str(int pid, char *pid_str) {
+	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
 
-	int pid_len = snprintf(pid_buf, PID_SIZE, "%d", pid);
+	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
 
-	pad_str_right(pid_buf, pid_len, PID_SIZE, ' ');
-
-	return pid_buf;
+	return pid_len;
 }
 
 // Mapear GID:
-static char *get_gid_str(struct task_struct *task) {
-	static char gid_buf[GID_SIZE];
+static int get_gid_str(struct task_struct *task, char *gid_str) {
 	int gid_len = 0;
 
 	// Credenciales seguras del proceso:
 	const struct cred *cred = get_task_cred(task);
 	if (!cred)
-		return NULL;
+		return -ENOSPC;
 
 	// Obtener el GID y liberar credenciales:
 	int gid = from_kgid(&init_user_ns, cred->gid);
 	put_cred(cred);
 
 	if (gid == 0) {
-		gid_len = snprintf(gid_buf, GID_SIZE, "root");
+		gid_len = snprintf(gid_str, GID_SIZE, "0/root");
 	} else {
-		gid_len = snprintf(gid_buf, GID_SIZE, "%d", gid);
+		gid_len = snprintf(gid_str, GID_SIZE, "%d", gid);
 	}
 
-	pad_str_right(gid_buf, gid_len, GID_SIZE, ' ');
+	pad_str_right(gid_str, gid_len, GID_SIZE, ' ');
 
-	return gid_buf;
+	return gid_len;
 }
 
 // Mapear COMMAND (49 chars max + \n):
-static char *get_command_str(struct task_struct *task, int *len) {
-	static char comm_buf[CMD_SIZE];
+static int get_command_str(struct task_struct *task, char *comm_str) {
 	int comm_len = 0;
 
 	// Copiar nombre del comando (task->comm) de forma segura:
 	// Proceo sin espacio en memoria -> kernel thread:
 	if (task->mm == NULL) {
-		comm_len = snprintf(comm_buf, CMD_SIZE, "[%s]\n", task->comm);
+		comm_len = snprintf(comm_str, CMD_SIZE, "[%s]\n", task->comm);
 	} else {
 		// Pocesos user -> ruta completa
 		struct file *exe_file = task->mm->exe_file;
 
 		if (exe_file) {
-			char *path = d_path(&exe_file->f_path, comm_buf, CMD_SIZE);
+			char *path = d_path(&exe_file->f_path, comm_str, CMD_SIZE);
 
 			if (!IS_ERR(path)) {
-				comm_len = snprintf(comm_buf, CMD_SIZE, "%s\n", path);
+				comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", path);
 				goto cmmd_finished;
 			}
 		}
 
-		comm_len = snprintf(comm_buf, CMD_SIZE, "%s\n", task->comm);
+		comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", task->comm);
 	}
 
       cmmd_finished:
 	if (comm_len >= CMD_SIZE)
 		comm_len = CMD_SIZE - 1;
 
-	*len = comm_len;
-
-	return comm_buf;
+	return comm_len;
 }
 
 // Escribir en fichero f (de fd) -> sep_cont + cont + sep_hmac + HMAC
@@ -308,33 +301,38 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 
 // Info de los procesos de la máquina y guardarla:
 // Devuelve 0 éxito <-> 1 en error
-static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
+static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
+	char uid_str[UID_SIZE];
+	char pid_str[PID_SIZE];
+	char gid_str[GID_SIZE];
+	char comm_str[CMD_SIZE];
 
 	// UID:
-	char *uid_str = get_uid_str(task_uid(task));
-	if (!uid_str)
+	int uid_len = get_uid_str(task_uid(task), uid_str);
+	if (uid_len <= 0)
 		goto out_fail;
 	if (safe_chunk(cont, cont_len, uid_str, UID_SIZE) < 0)
 		goto out_fail;
 
 	// PID:
-	char *pid_str = get_pid_str(task_pid_nr(task));
-	if (!pid_str)
+	int pid_len = get_pid_str(task_pid_nr(task), pid_str);
+	if (pid_len <= 0)
 		goto out_fail;
 	if (safe_chunk(cont, cont_len, pid_str, PID_SIZE) < 0)
 		goto out_fail;
 
 	// GID:
-	char *gid_str = get_gid_str(task);
-	if (!gid_str)
+	int gid_len = get_gid_str(task, gid_str);
+	if (gid_len <= 0)
 		goto out_fail;
 	if (safe_chunk(cont, cont_len, gid_str, GID_SIZE) < 0)
 		goto out_fail;
 
 	// COMMAND:
-	int comm_len = 0;
-	char *command_str = get_command_str(task, &comm_len);
-	if (safe_chunk(cont, cont_len, command_str, comm_len) < 0)
+	int comm_len = get_command_str(task, comm_str);
+	if (comm_len <= 0)
+		goto out_fail;
+	if (safe_chunk(cont, cont_len, comm_str, comm_len) < 0)
 		goto out_fail;
 
 	return 0;
@@ -345,11 +343,11 @@ static int ps_data(struct task_struct *task, u8 **cont, int *cont_len) {
 
 // Obtener información de procesos del kernel para tratarlo como contenido
 // Devuelve 0 éxito <-> <0 en error
-static int get_ps_aux(u8 **cont, int *cont_len) {
+static int get_ps(u8 *cont, int *cont_len) {
 	struct task_struct *task;
 
-	*cont = (u8 *) kmalloc(MAX_PROC_SIZE, GFP_KERNEL);
-	if (!*cont)
+	cont = (u8 *) kmalloc(MAX_PROC_SIZE, GFP_KERNEL);
+	if (!cont)
 		return -ENOMEM;
 
 	// 1) Copiar la cabecera y actualizar len:
@@ -362,29 +360,30 @@ static int get_ps_aux(u8 **cont, int *cont_len) {
 	for_each_process(task) {
 		if (*cont_len >= MAX_PROC_SIZE - PS_LINE_SIZE) {
 			printk(KERN_WARNING
-			       "get_ps_aux: Process buffer full -> Truncating "
+			       "get_ps: Process buffer full -> Truncating "
 			       "ps output\n");
 			break;
 		}
 
 		if (ps_data(task, cont, cont_len)) {
 			printk(KERN_ERR
-			       "get_ps_aux: Extracting process data failed\n");
+			       "get_ps: Extracting process data failed\n");
+			rcu_read_unlock();
 			goto out_fail;
 		}
 	}
 	rcu_read_unlock();
 
 	printk(KERN_INFO
-	       "get_ps_aux: Generated ps_aux-like output of %d bytes.\n",
+	       "get_ps: Generated ps-like output of %d bytes.\n",
 	       *cont_len);
 	return 0;
 
       out_fail:
-	if (*cont)
-		kfree(*cont);
-	*cont = NULL;
-	*cont_len = 0;
+	if (cont)
+		kfree(cont);
+	cont = NULL;
+	cont_len = 0;
 	return -ENOSPC;
 }
 
@@ -405,7 +404,7 @@ static int printh(struct file *f) {
 	int hmac_b64len = 0;
 
 	// 1) Información de procesos desde el kernel (contenido):
-	rv = get_ps_aux(&cont, &cont_len);
+	rv = get_ps(cont, &cont_len);
 	if (rv < 0) {
 		printk(KERN_ERR
 		       "Error printH: get_ps_aux failed: %d\n", rv);
@@ -445,6 +444,8 @@ static int printh(struct file *f) {
       out_free_hmac:
 	kfree(hmac);
       out:
+	if (cont)
+		kfree(cont);
 	return rv;
 }
 
