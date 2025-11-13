@@ -33,7 +33,7 @@ enum {
 	BUFSIZE = 100,
 	MAX_PROC_SIZE = 20480,
 	UID_SIZE = 11,
-	PID_SIZE = 6,
+	PID_SIZE = 11,
 	CMD_SIZE = 25,
 	PS_LINE_SIZE =
 	   UID_SIZE + PID_SIZE + CMD_SIZE,
@@ -47,15 +47,15 @@ MODULE_AUTHOR("Noel");
 static struct proc_dir_entry *ent;
 
 // Separador entre el contenido del fichero y el contenido del kernel:
-static const char sep[] = "\n--KERNEL-PS-AUX--\n";
+static const char sep[] = "\n--KERNEL-PS--\n";
 static const int sep_len = sizeof(sep) - 1;	// NO contar '\0'
 
 // Separador entre el contenido del kernel y el HMAC en base 64:
-static const char sep_hmac[] = "\n--HMAC(SHA-256)--\n";
+static const char sep_hmac[] = "\n--HMAC--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 // Cabecera para registro de procesos:
-static const char header[] = "USER/UID   PID   COMMAND\n";
+static const char header[] = "USER/UID   PID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 // Helper --> Escribir todo el contenido que se pase en f en la posición ppos
@@ -153,7 +153,6 @@ static char *get_pid_str(int pid) {
 // Función aux para sacar el COMMAND (24 chars max + \n):
 static char *get_command_str(struct task_struct *task, int *len) {
 	static char comm_buf[CMD_SIZE];
-	int i = 0;
 
 	// Copiar nombre del comando (task->comm) de forma segura:
 	int comm_len = snprintf(comm_buf, CMD_SIZE, "%s\n", task->comm);

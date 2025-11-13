@@ -16,10 +16,10 @@
 enum { LEN = 20480 };
 
 // Separador entre el contenido del fichero y el contenido del kernel:
-const char sep[] = "--KERNEL-PS-AUX--\n";
+const char sep[] = "--KERNEL-PS--\n";
 
 // Separador entre el contenido del kernel y el HMAC en base 64:
-const char sep_hmac[] = "--HMAC(SHA-256)--\n";
+const char sep_hmac[] = "--HMAC--\n";
 
 // Leer de FILE hasta encontrar separador -> leer LEN bytes max arbitrários
 // Devuelve 0 en éxito <-> 1 en error
