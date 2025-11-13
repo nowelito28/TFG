@@ -2,12 +2,10 @@
 #include <linux/base64.h>
 #include <linux/cred.h>
 #include <linux/crypto.h>
-#include <linux/err.h>
 #include <linux/fcntl.h>
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/init.h>
-#include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/kstrtox.h>
 #include <linux/module.h>
@@ -15,16 +13,13 @@
 #include <linux/pid.h>
 #include <linux/proc_fs.h>
 #include <linux/rcupdate.h>
-#include <linux/rtc.h>
 #include <linux/sched/signal.h>
 #include <linux/sched/task.h>
 #include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/time.h>
-#include <linux/tty.h>
 #include <linux/uaccess.h>
-#include <linux/uidgid.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
