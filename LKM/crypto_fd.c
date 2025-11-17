@@ -30,9 +30,10 @@ enum {
 	MAX_PROC_SIZE = 20480,
 	UID_SIZE = 11,
 	PID_SIZE = 11,
+	PIDNS_SIZE = 11,
 	GID_SIZE = 11,
 	CMD_SIZE = 50,
-	PS_LINE_SIZE = UID_SIZE + PID_SIZE + +GID_SIZE + CMD_SIZE,
+	PS_LINE_SIZE = UID_SIZE + PID_SIZE + PIDNS_SIZE + +GID_SIZE + CMD_SIZE,
 };
 
 
@@ -55,7 +56,7 @@ static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 
 // Cabecera para registro de procesos:
-static const char header[] = "UID        PID        GID        COMMAND\n";
+static const char header[] = "UID        PID        PID_NS      GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 
@@ -151,6 +152,13 @@ static int get_pid_str(int pid, char *pid_str) {
 	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
 
 	return pid_len;
+}
+
+// Mapear PID NS (namespace):
+static int get_pidns_str() {
+
+
+	return 0;
 }
 
 // Mapear GID:
@@ -348,6 +356,14 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 		goto out_fail;
 
 	if (safe_chunk(cont, cont_len, pid_str, PID_SIZE) < 0)
+		goto out_fail;
+
+	// PID_NS:
+	int pidns_len = get_pidns_str();
+	if (pidns_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, pidns_str, PIDNS_SIZE) < 0)
 		goto out_fail;
 
 	// GID:
