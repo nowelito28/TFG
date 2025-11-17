@@ -1,254 +1,253 @@
+
 --KERNEL-PS--
-UID        PID        GID        COMMAND
-0/root     1          0/root     /usr/lib/systemd/systemd
-0/root     2          0/root     [kthreadd]
-0/root     3          0/root     [pool_workqueue_]
-0/root     4          0/root     [kworker/R-kvfre]
-0/root     5          0/root     [kworker/R-rcu_g]
-0/root     6          0/root     [kworker/R-sync_]
-0/root     7          0/root     [kworker/R-slub_]
-0/root     8          0/root     [kworker/R-netns]
-0/root     13         0/root     [kworker/R-mm_pe]
-0/root     14         0/root     [rcu_tasks_kthre]
-0/root     15         0/root     [rcu_tasks_rude_]
-0/root     16         0/root     [rcu_tasks_trace]
-0/root     17         0/root     [ksoftirqd/0]
-0/root     18         0/root     [rcu_preempt]
-0/root     19         0/root     [rcu_exp_par_gp_]
-0/root     20         0/root     [rcu_exp_gp_kthr]
-0/root     21         0/root     [migration/0]
-0/root     22         0/root     [cpuhp/0]
-0/root     23         0/root     [cpuhp/1]
-0/root     24         0/root     [migration/1]
-0/root     25         0/root     [ksoftirqd/1]
-0/root     28         0/root     [cpuhp/2]
-0/root     29         0/root     [migration/2]
-0/root     30         0/root     [ksoftirqd/2]
-0/root     33         0/root     [cpuhp/3]
-0/root     34         0/root     [migration/3]
-0/root     35         0/root     [ksoftirqd/3]
-0/root     42         0/root     [kdevtmpfs]
-0/root     43         0/root     [kworker/R-inet_]
-0/root     44         0/root     [kauditd]
-0/root     45         0/root     [khungtaskd]
-0/root     46         0/root     [oom_reaper]
-0/root     48         0/root     [kworker/R-write]
-0/root     49         0/root     [kcompactd0]
-0/root     50         0/root     [khugepaged]
-0/root     51         0/root     [kworker/R-kinte]
-0/root     52         0/root     [kworker/R-kbloc]
-0/root     53         0/root     [kworker/R-blkcg]
-0/root     56         0/root     [watchdogd]
-0/root     58         0/root     [kworker/0:1H]
-0/root     59         0/root     [kworker/R-rpcio]
-0/root     60         0/root     [kworker/R-xprti]
-0/root     64         0/root     [kswapd0]
-0/root     65         0/root     [kworker/R-nfsio]
-0/root     66         0/root     [kworker/R-kthro]
-0/root     75         0/root     [irq/27-aerdrv]
-0/root     76         0/root     [hwrng]
-0/root     77         0/root     [kworker/R-iscsi]
-0/root     78         0/root     [kworker/R-nvme-]
-0/root     79         0/root     [kworker/R-nvme-]
-0/root     80         0/root     [kworker/R-nvme-]
-0/root     82         0/root     [kworker/R-DWC N]
-0/root     83         0/root     [kworker/R-uas]
-0/root     84         0/root     [vchiq-slot/0]
-0/root     85         0/root     [vchiq-recy/0]
-0/root     86         0/root     [vchiq-sync/0]
-0/root     87         0/root     [kworker/2:1H]
-0/root     88         0/root     [kworker/R-tls-s]
-0/root     89         0/root     [kworker/R-kstrp]
-0/root     90         0/root     [kworker/R-zswap]
-0/root     91         0/root     [kworker/u21:0]
-0/root     92         0/root     [kworker/u22:0]
-0/root     93         0/root     [kworker/u23:0]
-0/root     94         0/root     [kworker/u24:0]
-0/root     95         0/root     [kworker/u25:0]
-0/root     111        0/root     [kworker/u20:1]
-0/root     112        0/root     [kworker/R-sdhci]
-0/root     113        0/root     [irq/40-mmc0]
-0/root     142        0/root     [kworker/1:1H]
-0/root     150        0/root     [kworker/R-mmc_c]
-0/root     156        0/root     [kworker/3:1H]
-0/root     207        0/root     [jbd2/mmcblk0p2-]
-0/root     208        0/root     [kworker/R-ext4-]
-0/root     224        0/root     [kworker/R-mld]
-0/root     225        0/root     [kworker/R-ipv6_]
-0/root     300        0/root     /usr/bin/udevadm
-0/root     341        0/root     [vchiq-keep/0]
-0/root     342        0/root     [kworker/R-v3d_b]
-0/root     343        0/root     [kworker/R-v3d_r]
-0/root     344        0/root     [kworker/R-v3d_t]
-0/root     345        0/root     [kworker/R-v3d_c]
-0/root     346        0/root     [kworker/R-v3d_c]
-0/root     347        0/root     [kworker/R-v3d_c]
-0/root     371        0/root     [kworker/R-cfg80]
-0/root     373        0/root     [SMIO]
-0/root     377        0/root     [kworker/R-brcmf]
-0/root     378        0/root     [brcmf_wdog/mmc1]
-0/root     383        0/root     [kworker/R-mmal-]
-0/root     384        0/root     [kworker/R-mmal-]
-0/root     386        0/root     [kworker/R-mmal-]
-0/root     394        0/root     [kworker/R-mmal-]
-0/root     395        0/root     [kworker/R-mmal-]
-0/root     412        0/root     [kworker/R-mmal-]
-0/root     421        0/root     [kworker/R-mmal-]
-0/root     469        0/root     [kworker/u21:3]
-0/root     475        0/root     [irq/43-vc4 hdmi]
-0/root     476        0/root     [irq/44-vc4 hdmi]
-0/root     477        0/root     [cec-vc4-hdmi-0]
-0/root     478        0/root     [irq/45-vc4 hdmi]
-0/root     479        0/root     [irq/46-vc4 hdmi]
-0/root     480        0/root     [irq/47-vc4 hdmi]
-0/root     481        0/root     [irq/48-vc4 hdmi]
-0/root     482        0/root     [cec-vc4-hdmi-1]
-0/root     483        0/root     [irq/49-vc4 hdmi]
-0/root     484        0/root     [irq/50-vc4 hdmi]
-0/root     486        0/root     [card1-crtc0]
-0/root     487        0/root     [card1-crtc1]
-0/root     488        0/root     [card1-crtc2]
-0/root     489        0/root     [card1-crtc3]
-0/root     491        0/root     [card1-crtc4]
-0/root     492        0/root     [card1-crtc5]
-0/root     606        0/root     [kworker/R-ext4-]
-0/root     638        0/root     /usr/lib/systemd/systemd-journald
-106        684        65534      /usr/sbin/rpcbind
-992        685        992        /usr/lib/systemd/systemd-resolved
-0/root     752        0/root     /usr/libexec/accounts-daemon
-0/root     764        0/root     /usr/libexec/bluetooth/bluetoothd
-0/root     769        0/root     /usr/sbin/cron
-101        775        101        /usr/bin/dbus-daemon
-0/root     990        0/root     /usr/lib/systemd/systemd-logind
-0/root     994        0/root     /usr/libexec/udisks2/udisksd
-103        1017       103        /usr/sbin/rsyslogd
-0/root     1082       0/root     /usr/sbin/rngd
-0/root     1093       0/root     /usr/sbin/NetworkManager
-0/root     1094       108        /usr/sbin/wpa_supplicant
-991        1174       991        /usr/lib/polkit-1/polkitd
-0/root     1422       0/root     /usr/bin/python3.12
-102        1424       102        /usr/sbin/vnstatd
-113        1446       119        /usr/sbin/chronyd
-113        1447       119        /usr/sbin/chronyd
-0/root     1558       0/root     /usr/sbin/gdm3
-0/root     1566       1000       /usr/libexec/gdm-session-worker
-1000       1573       1000       /usr/lib/systemd/systemd
-1000       1574       1000       /usr/lib/systemd/systemd-executor
-1000       1585       1000       /usr/bin/pipewire
-1000       1586       1000       /usr/bin/pipewire
-1000       1589       1000       /usr/bin/pulseaudio
-1000       1591       1000       /usr/libexec/gdm-wayland-session
-1000       1595       1000       /usr/bin/dbus-daemon
-1000       1619       1000       /usr/libexec/gnome-session-binary
-1000       1723       1000       /usr/libexec/gcr-ssh-agent
-1000       1724       1000       /usr/bin/gnome-keyring-daemon
-1000       1725       1000       /usr/libexec/gnome-session-ctl
-1000       1739       1000       /usr/libexec/gvfsd
-1000       1761       1000       /usr/libexec/gnome-session-binary
-1000       1800       1000       /usr/bin/gnome-shell
-1000       1803       1000       /usr/libexec/at-spi-bus-launcher
-1000       1813       1000       /usr/bin/dbus-daemon
-0/root     1823       0/root     [krfcommd]
-0/root     2247       0/root     /usr/sbin/cupsd
-1000       2284       1000       /usr/libexec/at-spi2-registryd
-109        2285       113        /usr/libexec/colord
-1000       2305       1000       /usr/libexec/xdg-permission-store
-0/root     2325       0/root     /usr/libexec/upowerd
-1000       2335       1000       /usr/libexec/gsd-a11y-settings
-1000       2338       1000       /usr/libexec/gsd-color
-1000       2340       1000       /usr/libexec/gsd-datetime
-1000       2341       1000       /usr/libexec/gsd-housekeeping
-1000       2342       1000       /usr/libexec/gsd-keyboard
-1000       2346       1000       /usr/libexec/gsd-media-keys
-1000       2347       1000       /usr/libexec/gsd-power
-1000       2349       1000       /usr/libexec/gsd-print-notifications
-1000       2352       1000       /usr/libexec/gsd-rfkill
-1000       2354       1000       /usr/libexec/gsd-screensaver-proxy
-1000       2356       1000       /usr/libexec/gsd-disk-utility-notify
-1000       2357       1000       /usr/libexec/gsd-sharing
-1000       2361       1000       /usr/libexec/gsd-smartcard
-1000       2365       1000       /usr/libexec/gsd-sound
-1000       2373       1000       /usr/libexec/gsd-wacom
-1000       2431       1000       /usr/libexec/gsd-printer
-1000       2495       1000       /usr/libexec/gvfs-udisks2-volume-monitor
-1000       2509       1000       /usr/libexec/gvfs-mtp-volume-monitor
-1000       2526       1000       /usr/libexec/gvfs-afc-volume-monitor
-1000       2533       1000       /usr/libexec/gvfs-goa-volume-monitor
-1000       2538       1000       /usr/libexec/gvfs-gphoto2-volume-monitor
-1000       2626       1000       /usr/libexec/tracker-miner-fs-3
-1000       2756       1000       /usr/bin/python3.12
-1000       2765       1000       /usr/bin/bash
-1000       2801       1000       /usr/share/code/code
-1000       2804       1000       /usr/share/code/code
-1000       2805       1000       /usr/share/code/code
-1000       2807       1000       /usr/share/code/code
-1000       2826       1000       /usr/share/code/chrome_crashpad_handler
-1000       2829       1000       /usr/bin/Xwayland
-1000       2836       1000       /usr/libexec/gsd-xsettings
-1000       2863       1000       /usr/libexec/mutter-x11-frames
-1000       2881       1000       /usr/libexec/xdg-desktop-portal
-1000       2884       1000       /usr/share/code/code
-1000       2890       1000       /usr/libexec/xdg-document-portal
-1000       2899       1000       /usr/bin/fusermount3
-1000       2904       1000       /usr/libexec/xdg-desktop-portal-gnome
-1000       2905       1000       /usr/share/code/code
-1000       2930       1000       /usr/libexec/xdg-desktop-portal-gtk
-1000       2953       1000       /usr/share/code/code
-1000       2966       1000       /usr/share/code/code
-1000       2967       1000       /usr/share/code/code
-1000       2986       1000       /usr/share/code/code
-1000       3016       1000       /usr/share/code/code
-1000       3032       1000       /usr/bin/bash
-1000       3072       1000       /usr/libexec/gvfsd-metadata
-1000       3101       1000       /usr/share/code/code
-1000       3151       1000       cpptools
-1000       3494       1000       cpptools-srv
-0/root     3713       0/root     [kworker/u16:0]
-0/root     3730       0/root     [kworker/u20:0]
-0/root     3748       0/root     [kworker/u19:1]
-0/root     3809       0/root     [kworker/u17:2]
-0/root     4328       0/root     [kworker/u16:4]
-0/root     4453       0/root     [kworker/1:0H]
-0/root     4484       0/root     [kworker/u18:3]
-0/root     4590       0/root     /usr/bin/containerd
-0/root     4669       0/root     /usr/bin/dockerd
-1000       5409       1000       /usr/share/code/code
-1000       5425       1000       /usr/bin/bash
-0/root     5514       0/root     [kworker/u17:3]
-0/root     5573       0/root     [kworker/3:0H]
-0/root     5575       0/root     [kworker/2:2H]
-0/root     5644       0/root     [kworker/u19:0]
-0/root     5706       0/root     [kworker/0:2H]
-0/root     5744       0/root     [kworker/0:2]
-0/root     5885       0/root     [kworker/1:2]
-0/root     6113       0/root     [kworker/u20:2]
-0/root     6247       0/root     [kworker/u18:0]
-0/root     6248       0/root     [kworker/u18:4]
-0/root     6263       0/root     [kworker/2:1]
-0/root     6503       0/root     [kworker/u19:2]
-0/root     6508       0/root     [kworker/u17:1]
-0/root     6516       0/root     [kworker/3:0]
-0/root     6518       0/root     [kworker/1:0]
-0/root     6558       0/root     [kworker/u16:3]
-0/root     6564       0/root     [kworker/0:1]
-0/root     6575       0/root     [kworker/2:0]
-0/root     6643       0/root     [kworker/3:2]
-1000       6651       1000       /usr/bin/su
-0/root     6652       0/root     /usr/bin/zsh
-0/root     6929       0/root     [kworker/0:0]
-0/root     6957       0/root     [kworker/2:2]
-0/root     7000       0/root     [kworker/1:2H]
-0/root     7056       0/root     [kworker/3:2H]
-0/root     7085       0/root     [kworker/u19:3]
-0/root     7086       0/root     [kworker/u19:4]
-0/root     7088       0/root     [kworker/u16:1]
-0/root     7116       0/root     [kworker/3:1]
-0/root     7129       0/root     [kworker/1:1]
-0/root     7203       0/root     /usr/bin/containerd-shim-runc-v2
-0/root     7223       0/root     /usr/bin/sleep
-0/root     7270       0/root     [kworker/u20:3]
-0/root     7271       0/root     [kworker/u18:1]
-0/root     7272       0/root     /home/noel/Desktop/TFG/mk_fhandoff
+UID        PID        PID_NS               GID        COMMAND
+0/root     1          0000000014c5038b    0/root     /usr/lib/systemd/systemd
+0/root     2          0000000014c5038b    0/root     [kthreadd]
+0/root     3          0000000014c5038b    0/root     [pool_workqueue_]
+0/root     4          0000000014c5038b    0/root     [kworker/R-kvfre]
+0/root     5          0000000014c5038b    0/root     [kworker/R-rcu_g]
+0/root     6          0000000014c5038b    0/root     [kworker/R-sync_]
+0/root     7          0000000014c5038b    0/root     [kworker/R-slub_]
+0/root     8          0000000014c5038b    0/root     [kworker/R-netns]
+0/root     13         0000000014c5038b    0/root     [kworker/R-mm_pe]
+0/root     14         0000000014c5038b    0/root     [rcu_tasks_kthre]
+0/root     15         0000000014c5038b    0/root     [rcu_tasks_rude_]
+0/root     16         0000000014c5038b    0/root     [rcu_tasks_trace]
+0/root     17         0000000014c5038b    0/root     [ksoftirqd/0]
+0/root     18         0000000014c5038b    0/root     [rcu_preempt]
+0/root     19         0000000014c5038b    0/root     [rcu_exp_par_gp_]
+0/root     20         0000000014c5038b    0/root     [rcu_exp_gp_kthr]
+0/root     21         0000000014c5038b    0/root     [migration/0]
+0/root     22         0000000014c5038b    0/root     [cpuhp/0]
+0/root     23         0000000014c5038b    0/root     [cpuhp/1]
+0/root     24         0000000014c5038b    0/root     [migration/1]
+0/root     25         0000000014c5038b    0/root     [ksoftirqd/1]
+0/root     28         0000000014c5038b    0/root     [cpuhp/2]
+0/root     29         0000000014c5038b    0/root     [migration/2]
+0/root     30         0000000014c5038b    0/root     [ksoftirqd/2]
+0/root     33         0000000014c5038b    0/root     [cpuhp/3]
+0/root     34         0000000014c5038b    0/root     [migration/3]
+0/root     35         0000000014c5038b    0/root     [ksoftirqd/3]
+0/root     42         0000000014c5038b    0/root     [kdevtmpfs]
+0/root     43         0000000014c5038b    0/root     [kworker/R-inet_]
+0/root     44         0000000014c5038b    0/root     [kauditd]
+0/root     45         0000000014c5038b    0/root     [khungtaskd]
+0/root     46         0000000014c5038b    0/root     [oom_reaper]
+0/root     48         0000000014c5038b    0/root     [kworker/R-write]
+0/root     49         0000000014c5038b    0/root     [kcompactd0]
+0/root     50         0000000014c5038b    0/root     [khugepaged]
+0/root     51         0000000014c5038b    0/root     [kworker/R-kinte]
+0/root     52         0000000014c5038b    0/root     [kworker/R-kbloc]
+0/root     53         0000000014c5038b    0/root     [kworker/R-blkcg]
+0/root     56         0000000014c5038b    0/root     [watchdogd]
+0/root     58         0000000014c5038b    0/root     [kworker/0:1H]
+0/root     59         0000000014c5038b    0/root     [kworker/R-rpcio]
+0/root     60         0000000014c5038b    0/root     [kworker/R-xprti]
+0/root     64         0000000014c5038b    0/root     [kswapd0]
+0/root     65         0000000014c5038b    0/root     [kworker/R-nfsio]
+0/root     66         0000000014c5038b    0/root     [kworker/R-kthro]
+0/root     75         0000000014c5038b    0/root     [irq/27-aerdrv]
+0/root     76         0000000014c5038b    0/root     [hwrng]
+0/root     77         0000000014c5038b    0/root     [kworker/R-iscsi]
+0/root     78         0000000014c5038b    0/root     [kworker/R-nvme-]
+0/root     79         0000000014c5038b    0/root     [kworker/R-nvme-]
+0/root     80         0000000014c5038b    0/root     [kworker/R-nvme-]
+0/root     82         0000000014c5038b    0/root     [kworker/R-DWC N]
+0/root     83         0000000014c5038b    0/root     [kworker/R-uas]
+0/root     84         0000000014c5038b    0/root     [vchiq-slot/0]
+0/root     85         0000000014c5038b    0/root     [vchiq-recy/0]
+0/root     86         0000000014c5038b    0/root     [vchiq-sync/0]
+0/root     87         0000000014c5038b    0/root     [kworker/2:1H]
+0/root     88         0000000014c5038b    0/root     [kworker/R-tls-s]
+0/root     89         0000000014c5038b    0/root     [kworker/R-kstrp]
+0/root     90         0000000014c5038b    0/root     [kworker/R-zswap]
+0/root     91         0000000014c5038b    0/root     [kworker/u21:0]
+0/root     92         0000000014c5038b    0/root     [kworker/u22:0]
+0/root     93         0000000014c5038b    0/root     [kworker/u23:0]
+0/root     94         0000000014c5038b    0/root     [kworker/u24:0]
+0/root     95         0000000014c5038b    0/root     [kworker/u25:0]
+0/root     112        0000000014c5038b    0/root     [kworker/R-sdhci]
+0/root     113        0000000014c5038b    0/root     [irq/40-mmc0]
+0/root     142        0000000014c5038b    0/root     [kworker/1:1H]
+0/root     150        0000000014c5038b    0/root     [kworker/R-mmc_c]
+0/root     156        0000000014c5038b    0/root     [kworker/3:1H]
+0/root     207        0000000014c5038b    0/root     [jbd2/mmcblk0p2-]
+0/root     208        0000000014c5038b    0/root     [kworker/R-ext4-]
+0/root     224        0000000014c5038b    0/root     [kworker/R-mld]
+0/root     225        0000000014c5038b    0/root     [kworker/R-ipv6_]
+0/root     300        0000000014c5038b    0/root     /usr/bin/udevadm
+0/root     341        0000000014c5038b    0/root     [vchiq-keep/0]
+0/root     342        0000000014c5038b    0/root     [kworker/R-v3d_b]
+0/root     343        0000000014c5038b    0/root     [kworker/R-v3d_r]
+0/root     344        0000000014c5038b    0/root     [kworker/R-v3d_t]
+0/root     345        0000000014c5038b    0/root     [kworker/R-v3d_c]
+0/root     346        0000000014c5038b    0/root     [kworker/R-v3d_c]
+0/root     347        0000000014c5038b    0/root     [kworker/R-v3d_c]
+0/root     371        0000000014c5038b    0/root     [kworker/R-cfg80]
+0/root     373        0000000014c5038b    0/root     [SMIO]
+0/root     377        0000000014c5038b    0/root     [kworker/R-brcmf]
+0/root     378        0000000014c5038b    0/root     [brcmf_wdog/mmc1]
+0/root     383        0000000014c5038b    0/root     [kworker/R-mmal-]
+0/root     384        0000000014c5038b    0/root     [kworker/R-mmal-]
+0/root     386        0000000014c5038b    0/root     [kworker/R-mmal-]
+0/root     394        0000000014c5038b    0/root     [kworker/R-mmal-]
+0/root     395        0000000014c5038b    0/root     [kworker/R-mmal-]
+0/root     412        0000000014c5038b    0/root     [kworker/R-mmal-]
+0/root     421        0000000014c5038b    0/root     [kworker/R-mmal-]
+0/root     469        0000000014c5038b    0/root     [kworker/u21:3]
+0/root     475        0000000014c5038b    0/root     [irq/43-vc4 hdmi]
+0/root     476        0000000014c5038b    0/root     [irq/44-vc4 hdmi]
+0/root     477        0000000014c5038b    0/root     [cec-vc4-hdmi-0]
+0/root     478        0000000014c5038b    0/root     [irq/45-vc4 hdmi]
+0/root     479        0000000014c5038b    0/root     [irq/46-vc4 hdmi]
+0/root     480        0000000014c5038b    0/root     [irq/47-vc4 hdmi]
+0/root     481        0000000014c5038b    0/root     [irq/48-vc4 hdmi]
+0/root     482        0000000014c5038b    0/root     [cec-vc4-hdmi-1]
+0/root     483        0000000014c5038b    0/root     [irq/49-vc4 hdmi]
+0/root     484        0000000014c5038b    0/root     [irq/50-vc4 hdmi]
+0/root     486        0000000014c5038b    0/root     [card1-crtc0]
+0/root     487        0000000014c5038b    0/root     [card1-crtc1]
+0/root     488        0000000014c5038b    0/root     [card1-crtc2]
+0/root     489        0000000014c5038b    0/root     [card1-crtc3]
+0/root     491        0000000014c5038b    0/root     [card1-crtc4]
+0/root     492        0000000014c5038b    0/root     [card1-crtc5]
+0/root     606        0000000014c5038b    0/root     [kworker/R-ext4-]
+0/root     638        0000000014c5038b    0/root     /usr/lib/systemd/systemd-journald
+106        684        0000000014c5038b    65534      /usr/sbin/rpcbind
+992        685        0000000014c5038b    992        /usr/lib/systemd/systemd-resolved
+0/root     752        0000000014c5038b    0/root     /usr/libexec/accounts-daemon
+0/root     764        0000000014c5038b    0/root     /usr/libexec/bluetooth/bluetoothd
+0/root     769        0000000014c5038b    0/root     /usr/sbin/cron
+101        775        0000000014c5038b    101        /usr/bin/dbus-daemon
+0/root     990        0000000014c5038b    0/root     /usr/lib/systemd/systemd-logind
+0/root     994        0000000014c5038b    0/root     /usr/libexec/udisks2/udisksd
+103        1017       0000000014c5038b    103        /usr/sbin/rsyslogd
+0/root     1082       0000000014c5038b    0/root     /usr/sbin/rngd
+0/root     1093       0000000014c5038b    0/root     /usr/sbin/NetworkManager
+0/root     1094       0000000014c5038b    108        /usr/sbin/wpa_supplicant
+991        1174       0000000014c5038b    991        /usr/lib/polkit-1/polkitd
+0/root     1422       0000000014c5038b    0/root     /usr/bin/python3.12
+102        1424       0000000014c5038b    102        /usr/sbin/vnstatd
+113        1446       0000000014c5038b    119        /usr/sbin/chronyd
+113        1447       0000000014c5038b    119        /usr/sbin/chronyd
+0/root     1558       0000000014c5038b    0/root     /usr/sbin/gdm3
+0/root     1566       0000000014c5038b    1000       /usr/libexec/gdm-session-worker
+1000       1573       0000000014c5038b    1000       /usr/lib/systemd/systemd
+1000       1574       0000000014c5038b    1000       /usr/lib/systemd/systemd-executor
+1000       1585       0000000014c5038b    1000       /usr/bin/pipewire
+1000       1586       0000000014c5038b    1000       /usr/bin/pipewire
+1000       1589       0000000014c5038b    1000       /usr/bin/pulseaudio
+1000       1591       0000000014c5038b    1000       /usr/libexec/gdm-wayland-session
+1000       1595       0000000014c5038b    1000       /usr/bin/dbus-daemon
+1000       1619       0000000014c5038b    1000       /usr/libexec/gnome-session-binary
+1000       1723       0000000014c5038b    1000       /usr/libexec/gcr-ssh-agent
+1000       1724       0000000014c5038b    1000       /usr/bin/gnome-keyring-daemon
+1000       1725       0000000014c5038b    1000       /usr/libexec/gnome-session-ctl
+1000       1739       0000000014c5038b    1000       /usr/libexec/gvfsd
+1000       1761       0000000014c5038b    1000       /usr/libexec/gnome-session-binary
+1000       1800       0000000014c5038b    1000       /usr/bin/gnome-shell
+1000       1803       0000000014c5038b    1000       /usr/libexec/at-spi-bus-launcher
+1000       1813       0000000014c5038b    1000       /usr/bin/dbus-daemon
+0/root     1823       0000000014c5038b    0/root     [krfcommd]
+0/root     2247       0000000014c5038b    0/root     /usr/sbin/cupsd
+1000       2284       0000000014c5038b    1000       /usr/libexec/at-spi2-registryd
+109        2285       0000000014c5038b    113        /usr/libexec/colord
+1000       2305       0000000014c5038b    1000       /usr/libexec/xdg-permission-store
+0/root     2325       0000000014c5038b    0/root     /usr/libexec/upowerd
+1000       2335       0000000014c5038b    1000       /usr/libexec/gsd-a11y-settings
+1000       2338       0000000014c5038b    1000       /usr/libexec/gsd-color
+1000       2340       0000000014c5038b    1000       /usr/libexec/gsd-datetime
+1000       2341       0000000014c5038b    1000       /usr/libexec/gsd-housekeeping
+1000       2342       0000000014c5038b    1000       /usr/libexec/gsd-keyboard
+1000       2346       0000000014c5038b    1000       /usr/libexec/gsd-media-keys
+1000       2347       0000000014c5038b    1000       /usr/libexec/gsd-power
+1000       2349       0000000014c5038b    1000       /usr/libexec/gsd-print-notifications
+1000       2352       0000000014c5038b    1000       /usr/libexec/gsd-rfkill
+1000       2354       0000000014c5038b    1000       /usr/libexec/gsd-screensaver-proxy
+1000       2356       0000000014c5038b    1000       /usr/libexec/gsd-disk-utility-notify
+1000       2357       0000000014c5038b    1000       /usr/libexec/gsd-sharing
+1000       2361       0000000014c5038b    1000       /usr/libexec/gsd-smartcard
+1000       2365       0000000014c5038b    1000       /usr/libexec/gsd-sound
+1000       2373       0000000014c5038b    1000       /usr/libexec/gsd-wacom
+1000       2431       0000000014c5038b    1000       /usr/libexec/gsd-printer
+1000       2495       0000000014c5038b    1000       /usr/libexec/gvfs-udisks2-volume-monitor
+1000       2509       0000000014c5038b    1000       /usr/libexec/gvfs-mtp-volume-monitor
+1000       2526       0000000014c5038b    1000       /usr/libexec/gvfs-afc-volume-monitor
+1000       2533       0000000014c5038b    1000       /usr/libexec/gvfs-goa-volume-monitor
+1000       2538       0000000014c5038b    1000       /usr/libexec/gvfs-gphoto2-volume-monitor
+1000       2626       0000000014c5038b    1000       /usr/libexec/tracker-miner-fs-3
+1000       2756       0000000014c5038b    1000       /usr/bin/python3.12
+1000       2765       0000000014c5038b    1000       /usr/bin/bash
+1000       2801       0000000014c5038b    1000       /usr/share/code/code
+1000       2804       0000000014c5038b    1000       /usr/share/code/code
+1000       2805       000000006323fa4c    1000       /usr/share/code/code
+1000       2807       000000006323fa4c    1000       /usr/share/code/code
+1000       2826       0000000014c5038b    1000       /usr/share/code/chrome_crashpad_handler
+1000       2829       0000000014c5038b    1000       /usr/bin/Xwayland
+1000       2836       0000000014c5038b    1000       /usr/libexec/gsd-xsettings
+1000       2863       0000000014c5038b    1000       /usr/libexec/mutter-x11-frames
+1000       2881       0000000014c5038b    1000       /usr/libexec/xdg-desktop-portal
+1000       2884       0000000014c5038b    1000       /usr/share/code/code
+1000       2890       0000000014c5038b    1000       /usr/libexec/xdg-document-portal
+1000       2899       0000000014c5038b    1000       /usr/bin/fusermount3
+1000       2904       0000000014c5038b    1000       /usr/libexec/xdg-desktop-portal-gnome
+1000       2905       0000000014c5038b    1000       /usr/share/code/code
+1000       2930       0000000014c5038b    1000       /usr/libexec/xdg-desktop-portal-gtk
+1000       2953       000000008ea8c702    1000       /usr/share/code/code
+1000       2966       0000000014c5038b    1000       /usr/share/code/code
+1000       2967       0000000014c5038b    1000       /usr/share/code/code
+1000       2986       0000000014c5038b    1000       /usr/share/code/code
+1000       3016       0000000014c5038b    1000       /usr/share/code/code
+1000       3032       0000000014c5038b    1000       /usr/bin/bash
+1000       3072       0000000014c5038b    1000       /usr/libexec/gvfsd-metadata
+1000       3101       0000000014c5038b    1000       /usr/share/code/code
+1000       3151       0000000014c5038b    1000       cpptools
+0/root     3809       0000000014c5038b    0/root     [kworker/u17:2]
+0/root     4590       0000000014c5038b    0/root     /usr/bin/containerd
+0/root     4669       0000000014c5038b    0/root     /usr/bin/dockerd
+1000       5409       0000000014c5038b    1000       /usr/share/code/code
+1000       5425       0000000014c5038b    1000       /usr/bin/bash
+0/root     6113       0000000014c5038b    0/root     [kworker/u20:2]
+0/root     6248       0000000014c5038b    0/root     [kworker/u18:4]
+0/root     6508       0000000014c5038b    0/root     [kworker/u17:1]
+0/root     6558       0000000014c5038b    0/root     [kworker/u16:3]
+1000       6651       0000000014c5038b    1000       /usr/bin/su
+0/root     6652       0000000014c5038b    0/root     /usr/bin/zsh
+0/root     7086       0000000014c5038b    0/root     [kworker/u19:4]
+0/root     7502       0000000014c5038b    0/root     [kworker/u18:1]
+0/root     7504       0000000014c5038b    0/root     [kworker/u19:0]
+0/root     7513       0000000014c5038b    0/root     [kworker/u20:0]
+0/root     7526       0000000014c5038b    0/root     [kworker/u16:2]
+0/root     7612       0000000014c5038b    0/root     [kworker/2:3]
+0/root     7629       0000000014c5038b    0/root     [kworker/u19:1]
+0/root     7848       0000000014c5038b    0/root     [kworker/u16:0]
+0/root     7852       0000000014c5038b    0/root     [kworker/3:0H]
+0/root     7876       0000000014c5038b    0/root     [kworker/1:1]
+0/root     7888       0000000014c5038b    0/root     [kworker/0:2H]
+0/root     7950       0000000014c5038b    0/root     [kworker/u20:1]
+0/root     8828       0000000014c5038b    0/root     [kworker/3:1]
+0/root     9054       0000000014c5038b    0/root     [kworker/2:1]
+0/root     9063       0000000014c5038b    0/root     [kworker/0:3]
+0/root     9064       0000000014c5038b    0/root     [kworker/u16:1]
+0/root     9066       0000000014c5038b    0/root     [kworker/1:2H]
+0/root     9514       0000000014c5038b    0/root     [kworker/1:2]
+0/root     9548       0000000014c5038b    0/root     [kworker/u18:2]
+0/root     9558       0000000014c5038b    0/root     [kworker/2:0]
+0/root     9561       0000000014c5038b    0/root     [kworker/2:2H]
+0/root     9563       0000000014c5038b    0/root     [kworker/u17:3]
+0/root     9575       0000000014c5038b    0/root     [kworker/0:1]
+0/root     9579       0000000014c5038b    0/root     [kworker/3:2]
+0/root     9586       0000000014c5038b    0/root     [kworker/u16:4]
+0/root     10059      0000000014c5038b    0/root     [kworker/2:2]
+0/root     10089      0000000014c5038b    0/root     [kworker/1:0]
+0/root     10158      0000000014c5038b    0/root     [kworker/3:2H]
+1000       10204      0000000014c5038b    1000       cpptools-srv
+0/root     10220      0000000014c5038b    0/root     [kworker/0:0H]
+1000       10257      0000000014c5038b    1000       cpptools-srv
+0/root     10499      0000000014c5038b    0/root     [kworker/u18:0]
+0/root     10514      0000000014c5038b    0/root     [kworker/2:0H]
+0/root     10515      0000000014c5038b    0/root     [kworker/0:0]
+0/root     10521      0000000014c5038b    0/root     /home/noel/Desktop/TFG/mk_fhandoff
 
 --HMAC--
-o5u16XGTQ84+ddKW16Dw8GxyiafeAfA8zcCvvsDQ6Ag=
+2HXwbOLBzTc9WvS2Ew6qo7mqzHPPfYmGiyEmbA1KrDc=

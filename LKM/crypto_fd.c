@@ -13,13 +13,13 @@
 #include <linux/pid.h>
 #include <linux/proc_fs.h>
 #include <linux/rcupdate.h>
-#include <linux/sched/signal.h>
-#include <linux/sched/task.h>
+#include <linux/sched.h>
 #include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/time.h>
 #include <linux/uaccess.h>
+#include <linux/nsproxy.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
@@ -30,7 +30,7 @@ enum {
 	MAX_PROC_SIZE = 20480,
 	UID_SIZE = 11,
 	PID_SIZE = 11,
-	PIDNS_SIZE = 11,
+	PIDNS_SIZE = 20,
 	GID_SIZE = 11,
 	CMD_SIZE = 50,
 	PS_LINE_SIZE = UID_SIZE + PID_SIZE + PIDNS_SIZE + +GID_SIZE + CMD_SIZE,
@@ -56,7 +56,7 @@ static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 
 // Cabecera para registro de procesos:
-static const char header[] = "UID        PID        PID_NS      GID        COMMAND\n";
+static const char header[] = "UID        PID        PID_NS               GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 
@@ -154,11 +154,21 @@ static int get_pid_str(int pid, char *pid_str) {
 	return pid_len;
 }
 
-// Mapear PID NS (namespace):
-static int get_pidns_str() {
+// Mapear PID NS (id (puntero) único del namespace al que pertenece cada PID):
+static int get_pidns_str(struct task_struct *task, char *pidns_str) {
+	struct pid_namespace *pid_ns = task->nsproxy->pid_ns_for_children;
 
+	if (!pid_ns) {
+		printk(KERN_ERR "get_pidns_str: No PID namespace found for task\n");
 
-	return 0;
+		return -ENOSPC;
+	}
+
+	int pidns_len = snprintf(pidns_str, PIDNS_SIZE, "%p", pid_ns);
+
+	pad_str_right(pidns_str, pidns_len, PIDNS_SIZE, ' ');
+
+	return pidns_len;
 }
 
 // Mapear GID:
@@ -339,6 +349,7 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 	char uid_str[UID_SIZE];
 	char pid_str[PID_SIZE];
+	char pidns_str[PIDNS_SIZE];
 	char gid_str[GID_SIZE];
 	char comm_str[CMD_SIZE];
 
@@ -359,7 +370,7 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 		goto out_fail;
 
 	// PID_NS:
-	int pidns_len = get_pidns_str();
+	int pidns_len = get_pidns_str(task, pidns_str);
 	if (pidns_len <= 0)
 		goto out_fail;
 
