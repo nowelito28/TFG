@@ -2,14 +2,12 @@
 #include <linux/base64.h>
 #include <linux/cred.h>
 #include <linux/crypto.h>
-#include <linux/fcntl.h>
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/kstrtox.h>
 #include <linux/module.h>
-#include <linux/moduleparam.h>
 #include <linux/pid.h>
 #include <linux/proc_fs.h>
 #include <linux/rcupdate.h>
@@ -17,7 +15,6 @@
 #include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/string.h>
-#include <linux/time.h>
 #include <linux/uaccess.h>
 #include <linux/nsproxy.h>
 
