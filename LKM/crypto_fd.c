@@ -501,9 +501,8 @@ static int printh(struct file *f) {
 
 	}
 
-	// 4) Escribir contenido y HMAC en el fichero fd -> sep_cont + cont +
-	// sep_hmac
-	// + HMAC(base 64):
+	// 4) Escribir contenido y HMAC en el fichero fd 
+	// -> sep_cont + cont + sep_hmac + HMAC(base 64):
 	rv = write_cont_hmac(f, cont, cont_len, hmac_b64, hmac_b64len);
 	if (rv < 0) {
 		printk(KERN_ERR "Error printH: writing content: %d\n", rv);
@@ -651,7 +650,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
 // Devuelve > 0 (bytes leídos -> len) <-> = 0 (EOF) <-> < 0 (error)
 static ssize_t myread(struct file *file, char __user *ubuf, size_t count,
 		      loff_t *ppos) {
-	char buf[] = "LKM ready to receive file descriptors from user.";
+	char buf[] = "Ready to receive file descriptors from user.\n";
 	int len = strlen(buf);
 
 	// 1) Ver si primera vez "read" -> sino EOF => single-shot
@@ -675,8 +674,7 @@ static ssize_t myread(struct file *file, char __user *ubuf, size_t count,
 
 	}
 
-	// 3) Puntero seguimiento (*ppos) del fichero en el último byte
-	// copiado
+	// 3) Puntero seguimiento en el último byte copiado
 	// en memoria de userspace (len)
 	*ppos = len;
 	printk(KERN_DEBUG "/proc/fddev myread: read %d bytes by userspace\n",
