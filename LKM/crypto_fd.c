@@ -27,10 +27,10 @@
 
 enum {
 	BUFSIZE = 100,
-	MAX_PROC_SIZE = 1024*25,
+	MAX_PROC_SIZE = 1024*20,
 	UID_SIZE = 11,
 	PID_SIZE = 11,
-	PIDNS_SIZE = 20,
+	PIDNS_SIZE = 15,
 	GID_SIZE = 11,
 	CMD_SIZE = 50,
 	PS_LINE_SIZE = UID_SIZE + PID_SIZE + PIDNS_SIZE + +GID_SIZE + CMD_SIZE,
@@ -56,7 +56,7 @@ static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 
 // Cabecera para registro de procesos:
-static const char header[] = "UID        PID        PID_NS              GID        COMMAND\n";
+static const char header[] = "UID        PID        PID_NS         GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 
@@ -154,7 +154,7 @@ static int get_pid_str(int pid, char *pid_str) {
 	return pid_len;
 }
 
-// Mapear PID NS (id (puntero) único del namespace al que pertenece cada PID):
+// Mapear PID NS (id único del namespace al que pertenece cada PID):
 static int get_pidns_str(struct task_struct *task, char *pidns_str) {
 	struct pid_namespace *pid_ns = task->nsproxy->pid_ns_for_children;
 
@@ -164,7 +164,7 @@ static int get_pidns_str(struct task_struct *task, char *pidns_str) {
 		return -ENOSPC;
 	}
 
-	int pidns_len = snprintf(pidns_str, PIDNS_SIZE, "%p", pid_ns);
+	int pidns_len = snprintf(pidns_str, PIDNS_SIZE, "%u", pid_ns->ns.inum);
 
 	pad_str_right(pidns_str, pidns_len, PIDNS_SIZE, ' ');
 
@@ -197,7 +197,7 @@ static int get_gid_str(struct task_struct *task, char *gid_str) {
 	return gid_len;
 }
 
-// Mapear COMMAND (49 chars max + \n):
+// Mapear COMMAND:
 static int get_command_str(struct task_struct *task, char *comm_str) {
 	int comm_len = 0;
 
@@ -206,26 +206,26 @@ static int get_command_str(struct task_struct *task, char *comm_str) {
 	if (task->mm == NULL) {
 		comm_len = snprintf(comm_str, CMD_SIZE, "[%s]\n", task->comm);
 
-	} else {
-		// Pocesos user -> ruta completa
-		struct file *exe_file = task->mm->exe_file;
-
-		if (exe_file) {
-			char *path =
-			    d_path(&exe_file->f_path, comm_str, CMD_SIZE);
-
-			if (!IS_ERR(path)) {
-				comm_len =
-				    snprintf(comm_str, CMD_SIZE, "%s\n", path);
-
-				goto commd_finished;
-
-			}
-		}
-
-		comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", task->comm);
+		goto commd_finished;
 
 	}
+
+	// Pocesos user -> ruta completa
+	struct file *exe_file = task->mm->exe_file;
+
+	if (exe_file) {
+		char *path = d_path(&exe_file->f_path, comm_str, CMD_SIZE);
+
+		if (!IS_ERR(path)) {
+			comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", path);
+
+			goto commd_finished;
+
+		}
+	}
+
+	comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", task->comm);
+
 
       commd_finished:
 	if (comm_len >= CMD_SIZE)
@@ -300,7 +300,7 @@ static int get_hmac_sha256(const u8 *buf, int buf_len, u8 **hmac, int *hmac_len)
 	}
 
 	// 4) Calcular el HMAC en una sola llamada (one-shot):
-	// SHASH_DESC_ON_STACK(desc, tfm) --> macro (<crypto/hash.h>) crea en
+	// SHASH_DESC_ON_STACK(desc, tfm) --> macro crea en
 	// pila un bloque de memoria del kernel => sizeof(struct shash_desc) +
 	// crypto_shash_descsize(tfm) struct shash_desc *desc --> estado
 	// intermedio del HMAC mientras se procesa
@@ -328,11 +328,9 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 
 	*hmac_b64 = kmalloc(hmac_b64cap, GFP_KERNEL);
 	if (!*hmac_b64)
-
 		return -ENOMEM;
 
-	// 2) Codificar el HMAC a Base64 y guardar la longitud real escrita en
-	// b64len
+	// 2) Codificar HMAC a Base64 y guardar la len real
 	*hmac_b64len = base64_encode(hmac, hmac_len, *hmac_b64);
 	if (*hmac_b64len < 0) {
 		kfree(*hmac_b64);
@@ -345,7 +343,7 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 }
 
 // Info de los procesos de la máquina y guardarla:
-// Devuelve 0 éxito <-> 1 en error
+// Devuelve 0 éxito <-> 1 error
 static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 	char uid_str[UID_SIZE];
 	char pid_str[PID_SIZE];
@@ -433,6 +431,7 @@ static int get_ps(u8 **cont, int *cont_len) {
 		if (ps_data(task, *cont, cont_len)) {
 			printk(KERN_ERR
 			       "get_ps: Extracting process data failed\n");
+
 			rcu_read_unlock();
 
 			goto out_fail;
@@ -581,9 +580,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
 	printk(KERN_DEBUG "/proc/fddev: write handler\n");
 
 	// 2) Copia "count" bytes desde memoria de espacio de user (ubuf) a
-	// memoria del kernel (buf) y cambiar puntero de seguimiento del
-	// fichero
-	// /proc/fddev:
+	// memoria del kernel (buf) y cambiar puntero de /proc/fddev
 	if (copy_from_user(buf, ubuf, count)) {
 		printk(KERN_ERR "/proc/fddev: write handler failed\n");
 
@@ -630,8 +627,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
 	if (rv < 0)
 		goto out_put;
 
-	// 7) Escribir contenido del kernel certificado en fd -> HMAC(SHA-256)
-	// con clave K embebida:
+	// 7) Escribir contenido del kernel en f -> HMAC(SHA-256)
 	rv = printh(f);
 	if (rv < 0) {
 		printk(KERN_ERR "Error mywrite: printH failed for fd %d: %d\n",
@@ -704,6 +700,7 @@ static int init(void) {
 	ent = proc_create("fddev", 0660, NULL, &myops);
 	if (!ent) {
 		printk(KERN_ERR "Error creating file in /proc");
+
 		return -ENOMEM;
 
 	}
@@ -716,7 +713,7 @@ static int init(void) {
 // Descargar LKM:
 static void cleanup(void) {
 
-	// 1) Borrar referencia al fichero creado en /proc -> /proc/fddev:
+	// Borrar referencia al fichero creado en /proc -> /proc/fddev:
 	proc_remove(ent);
 	printk(KERN_INFO "Proc file deleted: /proc/fddev\n");
 }
