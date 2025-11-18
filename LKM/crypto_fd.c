@@ -56,7 +56,7 @@ static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 
 // Cabecera para registro de procesos:
-static const char header[] = "UID        PID        PID_NS               GID        COMMAND\n";
+static const char header[] = "UID        PID        PID_NS              GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 
