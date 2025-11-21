@@ -146,6 +146,13 @@ CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 
 
 
+localhost:TFG:# nano /etc/docker/daemon.json
+localhost:TFG:# cat /etc/docker/daemon.json             (para utilizar distintos uid_ns)
+{
+	"userns-remap": "default"
+}
+localhost:TFG:# systemctl restart docker
+
 
 localhost:TFG:# docker run --help              
 Usage:  docker run [OPTIONS] IMAGE [COMMAND] [ARG...]

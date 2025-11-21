@@ -24,7 +24,8 @@
 
 enum {
 	BUFSIZE = 100,
-	MAX_PROC_SIZE = 1024*25,
+	MAX_PROC_SIZE = 1024*30,
+	TIPIC_HMACB64_SIZE = 44,
 	UID_SIZE = 11,
 	UIDNS_SIZE = 15,
 	PID_SIZE = 11,
@@ -452,7 +453,8 @@ static int get_ps(u8 **cont, int *cont_len) {
 
 	for_each_process(task) {
 
-		if (*cont_len >= MAX_PROC_SIZE - PS_LINE_SIZE) {
+		if (*cont_len >= MAX_PROC_SIZE - PS_LINE_SIZE - 
+			sep_len - sep_hmac_len - TIPIC_HMACB64_SIZE) {
 			printk(KERN_WARNING
 			       "get_ps: Buffer full -> Truncating\n");
 
