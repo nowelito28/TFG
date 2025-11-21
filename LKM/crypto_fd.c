@@ -24,13 +24,15 @@
 
 enum {
 	BUFSIZE = 100,
-	MAX_PROC_SIZE = 1024*20,
+	MAX_PROC_SIZE = 1024*25,
 	UID_SIZE = 11,
+	UIDNS_SIZE = 15,
 	PID_SIZE = 11,
 	PIDNS_SIZE = 15,
 	GID_SIZE = 11,
 	CMD_SIZE = 50,
-	PS_LINE_SIZE = UID_SIZE + PID_SIZE + PIDNS_SIZE + +GID_SIZE + CMD_SIZE,
+	PS_LINE_SIZE = UID_SIZE + UIDNS_SIZE + 
+		       PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
 };
 
 
@@ -53,7 +55,7 @@ static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 
 // Cabecera para registro de procesos:
-static const char header[] = "UID        PID        PID_NS         GID        COMMAND\n";
+static const char header[] = "UID        UID_NS         PID        PID_NS         GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 
@@ -140,6 +142,30 @@ static int get_uid_str(kuid_t uid_struct, char *uid_str) {
 	pad_str_right(uid_str, uid_len, UID_SIZE, ' ');
 
 	return uid_len;
+}
+
+// Mapear UID NS (id único del namespace al que pertenece cada UID):
+static int get_uidns_str(struct task_struct *task, char *uidns_str) {
+	// Credenciales seguras del proceso:
+	const struct cred *cred = get_task_cred(task);
+
+	if (!cred) {
+		printk(KERN_ERR "get_uidns_str: No credentials found for task\n");
+
+		return -ENOSPC;
+
+	}
+
+	// Obtener el namespace de user y liberar credenciales:
+	unsigned int uid_ns = cred->user_ns->ns.inum;
+
+	put_cred(cred);
+
+	int uidns_len = snprintf(uidns_str, UIDNS_SIZE, "%u", uid_ns);
+
+	pad_str_right(uidns_str, uidns_len, UIDNS_SIZE, ' ');
+
+	return uidns_len;
 }
 
 // Mapear PID:
@@ -343,6 +369,7 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 // Devuelve 0 éxito <-> 1 error
 static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 	char uid_str[UID_SIZE];
+	char uidns_str[UIDNS_SIZE];
 	char pid_str[PID_SIZE];
 	char pidns_str[PIDNS_SIZE];
 	char gid_str[GID_SIZE];
@@ -354,6 +381,14 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 		goto out_fail;
 
 	if (safe_chunk(cont, cont_len, uid_str, UID_SIZE) < 0)
+		goto out_fail;
+
+	// UID_NS:
+	int uidns_len = get_uidns_str(task, uidns_str);
+	if (uidns_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, uidns_str, UIDNS_SIZE) < 0)
 		goto out_fail;
 
 	// PID:
