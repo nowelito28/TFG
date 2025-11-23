@@ -10,12 +10,12 @@ make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   LD [M]  /home/noel/Desktop/TFG/crypto_fd.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 localhost:TFG:# insmod crypt_fd.ko
-localhost:TFG:# dmesg | tail 
+localhost:TFG:# dmesg -T | tail 
 ...        
-[vie nov  7 19:45:58 2025] K (64Bytes) loaded = 4a:d3:21:da:c3:6c:38:13:b1:70:48:ac:b2:6b:f7:e4:1b:7d:56:f2:fe:69:b4:59:0e:31:d6:a7:f1:ee:40:8a:17:97:4e:b0:7a:40:39:40:3f:29:27:d8:a9:84:da:01:12:70:23:dd:87:02:1b:b9:af:8c:ee:e2:90:7c:00:10
 [vie nov  7 19:45:58 2025] New proc file created: /proc/fddev
 localhost:TFG:# cat /proc/fddev             
 LKM ready to receive file descriptors from user.# 
+localhost:TFG:# dmesg -T | tail
 ...
 [vie nov  7 19:45:58 2025] /proc/fddev: read handler
 [vie nov  7 19:45:58 2025] /proc/fddev myread: read 48 bytes by userspace
@@ -25,6 +25,12 @@ localhost:TFG:# gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
 localhost:TFG:# gcc -o mk_fhandoff mk_fhandoff.o
 localhost:TFG:# gcc -g -c -Wshadow -Wvla -Wall check_hmac.c 
 localhost:TFG:# gcc -g -o check_hmac check_hmac.o -lcrypto
+localhost:TFG:# vim /etc/docker/daemon.json
+localhost:TFG:# cat /etc/docker/daemon.json             # para utilizar distintos uid_ns
+{
+	"userns-remap": "default"
+}
+localhost:TFG:# systemctl restart docker
 localhost:TFG:# docker run -d --name docker1 debian:stable sleep 10000
 7fd1c45a07c0d0086f1ede3189515af2cbf833b776e4851944b5ef29125633dc
 localhost:TFG:# docker run -d --name docker2 debian:stable sleep 10000
@@ -45,7 +51,6 @@ facd4a130063   debian:stable   "sleep 10000"   24 seconds ago       Up 23 second
 localhost:TFG:# ./mk_fhandoff ./file_handoff /proc/fddev
 File descriptor written in /proc/fddev:
 3
-localhost:TFG:# ./user_check ./file_handoff                
 localhost:TFG:# ./check_hmac ./file_handoff 
 Extracted kernel content:
 UID        UID_NS         PID        PID_NS         GID        COMMAND
@@ -313,7 +318,7 @@ Calculated HMAC(Base64):
 q2por6PcuxexFAXnBImQwBg8EPIsjbSY+mLYJBasCTc=
 
 HMAC verification successful: Valid HMAC
-localhost:TFG:# dmesg | tail 
+localhost:TFG:# dmesg -T | tail
 ...
 [vie nov  7 19:46:26 2025] /proc/fddev: write handler
 [vie nov  7 19:46:26 2025] /proc/fddev write: written 1 bytes from the user
@@ -322,7 +327,7 @@ localhost:TFG:# dmesg | tail
 [vie nov  7 19:46:26 2025] mywrite: printH OK for fd 3 (21320 bytes written)
 localhost:TFG:# cd LKM
 localhost:TFG:# rmmod crypto_fd                         
-localhost:TFG:# dmesg | tail
+localhost:TFG:# dmesg -T | tail
 ...
 [vie nov  7 19:48:41 2025] Proc file deleted: /proc/fddev
 localhost:TFG:# cat file_handoff 
@@ -590,10 +595,7 @@ UID        UID_NS         PID        PID_NS         GID        COMMAND
 q2por6PcuxexFAXnBImQwBg8EPIsjbSY+mLYJBasCTc=
 
 
-
-noel@localhost:~/Desktop/TFG/LKM$ clang-format -style=file -i crypto_fd.c // ESTEE ES PEOR
+# Comandos para el formateo del código:
 noel@localhost:~/Desktop/TFG/LKM$ indent -kr -i8 -ts8 -sob -bap -br -brf -bbo -bli0 -brs -fca -l80 -ss -ncs crypto_fd.c
 noel@localhost:~/Desktop/TFG$ indent -kr -i8 -ts8 -sob -l80 -bap -ss -ncs -fca -br -brf mk_fhandoff.c
-
-
-
+noel@localhost:~/Desktop/TFG$ indent -kr -i8 -ts8 -sob -l80 -bap -ss -ncs -fca -br -brf check_hmac.c
