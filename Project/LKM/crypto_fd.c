@@ -17,7 +17,7 @@
 #include <linux/string.h>
 #include <linux/uaccess.h>
 #include <linux/nsproxy.h>
-// #include <linux/pid_namespace.h>
+#include <linux/pid_namespace.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
@@ -173,7 +173,6 @@ static int get_luid_str(struct task_struct *task, char *uid_str) {
 
 // Mapear UID NS (id único del namespace al que pertenece cada UID):
 static int get_uidns_str(struct task_struct *task, char *uidns_str) {
-
 	// Credenciales seguras del proceso:
 	const struct cred *cred = get_task_cred(task);
 
@@ -216,12 +215,8 @@ static int get_lpid_str(int pid, char *pid_str) {
 
 // Mapear PID NS (id único del namespace al que pertenece cada PID):
 static int get_pidns_str(struct task_struct *task, char *pidns_str) {
-
-	if (!task->nsproxy)
-             	return -ENOSPC;
-
-	// struct pid_namespace *pid_ns = task_active_pid_ns(task);
-	struct pid_namespace *pid_ns = task->nsproxy->pid_ns_for_children;
+	// Obtener el namespace de PID del proceso activo:
+	struct pid_namespace *pid_ns = task_active_pid_ns(task);
 
 	if (!pid_ns) {
 		printk(KERN_ERR "get_pidns_str: No PID namespace found for task\n");
