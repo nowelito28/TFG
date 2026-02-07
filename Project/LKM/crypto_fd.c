@@ -17,6 +17,7 @@
 #include <linux/string.h>
 #include <linux/uaccess.h>
 #include <linux/nsproxy.h>
+// #include <linux/pid_namespace.h>
 
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
@@ -24,16 +25,16 @@
 
 enum {
 	BUFSIZE = 100,
-	MAX_PROC_SIZE = 1024*30,
+	MAX_PROC_SIZE = 1024*40,
 	TIPIC_HMACB64_SIZE = 44,
-	UID_SIZE = 11,
-	UIDNS_SIZE = 15,
-	PID_SIZE = 11,
-	PIDNS_SIZE = 15,
+	UID_SIZE = 12,
+	UIDNS_SIZE = 14,
+	PID_SIZE = 12,
+	PIDNS_SIZE = 14,
 	GID_SIZE = 11,
 	CMD_SIZE = 50,
-	PS_LINE_SIZE = UID_SIZE + UIDNS_SIZE + 
-		       PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
+	PS_LINE_SIZE = UID_SIZE + UID_SIZE + UIDNS_SIZE + 
+		       PID_SIZE + PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
 };
 
 
@@ -56,7 +57,7 @@ static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
 
 // Cabecera para registro de procesos:
-static const char header[] = "UID        UID_NS         PID        PID_NS         GID        COMMAND\n";
+static const char header[] = "UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
 
@@ -113,9 +114,8 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
 static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len) {
 	int max_len = MAX_PROC_SIZE - *current_len;
 
-	if (max_len < src_len) {
+	if (max_len < src_len)
 		return -ENOSPC;
-	}
 
 	// Copiar el contenido
 	memcpy(dst + *current_len, src, src_len);
@@ -126,8 +126,8 @@ static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len) {
 	return src_len;
 }
 
-// Mapear UID
-static int get_uid_str(kuid_t uid_struct, char *uid_str) {
+// Mapear UID del kernel (host):
+static int get_kuid_str(kuid_t uid_struct, char *uid_str) {
 	int uid_len = 0;
 
 	int uid = from_kuid(&init_user_ns, uid_struct);
@@ -145,8 +145,35 @@ static int get_uid_str(kuid_t uid_struct, char *uid_str) {
 	return uid_len;
 }
 
+// Mapear UID local (relativo al ns del proceso):
+static int get_luid_str(struct task_struct *task, char *uid_str) {
+	int uid_len = 0;
+
+	// Obtenemos las credenciales para acceder al user_ns de ese proceso
+	const struct cred *cred = get_task_cred(task);
+	if (!cred) 
+		return -ENOSPC;
+
+	// Traducimos el UID usando el namespace del propio proceso (no el del host)
+	int uid = from_kuid(cred->user_ns, cred->uid);
+	put_cred(cred);
+
+	if (uid == 0) {
+		uid_len = snprintf(uid_str, UID_SIZE, "0/root");
+
+	} else {
+		uid_len = snprintf(uid_str, UID_SIZE, "%d", uid);
+
+	}
+
+	pad_str_right(uid_str, uid_len, UID_SIZE, ' ');
+
+	return uid_len;
+}
+
 // Mapear UID NS (id único del namespace al que pertenece cada UID):
 static int get_uidns_str(struct task_struct *task, char *uidns_str) {
+
 	// Credenciales seguras del proceso:
 	const struct cred *cred = get_task_cred(task);
 
@@ -169,8 +196,17 @@ static int get_uidns_str(struct task_struct *task, char *uidns_str) {
 	return uidns_len;
 }
 
-// Mapear PID:
-static int get_pid_str(int pid, char *pid_str) {
+// Mapear PID del kernel (host):
+static int get_kpid_str(int pid, char *pid_str) {
+	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+
+	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+
+	return pid_len;
+}
+
+// Mapear PID local (relativo al ns del proceso):
+static int get_lpid_str(int pid, char *pid_str) {
 	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
 
 	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
@@ -180,6 +216,11 @@ static int get_pid_str(int pid, char *pid_str) {
 
 // Mapear PID NS (id único del namespace al que pertenece cada PID):
 static int get_pidns_str(struct task_struct *task, char *pidns_str) {
+
+	if (!task->nsproxy)
+             	return -ENOSPC;
+
+	// struct pid_namespace *pid_ns = task_active_pid_ns(task);
 	struct pid_namespace *pid_ns = task->nsproxy->pid_ns_for_children;
 
 	if (!pid_ns) {
@@ -369,19 +410,29 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 // Info de los procesos de la máquina y guardarla:
 // Devuelve 0 éxito <-> 1 error
 static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
-	char uid_str[UID_SIZE];
+	char kuid_str[UID_SIZE];
+	char luid_str[UID_SIZE];
 	char uidns_str[UIDNS_SIZE];
-	char pid_str[PID_SIZE];
+	char kpid_str[PID_SIZE];
+	char lpid_str[PID_SIZE];
 	char pidns_str[PIDNS_SIZE];
 	char gid_str[GID_SIZE];
 	char comm_str[CMD_SIZE];
 
-	// UID:
-	int uid_len = get_uid_str(task_uid(task), uid_str);
-	if (uid_len <= 0)
+	// UID del kernel (host):
+	int kuid_len = get_kuid_str(task_uid(task), kuid_str);
+	if (kuid_len <= 0)
 		goto out_fail;
 
-	if (safe_chunk(cont, cont_len, uid_str, UID_SIZE) < 0)
+	if (safe_chunk(cont, cont_len, kuid_str, UID_SIZE) < 0)
+		goto out_fail;
+
+	// UID local (dentro de cada ns):
+	int luid_len = get_luid_str(task, luid_str);
+	if (luid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, luid_str, UID_SIZE) < 0)
 		goto out_fail;
 
 	// UID_NS:
@@ -392,12 +443,20 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 	if (safe_chunk(cont, cont_len, uidns_str, UIDNS_SIZE) < 0)
 		goto out_fail;
 
-	// PID:
-	int pid_len = get_pid_str(task_pid_nr(task), pid_str);
-	if (pid_len <= 0)
+	// PID del kernel (host):
+	int kpid_len = get_kpid_str(task_pid_nr(task), kpid_str);
+	if (kpid_len <= 0)
 		goto out_fail;
 
-	if (safe_chunk(cont, cont_len, pid_str, PID_SIZE) < 0)
+	if (safe_chunk(cont, cont_len, kpid_str, PID_SIZE) < 0)
+		goto out_fail;
+
+	// PID local (dentro de cada ns):
+	int lpid_len = get_lpid_str(task_pid_vnr(task), lpid_str);
+	if (lpid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, lpid_str, PID_SIZE) < 0)
 		goto out_fail;
 
 	// PID_NS:

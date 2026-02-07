@@ -12,8 +12,8 @@
 // const unsigned char K[]; const unsigned int K_len;
 #include "./LKM/k_embedded.h"
 
-// Valor de 20KB arbitrario (espacio suficiente) -> leer resultado del kernel
-enum { LEN = 1024*30 };
+// Valor de 40KB arbitrario (espacio suficiente) -> leer resultado del kernel
+enum { LEN = 1024*40 };
 
 // Separador entre el contenido del fichero y el contenido del kernel:
 const char sep[] = "--KERNEL-PS--\n";
