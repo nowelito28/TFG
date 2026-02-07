@@ -205,12 +205,25 @@ static int get_kpid_str(int pid, char *pid_str) {
 }
 
 // Mapear PID local (relativo al ns del proceso):
-static int get_lpid_str(int pid, char *pid_str) {
-	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+static int get_lpid_str(struct task_struct *task, char *pid_str) {
+        // Obtenemos el namespace del proceso activo (no del kernel):
+        struct pid_namespace *ns = task_active_pid_ns(task);
 
-	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+        if (!ns) {
+		printk(KERN_ERR "get_lpid_str: No PID namespace found for task\n");
 
-	return pid_len;
+             	return -ENOSPC;
+
+        }
+
+        // Pedimos el PID del proceso relativo al ns:
+        int pid = task_pid_nr_ns(task, ns);
+
+        int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+
+        pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+
+        return pid_len;
 }
 
 // Mapear PID NS (id único del namespace al que pertenece cada PID):
@@ -447,7 +460,7 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 		goto out_fail;
 
 	// PID local (dentro de cada ns):
-	int lpid_len = get_lpid_str(task_pid_vnr(task), lpid_str);
+	int lpid_len = get_lpid_str(task, lpid_str);
 	if (lpid_len <= 0)
 		goto out_fail;
 
