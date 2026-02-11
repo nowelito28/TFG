@@ -19,14 +19,14 @@ localhost:TFG:# dmesg -T | tail
 ...
 [vie nov  7 19:45:58 2025] /proc/fddev: read handler
 [vie nov  7 19:45:58 2025] /proc/fddev myread: read 48 bytes by userspace
-[vie nov  7 19:45:58 2025] /proc/fddev: Only one read allowed or very few bytes requested   # Debido a que cat intenta hacer varias lecturas al fichero -> pero single-shot read
+[vie nov  7 19:45:58 2025] /proc/fddev: Only one read allowed or very few bytes requested
 localhost:TFG:# cd ..
 localhost:TFG:# gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
 localhost:TFG:# gcc -o mk_fhandoff mk_fhandoff.o
 localhost:TFG:# gcc -g -c -Wshadow -Wvla -Wall check_hmac.c 
 localhost:TFG:# gcc -g -o check_hmac check_hmac.o -lcrypto
 localhost:TFG:# vim /etc/docker/daemon.json
-localhost:TFG:# cat /etc/docker/daemon.json             # para utilizar distintos uid_ns
+localhost:TFG:# cat /etc/docker/daemon.json             # to use diferent uid_ns
 {
 	"userns-remap": "default"
 }
@@ -590,7 +590,7 @@ UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID 
 M/Yf+yhZVLXrueETQC8hoU4eTBCrRq3EmN+gv6kNoaE=
 
 
-# Comandos para el formateo del código:
+# Commands for code formatting:
 noel@localhost:~/Desktop/TFG/LKM$ indent -kr -i8 -ts8 -sob -bap -br -brf -bbo -bli0 -brs -fca -l80 -ss -ncs crypto_fd.c
 noel@localhost:~/Desktop/TFG$ indent -kr -i8 -ts8 -sob -l80 -bap -ss -ncs -fca -br -brf mk_fhandoff.c
 noel@localhost:~/Desktop/TFG$ indent -kr -i8 -ts8 -sob -l80 -bap -ss -ncs -fca -br -brf check_hmac.c

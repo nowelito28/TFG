@@ -12,17 +12,17 @@
 // const unsigned char K[]; const unsigned int K_len;
 #include "./LKM/k_embedded.h"
 
-// Valor de 40KB arbitrario (espacio suficiente) -> leer resultado del kernel
+// 40KB (enough space for testing)
 enum { LEN = 1024*40 };
 
-// Separador entre el contenido del fichero y el contenido del kernel:
+// Separator between the file content and the kernel content:
 const char sep[] = "--KERNEL-PS--\n";
 
-// Separador entre el contenido del kernel y el HMAC en base 64:
+// Separator between kernel content and Base64 HMAC:
 const char sep_hmac[] = "--HMAC--\n";
 
-// Leer de FILE hasta encontrar separador -> leer LEN bytes max arbitrários
-// Devuelve 0 en éxito <-> 1 en error
+// Read the file until find the separator -> read LEN bytes at most
+// Return: 0 success <-> 1 error
 int read_until_separator(FILE *f, char **content, int *content_len) {
 	char *line = NULL;
 	size_t cap = 0;
@@ -81,8 +81,8 @@ int read_until_separator(FILE *f, char **content, int *content_len) {
 	return 0;
 }
 
-// Leer de FILE HMAC(Base64) en la última línea
-// Devuelve 0 en éxito <-> 1 en error
+// Read the HMAC(Base64) line (last) from the file
+// Return: 0 success <-> 1 error
 int read_hmac_line(FILE *f, char **hmac_b64, int *hmac_b64_len) {
 	size_t cap = 0;
 
@@ -95,8 +95,8 @@ int read_hmac_line(FILE *f, char **hmac_b64, int *hmac_b64_len) {
 	return 0;
 }
 
-// Extraer contenido y HMAC(Base64) del fichero stream dado (fhandoff)
-// Devuelve 0 en éxito <-> 1 en error
+// Extract the content and HMAC(Base64) form the file stream given (fhandoff)
+// Return: 0 success <-> 1 error
 int extract_data(FILE *fhandoff, char **content, int *content_len,
 		 char **hmac_b64, int *hmac_b64_len) {
 
@@ -109,8 +109,9 @@ int extract_data(FILE *fhandoff, char **content, int *content_len,
 	return 0;
 }
 
-// Calcular el HMAC(SHA-256) del contenido con la clave K embebida
-// Devuelve 0 en éxito <-> 1 en error
+// Calculate the HMAC(SHA-256) from the content extracted
+// with the key K embedded
+// Return: 0 success <-> 1 error
 int calculate_hmac(const unsigned char *content, int content_len,
 		   unsigned char *hmac_calc, unsigned int *hmac_calc_len) {
 
@@ -123,8 +124,8 @@ int calculate_hmac(const unsigned char *content, int content_len,
 	return 0;
 }
 
-// Codificar a Base64 el HMAC calculado (ASCII)
-// Devuelve 0 en éxito <-> 1 en error
+// Encode to Base64 the HMAC calculated (ASCII)
+// Return: 0 success <-> 1 error
 int encode_base64(unsigned char *hmac_calc, unsigned int hmac_calc_len,
 		  unsigned char **hmac_b64_calc, int *hmac_b64_calc_len) {
 	*hmac_b64_calc_len = EVP_ENCODE_LENGTH(hmac_calc_len);
@@ -145,8 +146,8 @@ int encode_base64(unsigned char *hmac_calc, unsigned int hmac_calc_len,
 	return 0;
 }
 
-// Calcular HMAC(SHA-256) con clave K embebida y codificar a Base64
-// Devuelve 0 en éxito <-> 1 en error
+// Calculate HMAC(SHA-256) with key K embedded and encode to Base64
+// Return: 0 success <-> 1 error
 int calc_and_encode_hmac(const char *content, int content_len,
 			 unsigned char **hmac_b64_calc,
 			 int *hmac_b64_calc_len) {
@@ -166,8 +167,8 @@ int calc_and_encode_hmac(const char *content, int content_len,
 	return 0;
 }
 
-// Comprobar HMAC extraída y calculada son iguales
-// Devuelve 0 en éxito <-> 1 en error
+// Check if HMAC extracted and calculated are equal
+// Return: 0 success <-> 1 error
 int verify_hmac(const char *hmac_b64, int hmac_b64_len,
 		unsigned char *hmac_b64_calc, int hmac_b64_calc_len) {
 
@@ -180,7 +181,8 @@ int verify_hmac(const char *hmac_b64, int hmac_b64_len,
 	return 0;
 }
 
-// Comprobar que el HMAC(SHA-256) calculado del kernel es el correcto
+// Check HMAC(SHA-256) calculated from the kernel is veridical
+// Exit status: 0 success <-> 1 error
 int main(int argc, char *argv[]) {
 
 	if (argc != 2) {
@@ -189,14 +191,14 @@ int main(int argc, char *argv[]) {
 	}
 	const char *path_fhandoff = argv[1];
 
-	// 1) Abrir un stream -> leer línea a línea (offset compartido)
+	// 1) Open a stream -> read line by line:
 	FILE *fhandoff = fopen(path_fhandoff, "r");
 	if (!fhandoff) {
 		warnx("fopen failed\n");
 		goto err_fhandoff;
 	}
 	
-	// 2) Extraer el contenido del fichero:
+	// 2) Extract the content from the file:
 	char *content = NULL;
 	int content_len = 0;
 
@@ -213,7 +215,7 @@ int main(int argc, char *argv[]) {
 	printf("Extracted kernel content:\n%s\n", content);
 	printf("Extracted HMAC(Base64):\n%s\n", hmac_b64);
 
-	// 3) Calcular HMAC(SHA-256) del contenido y codificarlos a base 64:
+	// 3) Calculate HMAC(SHA-256) of the content and encode it to Base64:
 	unsigned char *hmac_b64_calc = NULL;
 	int hmac_b64_calc_len = 0;
 
@@ -226,8 +228,8 @@ int main(int argc, char *argv[]) {
 
 	printf("Calculated HMAC(Base64): \n%s\n", hmac_b64_calc);
 
-	// 4) Comparar HMAC(Base64) leída del fichero con el HMAC(Base64)
-	// calculado:
+	// 4) Compare HMAC(Base64) extracted from the file 
+	// with the HMAC(Base64) calculated:
 	int ext = verify_hmac(hmac_b64, hmac_b64_len, hmac_b64_calc,
 			      hmac_b64_calc_len);
 
