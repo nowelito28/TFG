@@ -6,9 +6,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-// Ensure complete write required: 
-// Return: bytes written (>0 -> can be <len) <-> -1 error
-static int write_full(int fd, const char *buf, int len) {
+/*
+ * Ensure complete write required: 
+ * Return: bytes written (>0 -> can be <len) <-> -1 error
+ */
+static int write_full(int fd, const char *buf, int len)
+{
 	int off = 0;
 	int w = 0;
 
@@ -29,26 +32,28 @@ static int write_full(int fd, const char *buf, int len) {
 	return off;
 }
 
-// Create file (f_handoff) whose fd is sent to /proc file of the LKM:
-// Exit status: 0 success <-> 1 error
-int main(int argc, char *argv[]) {
+/*
+ * Create file (f_handoff) whose fd is sent to /proc file of the LKM:
+ * Exit status: 0 success <-> 1 error
+ */
+int main(int argc, char *argv[])
+{
 
 	if (argc != 3) {
 		errx(EXIT_FAILURE, "Usage: %s <common_path> <proc_path>\n"
 		     "e.g.: %s ./file_handoff /proc/fddev", argv[0], argv[0]);
 	}
-	const char *f_handoff = argv[1];	// file_handoff
-	const char *f_proc = argv[2];	// /proc/fddev
+	const char *f_handoff = argv[1];
+	const char *f_proc = argv[2];
 
 	// 1) File descriptor (fd) -> gets created
 	// Append mode -> atomicity of the write pointer:
-	int fd_handoff =
-	    open(f_handoff, O_CREAT | O_RDWR | O_APPEND, 0666);
+	int fd_handoff = open(f_handoff, O_CREAT | O_RDWR | O_APPEND, 0666);
 	if (fd_handoff < 0) {
 		err(EXIT_FAILURE, "Error opening/creating the file %s",
 		    f_handoff);
 	}
-
+	
 	// 2) Open /proc file (/proc/fddev -> LKM):
 	int fd_proc = open(f_proc, O_RDWR);
 	if (fd_proc < 0) {

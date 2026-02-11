@@ -22,10 +22,9 @@
 // unsigned char K[]; unsigned int K_len=64;
 #include "k_embedded.h"
 
-
 enum {
 	BUFSIZE = 100,
-	MAX_PROC_SIZE = 1024*40,
+	MAX_PROC_SIZE = 1024 * 40,
 	TIPIC_HMACB64_SIZE = 44,
 	UID_SIZE = 12,
 	UIDNS_SIZE = 14,
@@ -33,37 +32,36 @@ enum {
 	PIDNS_SIZE = 14,
 	GID_SIZE = 11,
 	CMD_SIZE = 50,
-	PS_LINE_SIZE = UID_SIZE + UID_SIZE + UIDNS_SIZE + 
-		       PID_SIZE + PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
+	PS_LINE_SIZE = UID_SIZE + UID_SIZE + UIDNS_SIZE +
+	    PID_SIZE + PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
 };
-
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Noel");
 
-
 // /proc file reference --> /proc/fddev
 static struct proc_dir_entry *ent;
 
-
 // Separator between file content and kernel content:
+// Do not take into account with final '\0'
 static const char sep[] = "\n--KERNEL-PS--\n";
-static const int sep_len = sizeof(sep) - 1;	// Do not take into account with '\0'
-
+static const int sep_len = sizeof(sep) - 1;
 
 // Separator between kernel content and Base64 HMAC:
 static const char sep_hmac[] = "\n--HMAC--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
-
 // Processes metadata headers:
-static const char header[] = "UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND\n";
+static const char header[] =
+    "UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND\n";
 static const int header_len = sizeof(header) - 1;
 
-
-// Aux function -> Write all content passed in buf to the file position ppos:
-// Return: bytes written (off) success <-> <0 error <-> 0 if EOF is found
-static int write_full(struct file *f, const char *buf, int len) {
+/*
+ * Aux function -> Write all content passed in buf to the file position ppos:
+ * Return: bytes written (off) success <-> <0 error <-> 0 if EOF is found
+ */
+static int write_full(struct file *f, const char *buf, int len)
+{
 	int w = 0;
 	int off = 0;
 	loff_t *ppos = &f->f_pos;
@@ -84,9 +82,12 @@ static int write_full(struct file *f, const char *buf, int len) {
 	return off;
 }
 
-// Aux function -> fill the buffer with padding characters:
-// Return: total length of the string after padding (>=0) <-> <0 error
-static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
+/*
+ * Aux function -> fill the buffer with padding characters:
+ * Return: total length of the string after padding (>=0) <-> <0 error
+ */
+static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char)
+{
 	int padding = 0;
 
 	if (curr_len >= buf_len) {
@@ -101,15 +102,19 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char) {
 	if (padding > 0) {
 		memset(buf + curr_len, pad_char, padding);
 		curr_len += padding;
-		
+
 	}
 
 	return buf_len;
 }
 
-// Aux function -> secure method to store content without aliasing and overflow issues:
-// Return: len bytes saved (>=0) <-> <0 error
-static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len) {
+/*
+ * Aux function -> secure method to store content without aliasing 
+ * and overflow issues:
+ * Return: len bytes saved (>=0) <-> <0 error
+ */
+static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len)
+{
 	int max_len = MAX_PROC_SIZE - *current_len;
 
 	if (max_len < src_len)
@@ -122,8 +127,11 @@ static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len) {
 	return src_len;
 }
 
-// Map general UID (from kernel):
-static int get_kuid_str(kuid_t uid_struct, char *uid_str) {
+/*
+ * Map general UID (from kernel):
+ */
+static int get_kuid_str(kuid_t uid_struct, char *uid_str)
+{
 	int uid_len = 0;
 
 	int uid = from_kuid(&init_user_ns, uid_struct);
@@ -135,13 +143,17 @@ static int get_kuid_str(kuid_t uid_struct, char *uid_str) {
 	return uid_len;
 }
 
-// Map local UID (relative to the process's namespace):
-static int get_luid_str(struct task_struct *task, char *uid_str) {
+/*
+ * Map local UID (relative to the process's namespace):
+ */
+static int get_luid_str(struct task_struct *task, char *uid_str)
+{
 	int uid_len = 0;
 
 	const struct cred *cred = get_task_cred(task);
-	if (!cred){
-		printk(KERN_ERR "get_luid_str: No credentials found for task\n");
+	if (!cred) {
+		printk(KERN_ERR
+		       "get_luid_str: No credentials found for task\n");
 
 		return -ENOSPC;
 
@@ -158,11 +170,15 @@ static int get_luid_str(struct task_struct *task, char *uid_str) {
 	return uid_len;
 }
 
-// Map UID NS (unique id of each namespace where belongs every UID):
-static int get_uidns_str(struct task_struct *task, char *uidns_str) {
+/* 
+ * Map UID NS (unique id of each namespace where belongs every UID):
+ */
+static int get_uidns_str(struct task_struct *task, char *uidns_str)
+{
 	const struct cred *cred = get_task_cred(task);
 	if (!cred) {
-		printk(KERN_ERR "get_uidns_str: No credentials found for task\n");
+		printk(KERN_ERR
+		       "get_uidns_str: No credentials found for task\n");
 
 		return -ENOSPC;
 
@@ -179,8 +195,11 @@ static int get_uidns_str(struct task_struct *task, char *uidns_str) {
 	return uidns_len;
 }
 
-// Map general PID (from kernel):
-static int get_kpid_str(int pid, char *pid_str) {
+/*
+ * Map general PID (from kernel):
+ */
+static int get_kpid_str(int pid, char *pid_str)
+{
 	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
 
 	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
@@ -188,30 +207,38 @@ static int get_kpid_str(int pid, char *pid_str) {
 	return pid_len;
 }
 
-// Map local PID (relative to the process's namespace):
-static int get_lpid_str(struct task_struct *task, char *pid_str) {
-        struct pid_namespace *ns = task_active_pid_ns(task);
-        if (!ns) {
-		printk(KERN_ERR "get_lpid_str: No PID namespace found for task\n");
+/*
+ * Map local PID (relative to the process's namespace):
+ */
+static int get_lpid_str(struct task_struct *task, char *pid_str)
+{
+	struct pid_namespace *ns = task_active_pid_ns(task);
+	if (!ns) {
+		printk(KERN_ERR
+		       "get_lpid_str: No PID namespace found for task\n");
 
-             	return -ENOSPC;
+		return -ENOSPC;
 
-        }
+	}
 
-        int pid = task_pid_nr_ns(task, ns);
+	int pid = task_pid_nr_ns(task, ns);
 
-        int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
 
-        pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
 
-        return pid_len;
+	return pid_len;
 }
 
-// Map PID NS (unique id of each namespace where belongs every PID):
-static int get_pidns_str(struct task_struct *task, char *pidns_str) {
+/*
+ * Map PID NS (unique id of each namespace where belongs every PID):
+ */
+static int get_pidns_str(struct task_struct *task, char *pidns_str)
+{
 	struct pid_namespace *pid_ns = task_active_pid_ns(task);
 	if (!pid_ns) {
-		printk(KERN_ERR "get_pidns_str: No PID namespace found for task\n");
+		printk(KERN_ERR
+		       "get_pidns_str: No PID namespace found for task\n");
 
 		return -ENOSPC;
 	}
@@ -223,8 +250,11 @@ static int get_pidns_str(struct task_struct *task, char *pidns_str) {
 	return pidns_len;
 }
 
-// Map GID:
-static int get_gid_str(struct task_struct *task, char *gid_str) {
+/*
+ * Map GID (group id of the process):
+ */
+static int get_gid_str(struct task_struct *task, char *gid_str)
+{
 	int gid_len = 0;
 
 	const struct cred *cred = get_task_cred(task);
@@ -241,8 +271,11 @@ static int get_gid_str(struct task_struct *task, char *gid_str) {
 	return gid_len;
 }
 
-// Map COMMAND -> print each command/executable safetly (task->comm):
-static int get_command_str(struct task_struct *task, char *comm_str) {
+/*
+ * Map COMMAND -> print each command/executable safetly (task->comm):
+ */
+static int get_command_str(struct task_struct *task, char *comm_str)
+{
 	int comm_len = 0;
 
 	// Process without memory space -> kernel thread:
@@ -269,18 +302,20 @@ static int get_command_str(struct task_struct *task, char *comm_str) {
 
 	comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", task->comm);
 
-
-      commd_finished:
+commd_finished:
 	if (comm_len >= CMD_SIZE)
 		comm_len = CMD_SIZE - 1;
 
 	return comm_len;
 }
 
-// Write in file f (from fd) -> sep_cont + cont + sep_hmac + HMAC
-// Return: total bytes written (>=0) <-> <0 error
+/*
+ * Write in file f (from fd) -> sep_cont + cont + sep_hmac + HMAC:
+ * Return: total bytes written (>=0) <-> <0 error
+ */
 static int write_cont_hmac(struct file *f, const char *cont, int cont_len,
-			   const char *hmac_b64, int hmac_b64len) {
+			   	const char *hmac_b64, int hmac_b64len)
+{
 	int w = 0;
 	int total = 0;
 
@@ -311,9 +346,12 @@ static int write_cont_hmac(struct file *f, const char *cont, int cont_len,
 	return total;
 }
 
-// Calculate HAMC(SHA-256) with K (key embedded) of the content :
-// Return: rv (=>0) <-> <0 error
-static int get_hmac_sha256(const u8 *buf, int buf_len, u8 **hmac, int *hmac_len) {
+/*
+ * Calculate HAMC(SHA-256) with K (key embedded) of the content:
+ * Return: rv (=>0) <-> <0 error
+ */
+static int get_hmac_sha256(const u8 *buf, int buf_len, u8 **hmac, int *hmac_len)
+{
 	int rv = 0;
 
 	// Kernel handler Crypto API -> synchronous hash --> shash (transformer)
@@ -353,16 +391,19 @@ static int get_hmac_sha256(const u8 *buf, int buf_len, u8 **hmac, int *hmac_len)
 	// execution flow: init -> update -> final => in one single call over buf(content)
 	rv = crypto_shash_digest(desc, buf, buf_len, *hmac);
 
-      out_free_tfm:
+out_free_tfm:
 	crypto_free_shash(tfm);
 
 	return rv;
 }
 
-// Calculate HMAC(SHA-256) to Base64
-// Return: =>0 <-> <0 error
+/*
+ * Calculate HMAC(SHA-256) to Base64
+ * Return: =>0 <-> <0 error
+ */
 static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
-			int *hmac_b64len) {
+			int *hmac_b64len)
+{
 	// 1) Calculate needed for Base64(HMAC):
 	int hmac_b64cap = BASE64_CHARS(hmac_len);
 
@@ -382,9 +423,12 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 	return 0;
 }
 
-// Processes metadata registered in the machine and save it:
-// Return: 0 success <-> 1 error
-static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
+/*
+ * Processes metadata registered in the machine and save it:
+ * Return: 0 success <-> 1 error
+ */
+static int ps_data(struct task_struct *task, u8 *cont, int *cont_len)
+{
 	char kuid_str[UID_SIZE];
 	char luid_str[UID_SIZE];
 	char uidns_str[UIDNS_SIZE];
@@ -460,14 +504,17 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len) {
 
 	return 0;
 
-      out_fail:
+out_fail:
 
 	return 1;
 }
 
-// Get info from current processes running in the system = content
-// Return: 0 success <-> <0 error
-static int get_ps(u8 **cont, int *cont_len) {
+/*
+ * Get info from current processes running in the system = content
+ * Return: 0 success <-> <0 error
+ */
+static int get_ps(u8 **cont, int *cont_len)
+{
 	struct task_struct *task;
 
 	*cont = (u8 *) kmalloc(MAX_PROC_SIZE, GFP_KERNEL);
@@ -487,8 +534,8 @@ static int get_ps(u8 **cont, int *cont_len) {
 
 	for_each_process(task) {
 
-		if (*cont_len >= MAX_PROC_SIZE - PS_LINE_SIZE - 
-			sep_len - sep_hmac_len - TIPIC_HMACB64_SIZE) {
+		if (*cont_len >= MAX_PROC_SIZE - PS_LINE_SIZE -
+		    sep_len - sep_hmac_len - TIPIC_HMACB64_SIZE) {
 			printk(KERN_WARNING
 			       "get_ps: Buffer full -> Truncating\n");
 
@@ -513,7 +560,7 @@ static int get_ps(u8 **cont, int *cont_len) {
 
 	return 0;
 
-      out_fail:
+out_fail:
 	rcu_read_unlock();
 
 	if (*cont)
@@ -524,10 +571,13 @@ static int get_ps(u8 **cont, int *cont_len) {
 	return -ENOSPC;
 }
 
-// Write the process list and its HMAC 
-// to the file associated with the provided fd:
-// Return: rv=bytes added (=>0) <-> <0 error
-static int printh(struct file *f) {
+/*
+ * Write the process list and its HMAC 
+ * to the file associated with the provided fd:
+ * Return: rv=bytes added (=>0) <-> <0 error
+ */
+static int printh(struct file *f)
+{
 	int rv = 0;
 
 	// u8* = unsigned char*
@@ -566,7 +616,7 @@ static int printh(struct file *f) {
 		       rv);
 
 		goto out_free_hmac;
-
+		
 	}
 
 	// 4) Write all the content in the file given:
@@ -579,26 +629,28 @@ static int printh(struct file *f) {
 
 	}
 
-	printk(KERN_INFO
-	       "printH: file has been written with HAMC \n");
+	printk(KERN_INFO "printH: file has been written with HAMC \n");
 
-      out_free_hmacs:
+out_free_hmacs:
 	kfree(hmac_b64);
 
-      out_free_hmac:
+out_free_hmac:
 	kfree(hmac);
 
-      out:
+out:
 	if (cont)
 		kfree(cont);
 
 	return rv;
 }
 
-// Validate file metadata -> inode:
-// Avoid race conditions with the write file pointer (ppos)
-// Return: rv (=0) success <-> <0 -EACCES --> security hook
-static int val_metadata(struct file *f) {
+/*
+ * Validate file metadata -> inode:
+ * Avoid race conditions with the write file pointer (ppos)
+ * Return: rv (=0) success <-> <0 -EACCES --> security hook
+ */
+static int val_metadata(struct file *f)
+{
 	int rv = 0;
 
 	// Verify write and append modes:
@@ -621,11 +673,14 @@ static int val_metadata(struct file *f) {
 	return rv;
 }
 
-// Executed when writing in /proc/fddev from userspace:
-// Write the content of the kernel in the file given by fd (userpace) in mywrite ('f'):
-// Return: rv=bytes added (>0) <-> <0 error <-> 0 EOF
+/*
+ * Executed when writing in /proc/fddev from userspace:
+ * Write the content of the kernel in the file given by fd (userpace) in mywrite ('f'):
+ * Return: rv=bytes added (>0) <-> <0 error <-> 0 EOF
+ */
 static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
-		       loff_t *ppos) {
+		       loff_t *ppos)
+{
 	int fd = 0;
 	int rv = 0;
 	char buf[BUFSIZE];
@@ -704,17 +759,20 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
 	printk(KERN_DEBUG "mywrite: printH OK for fd %d (%d bytes written)\n",
 	       fd, rv);
 
-      out_put:
+out_put:
 	fput(f);
 
 	return rv;
 }
 
-// Executed when reading in /proc/fddev from userspace:
-// Give content save in kernel memory in /proc/fddev to user spaceace
-// Return: rv=bytes read (>0) <-> <0 error <-> 0 EOF
+/*
+ * Executed when reading in /proc/fddev from userspace:
+ * Give content save in kernel memory in /proc/fddev to user spaceace
+ * Return: rv=bytes read (>0) <-> <0 error <-> 0 EOF
+ */ 
 static ssize_t myread(struct file *file, char __user *ubuf, size_t count,
-		      loff_t *ppos) {
+		      	loff_t *ppos)
+{
 	char buf[] = "Ready to receive file descriptors from user.\n";
 	int len = strlen(buf);
 
@@ -749,16 +807,21 @@ static ssize_t myread(struct file *file, char __user *ubuf, size_t count,
 	return len;
 }
 
-// Associate handlers for /proc/fddev:
-// Use struct proc_ops (instead of struct file_operations)
-// from kernel 5.6
+/*
+ * Associate handlers for /proc/fddev:
+ * Use struct proc_ops (instead of struct file_operations)
+ * from kernel 5.6
+ */
 static const struct proc_ops myops = {
 	.proc_read = myread,
 	.proc_write = mywrite,
 };
 
-// Load LKM:
-static int init(void) {
+/*
+ * Load LKM:
+ */
+static int init(void)
+{
 
 	// Create file in /proc -> /proc/fddev:
 	ent = proc_create("fddev", 0660, NULL, &myops);
@@ -774,8 +837,11 @@ static int init(void) {
 	return 0;
 }
 
-// Download LKM:
-static void cleanup(void) {
+/*
+ * Download LKM:
+ */
+static void cleanup(void)
+{
 
 	// Remove any reference to the file created in /proc -> /proc/fddev:
 	proc_remove(ent);
