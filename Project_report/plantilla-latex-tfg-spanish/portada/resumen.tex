@@ -2,10 +2,22 @@
 
 \chapter*{Resumen\markboth{Resumen}{Resumen}}
 
-Escribe aquí el resumen del trabajo. Un primer párrafo para dar contexto sobre la temática que rodea al trabajo.\\
+La seguridad en los sistemas modernos es un área en constante evolución, donde la integridad de los datos y el control de su funcionamiento juegan un papel fundamental.
+Esto es debido a la presencia de amenazas y agentes externos que trabajan con el fin malicioso de comprometer dicha información, haciendo necesario el desarrollo de mecanismos de protección cada vez más robustos.\\
 
-Un segundo párrafo concretando el contexto del problema abordado.\\
+En este ámbito, una de las amenazas más críticas para los sistemas actualmente son los \textit{rootkits}, software malicioso diseñado para ocultarse en el núcleo del sistema (\textit{kernel}) y controlar su funcionamiento.
+Al infiltrarse en los niveles más profundos, este \textit{malware} adquiere permisos de administrador, permitiéndole controlar la ejecución de procesos de forma arbitraria y manipular respuestas e información del sistema operativo, 
+impidiendo obtener una visión verídica del estado real de los archivos y procesos del sistema.
+Esto provoca una falta de integridad en la monitorización y control del mismo, donde por defecto se deposita una confianza implícita en una fuente de datos sensibles que puede estar comprometida ante dicho tipo de amenaza.\\
 
-En el tercer párrafo, comenta cómo has resuelto la problemática descrita en el anterior párrafo.\\
+Para abordar esta problemática, en este proyecto se ha diseñado e implementado un \textit{Módulo del Kernel} (\textit{LKM}, \textit{Loadable Kernel Module}) en un sistema \textit{Linux} con el objetivo de protegerlo ante este tipo de amenazas.
+Esta solución introduce un mecanismo de autenticación criptográfica basado en HMAC (\textit{Hash-based Message Authentication Code}) del contenido proporcionado por el \textit{kernel},
+mediante una clave simétrica secreta que solo es conocida por el administrador, garantizando la integridad de la información ofrecida.\\
 
-Por último, en este cuarto párrafo, describe cómo han ido los experimentos.
+Los experimentos realizados aproximan un entorno real de operación donde la información sensible es solicitada desde el \textit{espacio de usuario} hacia el \textit{espacio del kernel}.
+Con este fin, se define el contenido sensible del sistema a autenticar mediante un listado de todos los procesos en ejecución y sus respectivos metadatos, generado en el propio \textit{Módulo del Kernel}, sirviendo como ejemplo de información crítica que puede ser manipulada por un \textit{rootkit}.
+Sobre este contenido, se calcula el HMAC con la respectiva clave secreta y se adjunta a la información proporcionada al usuario, de forma que este pueda verificar su integridad y autenticidad.\\
+
+Para validar esta propuesta, se han desarrollado componentes de usuario que prueban la funcionalidad. Un primer componente genera un fichero cuyo descriptor es transferido al \textit{kernel} para que este lo referencie, estableciendo así un canal de comunicación seguro.
+Por otro lado, la integridad de los datos reportados se confirma mediante un segundo componente de verificación que analiza la información escrita por el \textit{kernel}, calculando localmente el HMAC del contenido con la misma clave secreta y
+contrastándolo posteriormente con el recibido para asegurar que coinciden y que el contenido es verídico.\\
