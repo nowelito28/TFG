@@ -1,7 +1,7 @@
 % !TeX root = memoria.tex
-\documentclass[oneside,a4paper,12pt]{book} % TODO: cambia "oneside" por "twoside" a la hora de imprimirlo. EMCR: esta l�nea debe estar antes de todo y fuera del fichero estilo, sino no compila en overleaf
+\documentclass[oneside,a4paper,12pt]{book} % TODO: cambia "oneside" por "twoside" a la hora de imprimirlo. EMCR: esta línea debe estar antes de todo y fuera del fichero estilo, sino no compila en overleaf
 
-\input{estilo.tex} % archivo de configuraci�n de estilo
+\input{estilo.tex} % archivo de configuración de estilo
 
 \makeindex
 
@@ -12,7 +12,7 @@
 
 \input{portada/indice.tex}
 
-% Bibliograf�a
+% Bibliografía
 \let\OLDthebibliography=\thebibliography
 \def\thebibliography#1{\OLDthebibliography{#1}
   \addcontentsline{toc}{chapter}{\bibname}}
@@ -35,6 +35,6 @@
 
 \printindex \nocite{*}
 \appendix
-\bibliographystyle{apalike} \bibliography{bibliografia}
+\bibliographystyle{IEEEtran} \bibliography{bibliografia}
 
 \end{document}

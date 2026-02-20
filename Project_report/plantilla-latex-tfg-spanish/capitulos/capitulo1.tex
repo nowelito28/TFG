@@ -4,25 +4,79 @@
 
 \begin{flushright}
 \begin{minipage}[]{10cm}
-\emph{Quizás algún fragmento de libro inspirador...}\\
+\emph{\guillemotleft El mayor enemigo de la seguridad es la complejidad.\guillemotright}\\
 \end{minipage}\\
 
-Autor, \textit{Título}\\
+Bruce Schneier \textit{(A Plea for Simplicity, 1999)}~\cite{schneier}
 \end{flushright}
 
 \vspace{1cm}
 
-Escribe aquí un párrafo explicando brevemente lo que vas a contar en este capítulo. En este primer capítulo, el de introducción, se trata de dar un contexto amplio y atractivo del trabajo. Comienza hablando de un contexto general y acaba hablando del contexto más específico en el que se enmarca el proyecto. Es el capítulo idóneo para incluir todas las referencias bibliográficas que hayan tratado este tema; suponen un fuerte respaldo al trabajo.\\
+Hoy en día, la seguridad de los sistemas es un aspecto fundamental a tener en cuenta, y cada vez más a medida que alojamos mayor cantidad de información sensible en ellos y se convierten en sistemas mucho más complejos, y por lo tanto, quedan expuestos a un gran número de amenazas si no se protegen debidamente.
+Como advierte el ensayo mostrado al inicio del capítulo, la inherente complejidad de estas infraestructuras facilita la proliferación de \textit{malware} diseñado para operar e infiltrarse desde la más estricta invisibilidad.\\
 
-\section{La primera sección}
-\label{sec:miseccion} % etiqueta para luego referenciar esta sección
+Un sistema operativo moderno no es una estructura o proceso simple, sino un entrelazado conjunto de capas o niveles concéntricos de abstracción que actúan respecto a un sistema de hardware. Se puede describir como un sistema realmente complejo, con una gran cantidad de componentes y funcionalidades. Por consecuencia, esta complejidad hace que sea difícil de proteger y monitorizar, requiriendo de un gran conocimiento sobre el mismo para saber cómo actuar ante posibles ataques.\\
+
+A su vez, por parte del atacante, se requiere de un gran conocimiento técnico para diseñar un ataque efectivo, pero también de una gran creatividad y habilidad para encontrar vulnerabilidades y las formas de explotarlas sin ser detectado, dependiendo de su finalidad.\\
+
+Esto hace de la ciberseguridad una disciplina realmente amplia y compleja, donde atacantes y defensores se encuentran en una constante carrera por encontrar nuevas formas de comprometer o proteger los sistemas.\\
+
+Este proyecto se centra en el ámbito de la seguridad de los sistemas operativos \textit{Linux}, concretamente en la protección ante amenazas que se infiltran en el núcleo del sistema, como los \textit{rootkits}, evitando la manipulación de información sensible hacia los usuarios mediante un canal de reporte seguro y verificable.\\
+
+Para comprender en detalle el escenario descrito y contextualizar el proyecto en sí, se explicarán en las siguientes secciones los fundamentos teóricos pertinentes.
+A continuación, se analizará la arquitectura y estructura de los sistemas operativos, principalmente \textit{Linux}, sistema utilizado en el proyecto.
+Posteriormente, se definirá más en detalle en qué se centra la ciberseguridad y sus finalidades.
+Finalmente, se profundizará en qué consisten las principales amenazas que comprometen estos entornos.\\
+
+\section{Sistemas operativos \textit{Linux}}
+\label{sec:linux} % etiqueta para luego referenciar esta sección
+
+No existe una definición canónica y universal para el concepto de sistema operativo, tratándose de una idea hasta cierto punto relativa y subjetiva dependiendo de su cometido y contexto de uso~\cite{librossoo}.\\
+
+Desde un punto de vista físico, puede definirse como el conjunto de programas que permite utilizar la máquina como sistema, haciendo lo necesario para que puedan ejecutarse múltiples procesos sobre el mismo \textit{hardware}, multiplexando la máquina en tiempo (administrando uso de \textit{CPU}) y espacio (gestionando la memoria \textit{RAM}).\\
+
+Por otro lado, desde un punto de vista lógico, se puede definir como el programa o conjunto de los mismos que actúan como intermediarios entre el usuario y el \textit{hardware}, proporcionando una interfaz como abstracción de procesos e instrucciones internas, para poder interactuar con la máquina y sus recursos de manera eficiente y robusta.\\
+
+En el mercado tecnológico actual existen diferentes sistemas operativos de propósito general, destacando opciones comerciales de código cerrado como \textit{Microsoft Windows} o \textit{macOS}, orientados generalmente a ordenadores, y por otra parte, \textit{Android} e \textit{iOS}, principalmente diseñados para dispositivos móviles. Sin embargo, dentro del ámbito de la administración de infraestructuras, ciberseguridad y desarrollo de \textit{software}, \textit{GNU/Linux} (de la familia \textit{Unix}) se considera como el estándar de referencia absoluto.\\
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figs/unix_tree.jpg}
+  \caption{Árbol genealógico de los sistemas operativos \textit{Unix}.}
+  \label{fig:unix_tree}
+\end{figure}
+
+Como ilustra la figura, \textit{Unix} es el sistema pionero creado en los años 70 que sentó las bases de la informática e inspiró directamente el desarrollo de \textit{Linux}, considerado como su evolución natural de código abierto. También \textit{macOS} proviene de esta familia; sin embargo, este sistema operativo ha evolucionado bajo un modelo comercial semi-privativo y de código parcialmente cerrado.\\
+
+La hegemonía de \textit{GNU/Linux} en estos sectores se debe principalmente a su filosofía de código abierto (\textit{open-source}). Disponer del código fuente de manera pública, tanto directamente en los directorios del sistema (típicamente en \texttt{/usr/src}) como en repositorios públicos en línea como \textit{GitHub}, permite a una gran comunidad mundial de desarrolladores auditar, depurar y mejorar el código del mismo de forma continua.
+Esta transparencia garantiza un nivel de adaptabilidad y fiabilidad muy superior al de los sistemas comerciales, permitiendo una configuración del entorno a medida según las necesidades requeridas.\\
+
+\subsection{Estructura, arquitectura y anillos de privilegios}
+\label{sec:estructuralinux}
+
+
+\subsection{Espacio de usuario y espacio de kernel}
+\label{sec:uskrspaces}
+
+
+
+\subsection{Llamadas al sistema (\textit{System Calls})}
+\label{sec:syscalls}
+
+
+
+\subsection{Programación y Módulos del Kernel de \textit{Linux} (\textit{LKMs})}
+\label{sec:lkms}
+
+
+
 
 En los textos puedes poner palabras en \textit{cursiva}, para aquellas expresiones en sentido \textit{figurado}, palabras como \textit{robota}, que está fuera del diccionario castellano, o bien para resaltar palabras de una colección: \textit{(a)} es la primera letra del abecedario, \textit{(b)} es la segunda, etc.\\
 
 Al poner las dos líneas del anterior párrafo, este aparecerá separado del anterior. Si no las pongo, los párrafos aparecerán pegados. Sigue el criterio que consideres más oportuno.
 
-\section{Segunda sección}
-\label{sec:segundaseccion}
+\section{Ciberseguridad}
+\label{sec:seccion2}
 
 No olvides incluir imágenes y referenciarlas, como la Figura \ref{fig:roomba}.
 
@@ -56,6 +110,9 @@ Cuando describas una colección, usa \texttt{itemize} para ítems o \texttt{enum
  \item Primer elemento de la colección.
  \item Segundo elemento de la colección.
 \end{enumerate}\
+
+\section{Amenazas de seguridad}
+\label{sec:seccion3}
 
 \paragraph{Referencias bibliográficas}
 \label{sec:referencias}
