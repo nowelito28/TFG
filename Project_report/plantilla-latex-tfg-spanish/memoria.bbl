@@ -20,14 +20,29 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
-\bibitem{schneier}
+\bibitem{unix_family_tree}
 \BIBentryALTinterwordspacing
-B.~Schneier, ``A plea for simplicity,'' Schneier on Security, online essay, November 1999. [Online]. Available: \url{https://www.schneier.com/essays/archives/1999/11/a_plea_for_simplicit.html}
+G.~Anthes, ``Unix turns 40: The past, present and future of a revolutionary os,'' \emph{Operative Systems, Linux}, June 2009. [Online]. Available: \url{https://www.computerworld.com/article/1553843/unix-turns-40-the-past-present-and-future-of-a-revolutionary-os.html}
+\BIBentrySTDinterwordspacing
+
+\bibitem{wiki_rings}
+\BIBentryALTinterwordspacing
+C.~de~Wikipedia, ``Anillo (seguridad informática),'' Wikipedia, online article, January 2026. [Online]. Available: \url{https://es.wikipedia.org/wiki/Anillo_(seguridad_informática)}
 \BIBentrySTDinterwordspacing
 
 \bibitem{librossoo}
 \BIBentryALTinterwordspacing
 E.~Soriano~Salvador and G.~Guardiola~Múzquiz, \emph{Fundamentos de Sistemas Operativos: Una aproximación práctica usando Linux}.\hskip 1em plus 0.5em minus 0.4em\relax GSyC, Universidad Rey Juan Carlos, February 2024. [Online]. Available: \url{https://honecomp.github.io/librossoo.html}
+\BIBentrySTDinterwordspacing
+
+\bibitem{schneier}
+\BIBentryALTinterwordspacing
+B.~Schneier, ``A plea for simplicity,'' Schneier on Security, online essay, November 1999. [Online]. Available: \url{https://www.schneier.com/essays/archives/1999/11/a_plea_for_simplicit.html}
+\BIBentrySTDinterwordspacing
+
+\bibitem{love_linux}
+\BIBentryALTinterwordspacing
+R.~Love, \emph{Linux Kernel Development}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Developer's Library, Addison-Wesley, 2010. [Online]. Available: \url{https://github.com/swadhinsekhar/books/blob/master/Linux%20Kernel%20Development%203rd%20Edition%20-%20Love%20-%202010.pdf}
 \BIBentrySTDinterwordspacing
 
 \bibitem{vega12e}
@@ -48,12 +63,7 @@ J.~Vega, ``El profesor {Julio} {Vega}, finalista del concurso '{Ciencia} en {Acc
 \bibitem{vega08b}
 ------, ``Navegaci{\'o}n y autolocalizaci{\'o}n de un robot gu{\'i}a de visitantes,'' Master thesis on Computer Science, Rey Juan Carlos University, September 2008.
 
-\bibitem{unix_family_tree}
-\BIBentryALTinterwordspacing
-G.~Anthes, ``Unix turns 40: The past, present and future of a revolutionary os,'' \emph{Operative Systems, Linux}, June 2009. [Online]. Available: \url{https://www.computerworld.com/article/1553843/unix-turns-40-the-past-present-and-future-of-a-revolutionary-os.html}
-\BIBentrySTDinterwordspacing
-
 \bibitem{vega15}
-J.~Vega, ``De la tiza al robot,'' Franciscanas Montpellier Schools, annual report, Tech. Rep., June 2015.
+------, ``De la tiza al robot,'' Franciscanas Montpellier Schools, annual report, Tech. Rep., June 2015.
 
 \end{thebibliography}

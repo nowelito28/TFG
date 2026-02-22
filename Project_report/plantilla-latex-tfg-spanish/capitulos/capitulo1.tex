@@ -7,15 +7,15 @@
 \emph{\guillemotleft El mayor enemigo de la seguridad es la complejidad.\guillemotright}\\
 \end{minipage}\\
 
-Bruce Schneier \textit{(A Plea for Simplicity, 1999)}~\cite{schneier}
+Bruce Schneier \textit{(A Plea for Simplicity, 1999)}~\cite{schneier}.
 \end{flushright}
 
 \vspace{1cm}
 
-Hoy en día, la seguridad de los sistemas es un aspecto fundamental a tener en cuenta, y cada vez más a medida que alojamos mayor cantidad de información sensible en ellos y se convierten en sistemas mucho más complejos, y por lo tanto, quedan expuestos a un gran número de amenazas si no se protegen debidamente.
+Hoy en día, la seguridad de los sistemas es un aspecto fundamental a tener en cuenta, cobrando cada vez más importancia a medida que alojamos mayor cantidad de información sensible en ellos y se convierten en sistemas mucho más complejos. Por lo tanto, podrían quedar expuestos a un gran número de amenazas si no se protegen debidamente.
 Como advierte el ensayo mostrado al inicio del capítulo, la inherente complejidad de estas infraestructuras facilita la proliferación de \textit{malware} diseñado para operar e infiltrarse desde la más estricta invisibilidad.\\
 
-Un sistema operativo moderno no es una estructura o proceso simple, sino un entrelazado conjunto de capas o niveles concéntricos de abstracción que actúan respecto a un sistema de hardware. Se puede describir como un sistema realmente complejo, con una gran cantidad de componentes y funcionalidades. Por consecuencia, esta complejidad hace que sea difícil de proteger y monitorizar, requiriendo de un gran conocimiento sobre el mismo para saber cómo actuar ante posibles ataques.\\
+Un sistema operativo moderno no es una estructura o proceso simple, sino un entrelazado conjunto de capas o niveles concéntricos de abstracción que actúan respecto a un sistema de hardware. Se puede describir como un sistema realmente complejo, con una gran cantidad de componentes y funcionalidades. En consecuencia, esta complejidad hace que sea difícil de proteger y monitorizar, requiriendo de un gran conocimiento sobre el mismo para saber cómo actuar ante posibles ataques.\\
 
 A su vez, por parte del atacante, se requiere de un gran conocimiento técnico para diseñar un ataque efectivo, pero también de una gran creatividad y habilidad para encontrar vulnerabilidades y las formas de explotarlas sin ser detectado, dependiendo de su finalidad.\\
 
@@ -42,17 +42,42 @@ En el mercado tecnológico actual existen diferentes sistemas operativos de prop
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.9\textwidth]{figs/unix_tree.jpg}
-  \caption{Árbol genealógico de los sistemas operativos \textit{Unix}.}
+  \caption{Árbol genealógico de los sistemas operativos \textit{Unix}~\cite{unix_family_tree}.}
   \label{fig:unix_tree}
 \end{figure}
 
-Como ilustra la figura, \textit{Unix} es el sistema pionero creado en los años 70 que sentó las bases de la informática e inspiró directamente el desarrollo de \textit{Linux}, considerado como su evolución natural de código abierto. También \textit{macOS} proviene de esta familia; sin embargo, este sistema operativo ha evolucionado bajo un modelo comercial semi-privativo y de código parcialmente cerrado.\\
+Como ilustra la imagen anterior, \textit{Unix} es el sistema pionero creado en los años 70 que sentó las bases de la informática e inspiró directamente el desarrollo de \textit{Linux}, considerado como su evolución natural de código abierto. También \textit{macOS} proviene de esta familia; sin embargo, este sistema operativo ha evolucionado bajo un modelo comercial semi-privativo y de código parcialmente cerrado.\\
 
 La hegemonía de \textit{GNU/Linux} en estos sectores se debe principalmente a su filosofía de código abierto (\textit{open-source}). Disponer del código fuente de manera pública, tanto directamente en los directorios del sistema (típicamente en \texttt{/usr/src}) como en repositorios públicos en línea como \textit{GitHub}, permite a una gran comunidad mundial de desarrolladores auditar, depurar y mejorar el código del mismo de forma continua.
 Esta transparencia garantiza un nivel de adaptabilidad y fiabilidad muy superior al de los sistemas comerciales, permitiendo una configuración del entorno a medida según las necesidades requeridas.\\
 
-\subsection{Estructura, arquitectura y anillos de privilegios}
+Por estos motivos, se considera \textit{GNU/Linux} el sistema operativo óptimo para desarrollar este proyecto. Por consiguiente, a partir de este punto se asumirá por defecto que nos encontramos en un entorno \textit{Linux}.\\
+
+\subsection{Arquitectura y anillos de privilegios}
 \label{sec:estructuralinux}
+
+Para garantizar su estabilidad y seguridad, los sistemas operativos modernos no confían únicamente en restricciones lógicas de \textit{software}, sino que se apoyan de forma entrelazada en mecanismos de protección implementados a nivel de \textit{hardware} por el propio procesador.
+En arquitecturas de sistemas predominantes como la familia x86, este mecanismo de aislamiento se implementa típicamente a través de dominios concéntricos de protección jerárquicos, comúnmente conocidos como anillos de protección (\textit{Protection Rings})~\cite{librossoo}.\\
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.6\textwidth]{figs/rings.png}
+  \caption{Anillos de privilegios en sistemas operativos modernos~\cite{wiki_rings, librossoo}.}
+  \label{fig:protection_rings}
+\end{figure}
+
+Esta arquitectura determina principalmente cuatro niveles de privilegios concéntricos, comúnmente llamados "anillos", numerados del 0 al 3. El nivel de privilegio implica qué instrucciones de la CPU puede ejecutar un proceso y a qué regiones de la memoria puede acceder al ejecutarse, distinguiendo principalmente estos cuatro anillos~\cite{librossoo}:
+
+\begin{itemize}
+    \item \textbf{\textit{Ring 0}:} Nivel de máximo privilegio, donde reside típicamente el núcleo (\textit{kernel}). Los programas ejecutados en este anillo tienen prácticamente acceso directo e irrestricto a todo el \textit{hardware}, la memoria y las instrucciones del procesador.
+    \item \textbf{\textit{Ring 1 y 2}:} Originalmente diseñados para servicio y control del propio sistema con privilegios intermedios, aunque en la práctica han sido mayormente descartados por la mayoría de sistemas operativos, debido a su complejidad y bajo rendimiento.
+    \item \textbf{\textit{Ring 3}:} Nivel de menor privilegio. Los procesos lanzados en este anillo no pueden interactuar directamente con el \textit{hardware}, debiendo delegar cualquier operación crítica a niveles de mayor privilegio.
+\end{itemize}
+
+Debido a motivos de eficiencia y portabilidad a otras arquitecturas de procesadores (como \textit{ARM}, que normalmente no posee tantos niveles), \textit{Linux} simplifica este modelo y utiliza exclusivamente dos de estos anillos~\cite{love_linux, librossoo}.
+Por un lado, se aísla el \textit{kernel} (núcleo del sistema), ejecutándolo íntegramente en el \textit{Ring 0}, y por otro lado, se confina el resto de programas de usuario en la región del \textit{Ring 3}.\\
+
+
 
 
 \subsection{Espacio de usuario y espacio de kernel}
