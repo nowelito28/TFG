@@ -42,7 +42,12 @@ B.~Schneier, ``A plea for simplicity,'' Schneier on Security, online essay, Nove
 
 \bibitem{love_linux}
 \BIBentryALTinterwordspacing
-R.~Love, \emph{Linux Kernel Development}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Developer's Library, Addison-Wesley, 2010. [Online]. Available: \url{https://github.com/swadhinsekhar/books/blob/master/Linux%20Kernel%20Development%203rd%20Edition%20-%20Love%20-%202010.pdf}
+R.~Love, \emph{Linux Kernel Development}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Developer's Library, Addison-Wesley, 2010, ch.~1. [Online]. Available: \url{https://github.com/swadhinsekhar/books/blob/master/Linux%20Kernel%20Development%203rd%20Edition%20-%20Love%20-%202010.pdf}
+\BIBentrySTDinterwordspacing
+
+\bibitem{silberschatz_memoria}
+\BIBentryALTinterwordspacing
+A.~Silberschatz, P.~B. Galvin, and G.~Gagne, \emph{Fundamentos de sistemas operativos}, 9th~ed.\hskip 1em plus 0.5em minus 0.4em\relax Madrid, España: McGraw-Hill Interamericana, 2013, ch.~9. [Online]. Available: \url{https://books.google.es/books?id=b2qynQEACAAJ}
 \BIBentrySTDinterwordspacing
 
 \bibitem{vega12e}

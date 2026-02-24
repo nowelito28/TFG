@@ -66,7 +66,7 @@ En arquitecturas de sistemas predominantes como la familia x86, este mecanismo d
   \label{fig:protection_rings}
 \end{figure}
 
-Esta arquitectura determina principalmente cuatro niveles de privilegios concéntricos, comúnmente llamados "anillos", numerados del 0 al 3. El nivel de privilegio implica qué instrucciones de la CPU puede ejecutar un proceso y a qué regiones de la memoria puede acceder al ejecutarse, distinguiendo principalmente estos cuatro anillos~\cite{librossoo}:
+Esta arquitectura determina principalmente cuatro niveles de privilegios concéntricos, comúnmente llamados ``anillos'', numerados del 0 al 3. El nivel de privilegio implica qué instrucciones de la CPU puede ejecutar un proceso y a qué regiones de la memoria puede acceder al ejecutarse, distinguiendo estos cuatro anillos~\cite{librossoo}:
 
 \begin{itemize}
     \item \textbf{\textit{Ring 0}:} Nivel de máximo privilegio, donde reside típicamente el núcleo (\textit{kernel}). Los programas ejecutados en este anillo tienen prácticamente acceso directo e irrestricto a todo el \textit{hardware}, la memoria y las instrucciones del procesador.
@@ -74,19 +74,73 @@ Esta arquitectura determina principalmente cuatro niveles de privilegios concén
     \item \textbf{\textit{Ring 3}:} Nivel de menor privilegio. Los procesos lanzados en este anillo no pueden interactuar directamente con el \textit{hardware}, debiendo delegar cualquier operación crítica a niveles de mayor privilegio.
 \end{itemize}
 
-Debido a motivos de eficiencia y portabilidad a otras arquitecturas de procesadores (como \textit{ARM}, que normalmente no posee tantos niveles), \textit{Linux} simplifica este modelo y utiliza exclusivamente dos de estos anillos~\cite{love_linux, librossoo}.
-Por un lado, se aísla el \textit{kernel} (núcleo del sistema), ejecutándolo íntegramente en el \textit{Ring 0}, y por otro lado, se confina el resto de programas de usuario en la región del \textit{Ring 3}.\\
+Por motivos de eficiencia y portabilidad a otras arquitecturas de procesadores (como \textit{ARM}, que normalmente no posee tantos niveles), \textit{Linux} simplifica este modelo y utiliza exclusivamente dos de estos anillos.
+Por un lado, se aísla el \textit{kernel} (núcleo del sistema), ejecutándolo íntegramente en el \textit{Ring 0}, y por otro lado, se confina el resto de programas de usuario en la región del \textit{Ring 3}~\cite{love_linux, librossoo}.\\
 
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figs/os_structure.png}
+  \caption{Estructura de un sistema operativo moderno~\cite{librossoo}.}
+  \label{fig:os_structure}
+\end{figure}
 
+Básicamente, la estructura del sistema operativo se puede describir como una división física de privilegios que se traduce directamente en una arquitectura lógica estructurada en capas construidas unas encima de otras~\cite{librossoo}.\\
 
+En la base se encuentra el \textit{hardware} físico de la máquina, con el cual el núcleo interactúa directamente a través de las instrucciones de la arquitectura (ISA) disponibles.
+Inmediatamente por encima, operando con privilegios absolutos sobre el sistema, en el \textit{Ring 0}, reside el sistema operativo (\textit{kernel}).
+Posteriormente, en las capas más externas del mismo, se encuentran las bibliotecas del sistema, encargadas de proporcionar la \textbf{\textit{interfaz de programación de aplicaciones (API)}}, y las aplicaciones finales, las cuales se encuentran confinadas en el área de usuario (\textit{Ring 3}).\\
 
-\subsection{Espacio de usuario y espacio de kernel}
+Debido a esta separación, si algún proceso de esta región de usuario requiere realizar una acción privilegiada (como leer un archivo del disco, enviar un paquete de red o reservar memoria), no puede acceder al \textit{hardware} directamente por sí mismo.
+En su lugar, debe solicitar dicha operación privilegiada al \textit{kernel} atravesando la frontera del \textit{Ring~0} mediante un mecanismo de comunicación estandarizado y controlado, comúnmente conocido como \textbf{\textit{llamadas al sistema}} (\textit{System Calls} o \textit{syscalls}).\\
+
+Esta barrera arquitectónica no solo define qué instrucciones se pueden ejecutar y dónde, sino que obliga al sistema operativo a dividir la memoria principal de rápido acceso (\textit{RAM}) en dos grandes regiones virtuales completamente aisladas en \textbf{\textit{espacio de usuario}} y \textbf{\textit{espacio de kernel}},
+garantizando así controlar que ningún proceso de usuario pueda corromper datos sensibles internos del sistema~\cite{love_linux, librossoo}.\\
+
+\subsection{Memoria: Espacio de usuario y espacio de kernel}
 \label{sec:uskrspaces}
 
+Para comprender cómo se materializa la división de privilegios descrita en el apartado anterior realmente en la memoria física de la máquina (\textit{RAM}), es necesario introducir el concepto de \textbf{\textit{memoria virtual}}.\\
+
+En los sistemas \textit{Linux} modernos, los procesos no acceden directamente a las direcciones físicas reales de la memoria \textit{RAM}.
+En su lugar, la \textit{CPU}, a través de su unidad de gestión de memoria \textit{MMU} y el \textit{kernel}, colaboran para proporcionar a cada proceso la ilusión de que posee un espacio de direcciones de memoria contiguo, continuo y exclusivo.\\
+
+Para lograr esta abstracción, el sistema divide las direcciones de memoria virtual del proceso en bloques de tamaño fijo llamados \textbf{\textit{páginas}}, mientras que la memoria física se divide en bloques reales equivalentes denominados \textbf{\textit{marcos}}.
+Cuando un proceso en ejecución requiere acceder a sus instrucciones (\textit{Text}), a sus variables globales inicializadas (\textit{Data}) o sin inicializar (\textit{BSS}), a la memoria asignada dinámicamente (\textit{Heap}) o a las variables locales de su \textit{Pila} (\textit{Stack}), la \textit{MMU} consulta una \textbf{\textit{tabla de páginas}} para traducir dinámicamente esa dirección virtual de memoria a su ubicación física real.
+De este modo, múltiples procesos pueden ejecutarse simultáneamente de forma segura sin correr ningún riesgo para el sistema, ya que cada uno cuenta con su propia estructura de \textbf{\textit{memoria virtual}} y su tabla de mapeo aislada, gestionada íntegramente por el sistema operativo (\textit{kernel})~\cite{silberschatz_memoria}.\\
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth]{figs/virtual_memory.png}
+  \caption{Gestión de memoria virtual para procesos en \textit{Linux}~\cite{librossoo}.}
+  \label{fig:virtual_memory}
+\end{figure}
+
+A su vez, este espacio de \textit{memoria virtual} se divide de forma estricta en dos grandes regiones, fuertemente relacionadas con la arquitectura de anillos de protección del procesador~\cite{silberschatz_memoria}:
+
+\begin{itemize}
+    \item \textbf{Espacio de Usuario (\textit{User Space}):} Es la porción inferior de la memoria virtual, asociada al \textit{Ring 3}. En esta región se cargan y ejecutan las aplicaciones de usuario, sus bibliotecas y los datos pertinentes.
+    Si un proceso comete un error ``crítico'' en esta región (como intentar acceder a memoria que no le pertenece), el sistema operativo interviene para finalizar dicho proceso y genera un error (típicamente conocido como \textit{Segmentation Fault}), evitando que el fallo afecte al resto del sistema.
+    \item \textbf{Espacio del Kernel (\textit{Kernel Space}):} Es la porción superior de la memoria virtual, reservada exclusivamente para el \textbf{\textit{kernel}} con sus módulos y los controladores de dispositivos (\textit{drivers}).
+    Al estar asociado al \textit{Ring 0}, el código que reside aquí tiene acceso total a la memoria física y, por consiguiente, al \textit{hardware}. Un fallo de programación o una intrusión maliciosa en este nivel compromete todo el sistema, pudiendo provocar una caída total del mismo (\textit{Kernel Panic}).
+\end{itemize}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.5\textwidth]{figs/usr_krn_memory.png}
+  \caption{División lógica de memoria en Espacio de Usuario y Espacio de Kernel~\cite{librossoo}.}
+  \label{fig:usr_krn_memory}
+\end{figure}
+
+De la misma manera que la \textit{memoria virtual} abstrae la complejidad de organización de la memoria física (\textit{RAM}) para garantizar el aislamiento y la ejecución segura de los procesos,
+el sistema operativo proporciona a su vez una abstracción equivalente para la gestión del almacenamiento persistente y la interacción con el resto de componentes del sistema.
+Esta importante tarea recae sobre otro gran pilar estructural de un sistema operativo, en este caso \textit{Linux}: su \textit{sistema de ficheros} (\textit{file system}).
+
+\subsection{Sistema de Ficheros Virtual (\textit{VFS})}
+\label{sec:vfs}
 
 
-\subsection{Llamadas al sistema (\textit{System Calls})}
-\label{sec:syscalls}
+\subsection{Espacios de nombres (\textit{Namespaces})}
+\label{sec:namespaces}
 
 
 
