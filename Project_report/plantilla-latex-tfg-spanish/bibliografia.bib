@@ -16,6 +16,8 @@
 @book{librossoo,
   author = "Soriano Salvador, Enrique and Guardiola Múzquiz, Gorka",
   title = "Fundamentos de Sistemas Operativos: Una aproximación práctica usando Linux",  year = "2024",
+  chapter = "{1, 4, 5}",
+  edition = "2.01",
   month = "February",
   publisher = "GSyC, Universidad Rey Juan Carlos",
   url = "https://honecomp.github.io/librossoo.html"
@@ -49,7 +51,7 @@
 @inbook{love_linux,
   author = "Love, Robert",
   title = "Linux Kernel Development",
-  chapter = "1",
+  chapter = "{1, 13}",
   edition = "3",
   year = "2010",
   publisher = "Developer's Library, Addison-Wesley",
@@ -58,54 +60,78 @@
 
 % Capítulo específico: Memoria virtual
 @inbook{silberschatz_memoria,
-  author    = {Silberschatz, Abraham and Galvin, Peter Baer and Gagne, Greg},
-  title     = {Fundamentos de sistemas operativos},
-  chapter   = {9},
-  edition   = {9},
-  year      = {2013},
-  publisher = {McGraw-Hill Interamericana},
-  address   = {Madrid, España},
-  isbn      = {978-84-481-9076-7},
-  url       = {https://books.google.es/books?id=b2qynQEACAAJ} 
+  author = "Silberschatz, Abraham and Galvin, Peter Baer and Gagne, Greg",
+  title = "Fundamentos de sistemas operativos",
+  chapter = "9",
+  edition = "9",
+  year = "2013",
+  publisher = "McGraw-Hill Interamericana",
+  address = "Madrid, España",
+  isbn = "978-84-481-9076-7",
+  url = "https://books.google.es/books?id=b2qynQEACAAJ" 
 }
 
+% Informe técnico: Explicación de la organización del sistema de ficheros de Linux
+@techreport{albritton_fs,
+  author = "Albritton, William McDaniel",
+  title = "Module 2, Session 7 - Linux File System Structure",
+  institution = "University of Hawaii",
+  year = "2016",
+  url = "https://tldp.org/LDP/intro-linux/html/chap_03.html",
+  note = "Visto el 24 de febrero de 2026"
+}
 
+% Manual de referencia: Explicación de los namespaces en Linux
+@manual{man_namespaces,
+    title = "{namespaces(7) - Linux Programmer's Manual}",
+    organization = "Linux Kernel Organization",
+    year = "2024",
+    month = "Enero",
+    note = "Disponible ejecutando \texttt{man 7 namespaces} en un terminal Linux o en la documentación oficial del Kernel. Vista la última actualización.",
+    url = "https://man7.org/linux/man-pages/man7/namespaces.7.html"
+}
 
+% Web: Artículo ilustrativo sobre Namespaces
+@misc{hackerstack_namespaces,
+  author = "{Hackerstack} and Gmkziz",
+  title = "Understanding Linux Namespaces",
+  howpublished = "Hackerstack, online article",
+  year = "2024",
+  note = "Visto el 25 de febrero de 2026",
+  url = "https://www.hackerstack.org/understanding-linux-namespaces/"
+}
 
+% Web: Artículo técnico sobre contenedores Docker y namespaces
+@misc{parmar_ns,
+  author = "Parmar, Kelvin",
+  title = "Deep Dive into Linux Namespaces: Building Your Own Containers",
+  howpublished = "Hashnode, online article",
+  year = "2024",
+  month = "Agosto",
+  note = "Visto el 2 de marzo de 2026",
+  url = "https://kelvin-parmar.hashnode.dev/deep-dive-into-linux-namespaces-building-your-own-containers"
+}
 
-
-
-
-
-
-
-
-% Articulo
-@article{vega19b,
-  author = "Vega, Julio and Ca\~nas, J.M.",
+% Manual de referencia: Explicación módulos del kernel
+@manual{geeks_lkm,
+  author = "{GeeksforGeeks}",
+  title = "{Linux/Unix | Linux Kernel Module Programming (Hello World Program)}",
+  howpublished = "Online article",
   year = "2019",
-  title = "{PyBoKids}: An Innovative Python-Based Educational Framework Using Real and Simulated {Arduino} Robots",
-  journal = "Electronics",
-  publisher = "MDPI",
-  month = "August",
-  volume = "8",
-  pages = "899-915",
-  doi = "10.3390/electronics8080899",
-  issn = "2079-9292",
-  ps = "https://gsyc.urjc.es/jmvega/research/pubs/2019-electronics-PyBoKidsFramework.pdf"
+  month = "Enero",
+  note = "Visto el 7 de marzo de 2026",
+  url = "https://www.geeksforgeeks.org/linux-unix/linux-kernel-module-programming-hello-world-program/"
 }
 
-% Miscelanea: entrevista, recorte de periodico, etc.
-@misc{vega19a,
-  author = "Vega, Julio",
-  howpublished = "URJC, on-line newspaper interview",
-  place = "Madrid, Spain",
-  title = "El profesor {Julio} {Vega}, finalista del concurso '{Ciencia} en {Acci\'on} 2019'",
-  journal = "urjc.es",
-  year = "2019",
-  month = "July",
-  http = "https://www.urjc.es/todas-las-noticias-de-actualidad/4478-el-profesor-julio-vega-finalista-del-concurso-ciencia-en-accion-2019"
-}
+
+
+
+
+
+
+
+
+
 
 % Tesis
 @phdthesis{vega18b,
@@ -130,31 +156,6 @@
   publisher = "University of Alicante",
   month = "June",
   ps = "https://gsyc.urjc.es/jmvega/research/pubs/2018-posterUA-JdeRobotKidsFramework.pdf"
-}
-
-% Informe tecnico
-@techreport{vega15,
-  author = "Vega, Julio",
-  howpublished = "Franciscanas Montpellier Schools, annual report",
-  place = "Madrid, Spain",
-  title = "De la tiza al robot",
-  journal = "Franciscanas Montpellier Schools",
-  year = "2015",
-  month = "June",
-  ps = "https://gsyc.urjc.es/jmvega/research/pubs/2015.06.01-CCFM-DeLaTizaAlRobot.pdf"
-}
-
-% Capitulo de libro
-@inbook{vega12e,
-  author = "Vega, Julio and Perdices, E. and Ca\~nas, J.M.",
-  year = "2012",
-  title = "Attentive visual memory for robot localization",
-  isbn = "978-1-4666-2672-0 (hardcover)",
-	booktitle = "Robotic Vision: Technologies for Machine Learning and Vision Applications",
-	pages = "408-438",
-  month = "September",
-  publisher = "IGI Global, USA",
-  note = "Text not available. This book is protected by copyright"
 }
 
 % TFG
