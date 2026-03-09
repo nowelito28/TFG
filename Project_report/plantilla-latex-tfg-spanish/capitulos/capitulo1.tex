@@ -33,7 +33,7 @@ Finalmente, se profundizará en qué consisten las principales amenazas que comp
 \
 
 \section{Sistemas operativos \textit{Linux}}
-\label{sec:linux} % etiqueta para luego referenciar esta sección
+\label{sec:linux}
 
 No existe una definición canónica y universal para el concepto de sistema operativo, tratándose de una idea hasta cierto punto relativa y subjetiva dependiendo de su cometido y contexto de uso~\cite{librossoo}.\\
 
@@ -55,7 +55,7 @@ Como ilustra la imagen anterior, \textit{Unix} es el sistema pionero creado en l
 La hegemonía de \textit{GNU/Linux} en estos sectores se debe principalmente a su filosofía de código abierto (\textit{open-source}). Disponer del código fuente de manera pública, tanto directamente en los directorios del sistema (típicamente en \texttt{/usr/src}) como en repositorios públicos en línea como \textit{GitHub}, permite a una gran comunidad mundial de desarrolladores auditar, depurar y mejorar el código del mismo de forma continua.
 Esta transparencia garantiza un nivel de adaptabilidad y fiabilidad muy superior al de los sistemas comerciales, permitiendo una configuración del entorno a medida según las necesidades requeridas.\\
 
-Por estos motivos, se considera \textit{GNU/Linux} el sistema operativo óptimo para desarrollar este proyecto. Por consiguiente, a partir de este punto se asumirá por defecto que nos encontramos en un entorno \textit{Linux}.\\
+Por estos motivos, se considera \textit{GNU/Linux} el sistema operativo óptimo para desarrollar este proyecto. Por consiguiente, a partir de este punto se asumirá por defecto que nos encontramos en un entorno \textit{Linux}.
 
 \
 
@@ -95,14 +95,14 @@ Por un lado, se aísla el \textit{kernel} (núcleo del sistema), ejecutándolo �
 Básicamente, la estructura del sistema operativo se puede describir como una división física de privilegios que se traduce directamente en una arquitectura lógica estructurada en capas construidas unas encima de otras~\cite{librossoo}.\\
 
 En la base se encuentra el \textit{hardware} físico de la máquina, con el cual el núcleo interactúa directamente a través de las instrucciones de la arquitectura (ISA) disponibles.
-Inmediatamente por encima, operando con privilegios absolutos sobre el sistema, en el \textit{Ring 0}, reside el sistema operativo (\textit{kernel}).
+Inmediatamente por encima, operando con privilegios absolutos sobre el sistema, en el \textit{Ring 0}, reside el \textit{kernel}. Este es el corazón del sistema operativo, responsable de gestionar los recursos de la máquina y de actuar como puente fundamental entre el \textit{hardware} y las aplicaciones de usuario.
 Posteriormente, en las capas más externas del mismo, se encuentran las bibliotecas del sistema, encargadas de proporcionar la \textbf{\textit{interfaz de programación de aplicaciones (API)}}, y las aplicaciones finales, las cuales se encuentran confinadas en el área de usuario (\textit{Ring~3}).\\
 
 Debido a esta separación, si algún proceso de esta región de usuario requiere realizar una acción privilegiada (como leer un archivo del disco, enviar un paquete de red o reservar memoria), no puede acceder al \textit{hardware} directamente por sí mismo.
 En su lugar, debe solicitar dicha operación privilegiada al \textit{kernel} atravesando la frontera del \textit{Ring~0} mediante un mecanismo de comunicación estandarizado y controlado, comúnmente conocido como \textbf{\textit{llamadas al sistema}} (\textit{System Calls} o \textit{syscalls}).\\
 
 Esta barrera arquitectónica no solo define qué instrucciones se pueden ejecutar y dónde, sino que obliga al sistema operativo a dividir la memoria principal de rápido acceso (\textit{RAM}) en dos grandes regiones virtuales completamente aisladas en \textbf{\textit{espacio de usuario}} y \textbf{\textit{espacio de kernel}},
-garantizando así controlar que ningún proceso de usuario pueda corromper datos sensibles internos del sistema~\cite{love_linux, librossoo}.\\
+garantizando así controlar que ningún proceso de usuario pueda corromper datos sensibles internos del sistema~\cite{love_linux, librossoo}.
 
 \
 
@@ -117,8 +117,6 @@ En los sistemas \textit{Linux} modernos, los procesos no acceden directamente a 
 En su lugar, el \textit{kernel} y la unidad de gestión de memoria (\textit{MMU}) de la \textit{CPU} proporcionan a cada proceso la ilusión de tener espacio exclusivo y contiguo a través de la \textbf{\textit{memoria virtual}}.
 Para lograrlo, la \textit{MMU} traduce dinámicamente las direcciones virtuales de memoria a ubicaciones físicas reales y viceversa, consultando una \textbf{\textit{tabla de páginas}}.
 De esta forma, se garantiza que múltiples procesos puedan ejecutarse simultáneamente de forma aislada y segura, cada uno con su propio mapa de direcciones gestionado íntegramente por el \textit{kernel}~\cite{silberschatz_memoria}.\\
-
-\
 
 \
 
@@ -251,7 +249,7 @@ Para administrar de forma eficiente la gran cantidad de procesos que pueden coex
 
 \begin{code}[h!]
 \begin{lstlisting}[language=bash]
-localhost:TFG:# ps aux
+$localhost:$ ps aux
 USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
 root           1  0.7  0.3  22208 12444 ?        Ss   12:37   0:04 /sbin/init
 root           2  0.0  0.0      0     0 ?        S    12:37   0:00 [kthreadd]
@@ -337,20 +335,86 @@ Para dotarlo de una alta flexibilidad y permitir la extensión de sus funcionali
 
 \
 
-\subsection{Programación y Módulos del Kernel de \textit{Linux} (\textit{LKMs})}
+\subsection{Módulos del Kernel de \textit{Linux} (\textit{LKMs})}
 \label{sec:lkms}
 
 Un \textbf{Módulo del Kernel} (\textit{LKM}) es código objeto compilado (cuyo código fuente está escrito en lenguaje \textit{C}) que puede ser cargado y descargado del espacio de memoria del núcleo (\textit{kernel}) en tiempo de ejecución.
 Estos módulos permiten al \textit{kernel} extender sus funcionalidades (como incorporar nuevos sistemas de ficheros) sin necesidad de reiniciar el sistema ni recompilar el \textit{kernel} completo~\cite{geeks_lkm}.\\
 
+El desarrollo de \textit{LKMs} presenta diferencias drásticas frente a la programación convencional en \textit{Espacio de Usuario}.
+Al operar directamente en el nivel de máximos privilegios, los módulos no pueden acceder a la biblioteca estándar de \textit{C} (\texttt{libc}) y, por consiguiente, a funciones típicas como \texttt{printf()} o \texttt{malloc()}.
+Además de esto, al formar parte del propio \textit{kernel}, tampoco pueden utilizar llamadas al sistema (\textit{syscalls}) a través de la interfaz estándar, sino que invocan directamente las funciones internas del \textit{kernel}.\\
 
+Por otro lado, no existe una salida estándar por consola como ocurre en \textit{Espacio de Usuario}, y para suplirla, el \textit{kernel} proporciona su propia macro de impresión de \textit{logs}: \texttt{printk()}.
+Las trazas generadas mediante esta función se almacenan en un \textit{buffer} circular interno y se registran en ficheros, típicamente en \texttt{/var/log/kern.log}.
+Asimismo, \texttt{printk()} exige clasificar cada traza con un nivel de prioridad (\textit{log level}), abarcando eventos críticos o de error (\texttt{KERN\_EMERG} y \texttt{KERN\_ERR}), como también informativos o de depuración (\texttt{KERN\_INFO} y \texttt{KERN\_DEBUG}).\\
+
+En cuanto a su compilación, se requieren las cabeceras del \textit{kernel} (paquetes \texttt{linux-headers}) que coincidan con la versión exacta del sistema.
+Mediante un fichero \texttt{Makefile}, el código se compila generando un fichero objeto especial empaquetado con extensión \texttt{.ko} (\textit{Kernel Object}).
+Una vez compilado, la gestión de su ciclo de vida se resume en cuatro fases básicas:
+
+\begin{itemize}
+    \item \textbf{\texttt{insmod}:} Inserción del código en \textit{Espacio de kernel}.
+    \item \textbf{\texttt{modinfo}:} Reporte de los metadatos y dependencias del módulo.
+    \item \textbf{\texttt{dmesg}:} Inspección de las trazas de ejecución del \textit{kernel}.
+    \item \textbf{\texttt{rmmod}:} Extracción del módulo y liberación de los recursos de memoria.
+\end{itemize}
+
+\begin{code}[h!]
+\begin{lstlisting}[language=bash]
+# 0. Compilado del modulo mediante el fichero Makefile
+$localhost:$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/lkms/hw.o
+  MODPOST /home/lkms/Module.symvers
+  CC [M]  /home/lkms/hw.mod.o
+  LD [M]  /home/lkms/hw.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+
+# 1. Cargar el modulo (.ko) en el kernel
+$localhost:$ sudo insmod hw.ko
+
+# 2. Inspeccionar los metadatos del modulo
+$localhost:$ modinfo hw.ko
+filename:       /home/lkms/hw.ko
+version:        0.1
+description:    A simple Hello world LKM
+author:         Noel Rodriguez Perez
+license:        GPL
+srcversion:     2F2B1B95DA1F08AC18B09BC
+depends:        
+vermagic:       4.2.0-42-generic SMP mod_unload modversions
+
+# 3. Consultar las trazas generadas por printk
+$localhost:$ dmesg
+
+# 4. Descargar el modulo liberando sus recursos
+$localhost:$ sudo rmmod hw
+\end{lstlisting}
+\caption[Comandos básicos de gestión de LKMs]{Comandos básicos para la gestión de un \textit{LKM}.}
+\label{cod:lkm_commands}
+\end{code}
+
+A nivel de código fuente, la estructura lógica de cualquier \textit{LKM} se asienta sobre dos funciones principales.
+En primer lugar, una \textbf{función de inicialización o de carga} (\texttt{module\_init()}), la cual se ejecuta automáticamente al insertar el módulo en el \textit{kernel} (mediante \texttt{insmod}) y se encarga de reservar los recursos necesarios o crear los ficheros virtuales implicados.
+En segundo lugar, una \textbf{función de limpieza o de descarga} (\texttt{module\_exit()}), invocada al eliminar el módulo cargado (\texttt{rmmod}) con el fin de liberar la memoria utilizada y evitar fugas o estados inconsistentes en el sistema.\\
+
+Finalmente, para poder establecer un canal o interfaz de comunicación bidireccional entre el \textit{Espacio de Usuario} y el \textit{Espacio del Kernel}, una de las técnicas más eficientes es la creación de ficheros virtuales a través del pseudo-sistema de ficheros de \textbf{\texttt{/proc}}.
+De esta manera, el módulo instancia un fichero virtual (por ejemplo, \texttt{/proc/mydev}) y define manejadores personalizados (\textit{handlers}) que interceptan las llamadas al sistema que actúan sobre él, como \texttt{read} o \texttt{write}, y así poder declarar específicamente cómo interactuar con el \textit{Espacio de Usuario}.
+Para implementar esta metodología en el \textit{LKM}, se precisa del uso de funciones específicas de la \textit{API} del \textit{kernel} que aseguran su correcto funcionamiento de forma segura, como \texttt{copy\_to\_user()} y \texttt{copy\_from\_user()} para la transferencia de información entre espacios de memoria distintos~\cite{medium_proc}.\\
+
+En definitiva, la capacidad de los \textit{LKMs} para añadir funcionalidades dinámicamente al \textit{kernel} y establecer canales de comunicación con el \textit{Espacio de Usuario} los convierte en una herramienta sumamente versátil.
+
+\
+
+\
 
 \section{Ciberseguridad}
 \label{sec:seccion2}
 
 
-\section{Amenazas de seguridad}
-\label{sec:seccion3}
+
 
 
 
