@@ -445,6 +445,49 @@ A su vez, precisan de un correcto análisis, identificación y explotación de l
 \subsection{Vulnerabilidades y Ataques}
 \label{sec:ataques}
 
+En el contexto de la ciberseguridad de sistemas, una \textbf{vulnerabilidad} se define como una debilidad en el diseño, implementación o configuración de un sistema que puede ser aprovechada por un agente malicioso para comprometer su integridad, confidencialidad o disponibilidad~\cite{threat_enisa}.\\
+
+Estas brechas de seguridad constituyen el principal motor de entrada a intrusos y pueden clasificarse fundamentalmente en tres grandes grupos según su naturaleza:
+\begin{itemize}
+    \item \textbf{Vulnerabilidades de \textit{software}}: Fallos a nivel de código fuente del sistema operativo o en las aplicaciones.
+    Típicos ejemplos pueden ser la falta de sanitización o filtrado de datos, derivando en inyecciones de código; o por otro lado, el desbordamiento de \textit{buffer} (\textit{Buffer Overflow}), pudiendo sobrescribir la memoria contigua de un proceso.
+    \item \textbf{Vulnerabilidades humanas}: Debidas a la falta de concienciación, errores o negligencias de los usuarios propietarios del sistema, pudiendo ser el eslabón más débil de la cadena de seguridad.
+    \item \textbf{Vulnerabilidades de configuración}: Diseño o implementaciones inseguras de la propia arquitectura del sistema, como el uso de credenciales por defecto, servicios de red expuestos o una asignación incorrecta de privilegios.
+\end{itemize}
+
+Para aprovechar estas vulnerabilidades y realizar la intrusión del \textit{malware}, los atacantes hacen uso de diversas \textbf{herramientas de ataque} y técnicas específicas para cada escenario:
+\begin{itemize}
+    \item \textbf{Ataques de ingeniería social}: Orientados a explotar las vulnerabilidades humanas. Destacan el \textbf{\textit{phishing}} y sus variantes (\textbf{\textit{spear phishing}}),
+    cuyo objetivo es la manipulación psicológica del usuario mediante comunicaciones fraudulentas que permitan revelar credenciales o ejecutar \textit{software} malicioso de forma inadvertida.
+    \item \textbf{\textit{Exploits} y \textit{Payloads}}: Para atacar mediante fallos de configuración o de \textit{software}, se emplean \textit{exploits}.
+    Estos son fragmentos de código diseñados para aprovechar una debilidad técnica y forzar un comportamiento no previsto en la máquina.
+    Su principal objetivo suele ser inyectar una carga útil detonante (\textit{payload}), como \textbf{\textit{backdoors}} o herramientas de administración remota (\textbf{\textit{RATs}}).
+    \item \textbf{Ataques de \textit{Privilege Escalation}}: Una vez que el atacante logra comprometer mínimamente el sistema,
+    utiliza herramientas ofensivas para aprovechar vulnerabilidades secundarias del mismo y elevar sus permisos hasta incluso obtener el control de administrador (\textit{root}).
+\end{itemize}
+
+En definitiva, independientemente de la vulnerabilidad detectada y la técnica ofensiva empleada, existe una necesidad crítica de implementar mecanismos de defensa robustos y una monitorización de estado segura.
+Esto, añadido a una adecuada educación y concienciación de los usuarios, resulta fundamental para mitigar los riesgos y poder proteger en gran medida al sistema.
+
+\
+
+\
+
+\subsection{Defensas y Contramedidas}
+\label{sec:defensas}
+
+\
+
+\
+
+
+
+
+
+
+
+
+
 
 
 
