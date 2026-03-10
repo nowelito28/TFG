@@ -413,47 +413,40 @@ En definitiva, la capacidad de los \textit{LKMs} para añadir funcionalidades di
 \section{Ciberseguridad}
 \label{sec:seccion2}
 
+En el ámbito de los sistemas de información, la ciberseguridad comprende el conjunto de arquitecturas, tecnologías y prácticas diseñadas para proteger los sistemas, datos y redes frente a ataques que puedan comprometer su integridad, confidencialidad o disponibilidad, ya sean intencionados o no.
+El principal flujo de estas amenazas se materializa mediante \textbf{\textit{software} malicioso} (\textbf{\textit{malware}}), concepto que engloba cualquier código diseñado para infiltrarse en un sistema, dañarlo o robar datos sin el consentimiento de su propietario~\cite{malware_nist}.\\
 
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.7\textwidth]{figs/types-of-malware.png}
+  \caption{Principales tipos de \textit{malware}~\cite{akamai}.}
+  \label{fig:types-malware}
+\end{figure}
 
-
-
-
-En los textos puedes poner palabras en \textit{cursiva}, para aquellas expresiones en sentido \textit{figurado}, palabras como \textit{robota}, que está fuera del diccionario castellano, o bien para resaltar palabras de una colección: \textit{(a)} es la primera letra del abecedario, \textit{(b)} es la segunda, etc.\\
-
-Al poner las dos líneas del anterior párrafo, este aparecerá separado del anterior. Si no las pongo, los párrafos aparecerán pegados. Sigue el criterio que consideres más oportuno.
-
-No olvides incluir imágenes y referenciarlas, como la Figura \ref{fig:roomba}.
-
-\begin{figure} [h!]
-  \begin{center}
-    \includegraphics[width=8cm]{figs/roomba.jpg}
-  \end{center}
-  \caption{Robot aspirador Roomba de iRobot.}
-  \label{fig:roomba}
-\end{figure}\
-
-Ni tampoco olvides de poner las URLs como notas al pie. Por ejemplo, si hablo de la Robocup\footnote{\url{http://www.robocup.org}}.
-
-\subsection{Números}
-\label{sec:subseccion}
-
-En lugar de tener secciones interminables, como la Sección \ref{sec:miseccion}, divídelas en subsecciones.
-
-Para hablar de números, mételos en el entorno \textit{math} de \LaTeX, por ejemplo, $1.5Kg$. También puedes usar el símbolo del Euro como aquí: 1.500\euro.
-
-\subsection{Listas}
-
-Cuando describas una colección, usa \texttt{itemize} para ítems o \texttt{enumerate} para enumerados. Por ejemplo:
-
+Entre los tipos más destacados de \textit{malware} se encuentran:
 \begin{itemize}
- \item \textit{Entorno de simulación.} Hemos usado dos entornos de simulación: uno en 3D y otro en 2D.
- \item \textit{Entornos reales.} Dentro del campus, hemos realizado experimentos en Biblioteca y en el edificio de Gestión.
-\end{itemize}\
+    \item \textbf{\textit{virus}}: Los cuales se infiltran en archivos ejecutables legítimos y requieren la intervención directa del usuario para replicarse.
+    \item \textbf{\textit{spyware}}: Estos se instalan en el sistema y recopilan información sensible sin el conocimiento del usuario.
+    \item \textbf{\textit{worms}} (\textit{gusanos}): Capaces de propagarse de forma autónoma a través de vulnerabilidades de red o de \textit{hardware}.
+    \item \textbf{\textit{trojans}} (\textit{troyanos}): Se camuflan bajo la apariencia de \textit{software} inofensivo para engañar a la víctima y abrir puertas traseras (\textit{backdoors}) en el sistema.
+    \item \textbf{\textit{rootkits}}: Diseñados para ocultar su presencia y la de otros \textit{malware} en el sistema, escalando privilegios y manipulando las funciones del \textit{kernel} para evitar ser detectados por herramientas de seguridad.
+    \item \textbf{\textit{ransomware}}: Cifran los datos del sistema y exigen un rescate económico para su liberación.
+    \item \textbf{\textit{adware}}: Muestran anuncios no deseados y recopilan datos de navegación para fines publicitarios.
+    \item \textbf{\textit{keylogger}}: Registran estadísticas de los periféricos del sistema, como las pulsaciones del teclado, para obtener credenciales de acceso.
+\end{itemize}
 
-\begin{enumerate}
- \item Primer elemento de la colección.
- \item Segundo elemento de la colección.
-\end{enumerate}\
+Sin embargo, para que este \textit{malware} logre infiltrarse en la infraestructura del sistema, los atacantes necesitan métodos de acceso y mecanismos de persistencia.
+A su vez, precisan de un correcto análisis, identificación y explotación de las vulnerabilidades del sistema a través de las cuales poder infiltrarse.\\
+
+\
+
+\
+
+\subsection{Vulnerabilidades y Ataques}
+\label{sec:ataques}
+
+
+
 
 \paragraph{Referencias bibliográficas}
 \label{sec:referencias}
