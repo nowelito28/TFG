@@ -473,37 +473,38 @@ Esto, añadido a una adecuada educación y concienciación de los usuarios, resu
 
 \
 
-\subsection{Defensas y Contramedidas}
+\subsection{Defensas}
 \label{sec:defensas}
 
-\
+Para mitigar y protegerse ante las principales amenazas de este ámbito, se creó el enfoque estratégico basado en el principio de \textbf{defensa en profundidad} (\textbf{\textit{Defense in Depth}}).
+Este concepto consiste en desplegar múltiples capas de seguridad superpuestas, de modo que si un control falla o es evitado, el atacante pueda encontrarse con otro más adelante y complicar el acceso.
+Principalmente mediante este enfoque, podemos dividir los métodos defensivos en dos categorías~\cite{nist_sec_controls}.\\
 
-\
+En primer lugar, las \textbf{medidas preventivas} buscan reducir la superficie de ataque y evitar que la intrusión llegue a materializarse. Entre las prácticas más destacadas se encuentran:
+\begin{itemize}
+    \item \textbf{Concienciación y capacitación (\textit{Security Awareness})}: Educar a los usuarios para identificar y reportar ataques de ingeniería social, reduciendo el factor de error humano.
+    \item \textbf{Bastionado de sistemas (\textit{Hardening})}: Consiste en mantener las aplicaciones y el sistema operativo actualizados para mitigar posibles \textit{exploits}.
+    Por otro lado, implica también la configuración segura del sistema, como deshabilitar servicios innecesarios o cerrar puertos no utilizados.
+    \item \textbf{Principio de Menor Privilegio (\textit{PoLP})}: Garantiza que los usuarios, procesos y aplicaciones operen únicamente con los permisos mínimos e indispensables que precisen para cumplir su función.
+    Esto limita drásticamente el impacto de una brecha inicial de acceso y dificulta la escalada de privilegios.
+\end{itemize}
 
+Por otro lado, asumiendo que las barreras preventivas pueden ser superadas, es indispensable implementar mecanismos de \textbf{detección, respuesta y monitorización} continua~\cite{nist_detection}:
+\begin{itemize}
+    \item \textbf{Sistemas de Detección de Intrusos basados en Host (\textit{HIDS})}: Herramientas que monitorizan la actividad de la máquina, analizan los registros de eventos (\textit{logs}) y detectan alteraciones no autorizadas registradas en ficheros críticos (\textit{File Integrity Monitoring}).
+    \item \textbf{Plataformas \textit{EDR} (\textit{Endpoint Detection and Response})}: Evolución del concepto de antivirus tradicional. En lugar de basarse únicamente en firmas, analizan el comportamiento de los procesos en memoria en tiempo real para poder así detectar y bloquear ejecuciones anómalas.
+\end{itemize}
 
-
-
-
-
-
-
-
-
-
-
-\paragraph{Referencias bibliográficas}
-\label{sec:referencias}
-
-Cita, sobre todo en este capítulo, referencias bibliográficas que respalden tu argumento. Para citarlas basta con poner la instrucción \verb|\cite| con el identificador de la cita. Por ejemplo: libros como \cite{vega12e}, artículos como \cite{vega19b}, URLs como \cite{vega19a}, tesis como \cite{vega18b}, congresos como \cite{vega18a}, u otros trabajos fin de grado como \cite{vega08b}.
-
-Las referencias, con todo su contenido, están recogidas en el fichero \texttt{bibliografia.bib}. El contenido de estas referencias está en formato \texttt{BibTex}. Este formato se puede obtener en muchas ocasiones directamente, desde plataformas como \texttt{Google Scholar} u otros repositorios de recursos científicos.
-
-Existen numerosos estilos para reflejar una referencia bibliográfica. El estilo establecido por defecto en este documento es APA, que es uno de los estilos más comunes, pero lo puedes modificar en el archivo \texttt{memoria.tex}; concretamente, cambiando el campo \verb|apalike| a otro en la instrucción \verb|\bibliographystyle{apalike}|. 
-
-\
+Cabe destacar que el ámbito de la ciberseguridad se encuentra en constante evolución. La continua sofisticación y mejora de las técnicas ofensivas exige un gran esfuerzo por parte de la industria para investigar y diseñar nuevos métodos de protección.
+De este modo, los paradigmas de defensa empleados actualmente, como los explicados en este apartado, deben adaptarse de forma dinámica al contexto temporal de cada entorno en el que se utilicen, pudiendo quedar obsoletos y ser ineficaces a corto plazo.
 
 \
 
 \
 
-Y, para terminar este capítulo, resume brevemente qué vas a contar en los siguientes.
+\
+
+\
+
+Tomando como referencia esta base tecnológica de sistemas y el complejo panorama de la ciberseguridad descrito, el presente proyecto propone el diseño y desarrollo de un sistema de reporte seguro para entornos \textit{Linux}, con un enfoque especial en la protección frente a \textbf{\textit{rootkits}}.
+A lo largo de los próximos apartados se profundizará en la naturaleza y el funcionamiento interno de estas amenazas avanzadas, para posteriormente detallar la arquitectura, diseño y validación de una solución técnica capaz de evitar la manipulación de datos críticos y garantizar su veracidad.
