@@ -3,7 +3,7 @@
 
 \input{estilo.tex} % archivo de configuración de estilo
 
-\makeindex
+% \makeindex
 
 \begin{document}
 \baselineskip 1.35\baselineskip
@@ -30,11 +30,30 @@
 
 \input{capitulos/capitulo5}
 
+\input{capitulos/capitulo6}
+
 \clearpage
 \thispagestyle{empty}
 
-\printindex \nocite{*}
+% \printindex
+\nocite{*}
 \appendix
-\bibliographystyle{IEEEtran} \bibliography{bibliografia}
+\bibliographystyle{IEEEtran}
+\bibliography{bibliografia}
 
 \end{document}
+
+1. Introducción
+- Explicar conceptos ciberseguridad, rootkits y su deteccion (unhide)
+2. Estado del arte
+- Conocimientos previos -> ssoo Linux
+3. Objetivo del proyecto
+- Funcionales y no funcionales
+- lo que hay
+4. Implementacion
+- Prototipos y su estructura, implementacion, errores y validacion
+5. Resultados
+- cumplir los requisitos/objetivos
+6. Conclusiones
+- tiempo, recursos, resultados ciencias sociales, competencias adquiridas y utilizadas
+- trabajo futuro (que mejorar con mas tiempo, recursos, etc)
