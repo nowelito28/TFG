@@ -1,35 +1,56 @@
-\chapter{Planteamiento del problema y objetivos}
+\chapter{Estado del arte}
 \label{cap:capitulo3}
 
-\section{Descripción del problema}
+Como se mencionó en la introducción de la memoria, un \textit{rootkit} es un tipo de \textit{malware} diseñado para ocultar y manipular recursos del sistema, como procesos, ficheros, conexiones de red o mecanismos de persistencia.
+Su peligrosidad no reside únicamente en la escalada de privilegios que puede alcanzar, sino en su capacidad para falsear la visión del estado real de la máquina, comprometiendo la fiabilidad de su monitorización.\\
 
-Cuenta aquí el objetivo u objetivos generales y, a continuación, concrétalos mediante objetivos específicos.
+En sistemas \textit{Linux}, los \textit{rootkits} pueden clasificarse principalmente en dos grandes categorías según la capa en la que operen:\\
 
-\section{Objetivos}
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.9}{\input{figs/rootkits_types.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Clasificación general de \textit{rootkits} en sistemas \textit{Linux}.}
+  \label{fig:rootkits_types}
+\end{figure}
 
-Describe los requisitos/objetivos que ha de cumplir tu trabajo.
+\section{Rootkits de Espacio de Usuario}
+\label{sec:user_rootkits}
 
-\subsection{Objetivos funcionales}
-\label{sec:ofunc}
+Los \textit{rootkits} de \textit{Espacio de Usuario} actúan sobre programas, bibliotecas dinámicas y herramientas de usuario del sistema operativo.
+Su técnica más habitual consiste en aprovechar el mecanismo de enlazado dinámico \texttt{LD\_PRELOAD} para cargar bibliotecas de forma maliciosa y así interceptar funciones (\textit{hooking}) de uso común (como las de \texttt{libc}),
+alterando de esta forma el comportamiento de comandos como \texttt{ps}, \texttt{ls}, \texttt{top} o \texttt{netstat}~\cite{rootkits}.\\
+
+Si el \textit{Espacio de Usuario} ya está comprometido, pretender detectar un \textit{rootkit} de esta región con herramientas que se ejecutan también en \textit{Espacio de Usuario} presenta importantes limitaciones e incluso puede llegar a ser totalmente ineficaz.
+Según el diseño del \textit{rootkit}, puede llegar a evadir mecanismos de detección especializados en ocultación de procesos e incluso manipular la propia \textit{shell} que los lanza o la información expuesta a través del sistema de ficheros \texttt{/proc} mediante \textit{namespaces} y \textit{bind mounts}.\\
+
+Entre los ejemplos más destacados de esta categoría se encuentran varias familias de \textit{rootkits} basados en \texttt{LD\_PRELOAD},
+como \textbf{Jynx} y \textbf{Jynx2}, que popularizaron este enfoque de ocultación en \textit{userland} (\textit{Espacio de Usuario}).
+Posteriormente, \textbf{Azazel} amplió estas técnicas con mecanismos de anti-depuración, ocultación de procesos, conexiones remotas y evasión frente a mecanismos de detección como \texttt{unhide} u otros comandos de monitorización como \texttt{ps} o \texttt{netstat}.
+Paralelamente, \textbf{BEURK} se presenta como un \textit{preload rootkit} focalizado en anti-detección y ocultación de procesos, ficheros y accesos;
+mientras que \textbf{vlany} añade además persistencia, modificación del enlazador dinámico y funcionalidades de \textit{backdoor}.\\
+
+En este contexto, conviene destacar las herramientas comunes de detección,
+principalmente \textbf{unhide}, herramienta forense utilizada para detectar procesos ocultos mediante la búsqueda de discrepancias entre distintas vistas del sistema,
+por ejemplo, comparando la información proporcionada en \texttt{/proc} con la reportada por herramientas como \texttt{ps}.
+Sin embargo, como se ha comentado anteriormente, una vez esta región se encuentre comprometida, su utilidad queda severamente limitada, ya que estas herramientas operan en el mismo \textit{Espacio de Usuario}~\cite{unhide_man}.\\
+
+\section{Rootkits de Espacio del Kernel}
+\label{sec:kernel_rootkits}
+
+Los \textit{rootkits} de \textit{Espacio del Kernel} se infiltran en el nivel de máximo privilegio del sistema y suelen materializarse mediante \textit{Módulos del Kernel} (\textit{LKMs}) maliciosos o a través de modificaciones directas del propio núcleo.
+Su posición privilegiada les permite alterar estructuras internas, ocultar procesos, ficheros o tráfico de red, interceptar llamadas al sistema sensibles, e incluso falsear la información suministrada a las herramientas de usuario.\\
+
+Por ello, su detección desde capas superiores resulta especialmente compleja, y cualquier mecanismo defensivo que opere con menos privilegios parte de una posición bastante desventajosa.
+Por esta razón existe la necesidad de diseñar arquitecturas de monitorización autenticadas, que operen en regiones cercanas al \textit{Kernel} o, al menos, que no dependan de la información ya proporcionada por el propio entorno de usuario.\\
+
+Herramientas como \texttt{chkrootkit} siguen incluyendo detección para familias de este tipo de amenazas como \textbf{Adore LKM}, \textbf{knark}, \textbf{SucKIT}, \textbf{Fu} o \textbf{Syslogk}, reflejando el modelo \textit{LKM} como vector de ocultación y persistencia.
+El marco \textit{MITRE ATT\&CK} documenta casos como \textbf{REPTILE}, implementado como \textit{rootkit} \textit{Linux} de código abierto basado en \textit{LKMs}, y \textbf{Drovorub}, un conjunto de \textit{malware} para \textit{Linux} que incluye \textit{LKMs} para persistencia y control remoto~\cite{chkrootkit_man}.\\
 
 
+En conclusión, los \textit{rootkits} no constituyen una amenaza homogénea que actúa siempre de la misma manera, sino una familia de técnicas de ocultación distribuida en varias capas del sistema.\\
 
+\newpage
 
-\subsection{Objetivos no funcionales}
-\label{sec:onf}
-
-    
-
-
-\section{Competencias}
-
-Enumera las competencias generales adquiridas y empleadas. Es decir, las que consideres que has adquirido durante la realización de tu TFG (las podrás encontrar en la guía docente de la asignatura TFG), así como las que creas que has adquirido en las distintas asignaturas del grado (descritas en sus respectivas guías docentes) y que has empleado para llevarlo a cabo.
- 
-\section{Metodología}
-
-Qué paradigma de desarrollo software has seguido para alcanzar tus objetivos.
-
-\section{Plan de trabajo}
-
-Qué agenda has seguido. Si has ido manteniendo reuniones semanales, cumplimentando objetivos parciales, si has ido afinando poco a poco un producto final completo, etc.
-
+A la luz de lo expuesto, este proyecto se enfoca principalmente en la problemática de los \textit{rootkits} de \textit{Espacio de Usuario}, debido a su capacidad para falsear la información suministrada por herramientas que se ejecutan en esa misma región.
+La solución propuesta frente a esta limitación se centra en desplazar la obtención de información crítica del sistema a una capa de mayor confianza, implementando un \textit{Módulo del Kernel} que genera y autentica dicha información, de forma que su integridad pueda verificarse posteriormente desde \textit{Espacio de Usuario}.
