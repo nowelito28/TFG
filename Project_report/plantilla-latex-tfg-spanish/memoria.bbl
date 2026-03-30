@@ -20,55 +20,159 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
-\bibitem{unix_family_tree}
+\bibitem{schneier}
 \BIBentryALTinterwordspacing
-G.~Anthes, ``Unix turns 40: The past, present and future of a revolutionary os,'' \emph{Operative Systems, Linux}, June 2009. [Online]. Available: \url{https://www.computerworld.com/article/1553843/unix-turns-40-the-past-present-and-future-of-a-revolutionary-os.html}
+{Schneier, Bruce}, ``{A Plea for Simplicity},'' Schneier on Security, online essay, November 1999. [Online]. Available: \url{https://www.schneier.com/essays/archives/1999/11/a_plea_for_simplicit.html}
 \BIBentrySTDinterwordspacing
 
-\bibitem{wiki_rings}
+\bibitem{malware_nist}
 \BIBentryALTinterwordspacing
-C.~de~Wikipedia, ``Anillo (seguridad informática),'' Wikipedia, online article, January 2026. [Online]. Available: \url{https://es.wikipedia.org/wiki/Anillo_(seguridad_informática)}
+{Souppaya, Murugiah and Scarfone, Karen}, ``{Guide to Malware Incident Prevention and Handling for Desktops and Laptops},'' National Institute of Standards and Technology (NIST), Special Publication (SP), July 2013. [Online]. Available: \url{https://csrc.nist.gov/pubs/sp/800/83/r1/final}
+\BIBentrySTDinterwordspacing
+
+\bibitem{akamai}
+\BIBentryALTinterwordspacing
+{Akamai Technologies}, ``{¿Qué es el malware?}'' Artículo web, visto el 10 de marzo de 2026. [Online]. Available: \url{https://www.akamai.com/es/glossary/what-is-malware}
+\BIBentrySTDinterwordspacing
+
+\bibitem{fontawesome_free}
+\BIBentryALTinterwordspacing
+{Fonticons, Inc.}, ``{Font Awesome Free},'' Sitio web, visto el 13 de marzo de 2026. [Online]. Available: \url{https://fontawesome.com/}
+\BIBentrySTDinterwordspacing
+
+\bibitem{threat_enisa}
+\BIBentryALTinterwordspacing
+{European Union Agency for Cybersecurity (ENISA)}, ``{ENISA Threat Landscape 2025},'' ENISA, Tech. Rep., October 2025, visto el 10 de marzo de 2026. [Online]. Available: \url{https://www.enisa.europa.eu/publications/enisa-threat-landscape-2025}
+\BIBentrySTDinterwordspacing
+
+\bibitem{nist_sec_controls}
+\BIBentryALTinterwordspacing
+{Joint Task Force}, ``{Security and Privacy Controls for Information Systems and Organizations},'' National Institute of Standards and Technology (NIST), Special Publication (SP), September 2020. [Online]. Available: \url{https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final}
+\BIBentrySTDinterwordspacing
+
+\bibitem{nist_detection}
+\BIBentryALTinterwordspacing
+{Scarfone, Karen and Mell, Peter}, ``{Guide to Intrusion Detection and Prevention Systems (IDPS)},'' National Institute of Standards and Technology (NIST), Special Publication (SP), February 2007. [Online]. Available: \url{https://csrc.nist.gov/publications/detail/sp/800-94/final}
+\BIBentrySTDinterwordspacing
+
+\bibitem{mitre_attack}
+\BIBentryALTinterwordspacing
+{MITRE ATT\&CK}, ``{MITRE ATT\&CK},'' Fuente oficial de información sobre tácticas y técnicas de adversarios, Tech. Rep., 2026, visto el 26 de marzo de 2026. [Online]. Available: \url{https://attack.mitre.org/}
+\BIBentrySTDinterwordspacing
+
+\bibitem{rootkits}
+\BIBentryALTinterwordspacing
+{Soriano-Salvador, Enrique and Guardiola Múzquiz, Gorka and González Gómez, Juan}, ``{User-space library rootkits revisited: Are user-space detection mechanisms futile?}'' Universidad Rey Juan Carlos, Tech. Rep., June 2025. [Online]. Available: \url{https://arxiv.org/abs/2506.07827}
+\BIBentrySTDinterwordspacing
+
+\bibitem{nist_rootkit_glossary}
+\BIBentryALTinterwordspacing
+{National Institute of Standards and Technology (NIST)}, ``{Rootkit},'' Glosario de ciberseguridad, visto el 14 de marzo de 2026. [Online]. Available: \url{https://csrc.nist.gov/glossary/term/rootkit}
 \BIBentrySTDinterwordspacing
 
 \bibitem{librossoo}
 \BIBentryALTinterwordspacing
-E.~Soriano~Salvador and G.~Guardiola~Múzquiz, \emph{Fundamentos de Sistemas Operativos: Una aproximación práctica usando Linux}.\hskip 1em plus 0.5em minus 0.4em\relax GSyC, Universidad Rey Juan Carlos, February 2024. [Online]. Available: \url{https://honecomp.github.io/librossoo.html}
+{Guardiola Múzquiz, Gorka and Soriano Salvador, Enrique}, \emph{{Fundamentos de Sistemas Operativos: Una aproximación práctica usando Linux}}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax GSyC, Universidad Rey Juan Carlos, November 2025. [Online]. Available: \url{https://honecomp.github.io/librossoo.html}
 \BIBentrySTDinterwordspacing
 
-\bibitem{schneier}
+\bibitem{unix_family_tree}
 \BIBentryALTinterwordspacing
-B.~Schneier, ``A plea for simplicity,'' Schneier on Security, online essay, November 1999. [Online]. Available: \url{https://www.schneier.com/essays/archives/1999/11/a_plea_for_simplicit.html}
+{VARGUX}, ``{File:Unix history-simple es.svg},'' Vectorial file SVG, June 2023, publicado el 26 de junio de 2023. Licencia CC BY-SA 4.0. Visto el 13 de marzo de 2026. [Online]. Available: \url{https://commons.wikimedia.org/wiki/File:Unix_history-simple_es.svg}
+\BIBentrySTDinterwordspacing
+
+\bibitem{wiki_rings}
+\BIBentryALTinterwordspacing
+{Colaboradores de Wikipedia}, ``{Anillo (seguridad informática)},'' Wikipedia, online article, January 2026. [Online]. Available: \url{https://es.wikipedia.org/wiki/Anillo_(seguridad_informática)}
 \BIBentrySTDinterwordspacing
 
 \bibitem{love_linux}
 \BIBentryALTinterwordspacing
-R.~Love, \emph{Linux Kernel Development}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Developer's Library, Addison-Wesley, 2010, ch.~1. [Online]. Available: \url{https://github.com/swadhinsekhar/books/blob/master/Linux%20Kernel%20Development%203rd%20Edition%20-%20Love%20-%202010.pdf}
+{Love, Robert}, \emph{{Linux Kernel Development}}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Developer's Library, Addison-Wesley, 2010, ch. 1, 13. [Online]. Available: \url{https://github.com/swadhinsekhar/books/blob/master/Linux%20Kernel%20Development%203rd%20Edition%20-%20Love%20-%202010.pdf}
 \BIBentrySTDinterwordspacing
 
 \bibitem{silberschatz_memoria}
 \BIBentryALTinterwordspacing
-A.~Silberschatz, P.~B. Galvin, and G.~Gagne, \emph{Fundamentos de sistemas operativos}, 9th~ed.\hskip 1em plus 0.5em minus 0.4em\relax Madrid, España: McGraw-Hill Interamericana, 2013, ch.~9. [Online]. Available: \url{https://books.google.es/books?id=b2qynQEACAAJ}
+{Silberschatz, Abraham and Galvin, Peter Baer and Gagne, Greg}, \emph{{Fundamentos de sistemas operativos}}, 9th~ed.\hskip 1em plus 0.5em minus 0.4em\relax Madrid, España: McGraw-Hill Interamericana, 2013, ch.~9. [Online]. Available: \url{https://books.google.es/books?id=b2qynQEACAAJ}
 \BIBentrySTDinterwordspacing
 
-\bibitem{vega12e}
-J.~Vega, E.~Perdices, and J.~Ca\~nas, \emph{Attentive visual memory for robot localization}.\hskip 1em plus 0.5em minus 0.4em\relax IGI Global, USA, September 2012, pp. 408--438, text not available. This book is protected by copyright.
+\bibitem{albritton_fs}
+\BIBentryALTinterwordspacing
+{Albritton, William McDaniel}, ``{Module 2, Session 7 - Linux File System Structure},'' University of Hawaii, Tech. Rep., 2016, visto el 24 de febrero de 2026. [Online]. Available: \url{https://tldp.org/LDP/intro-linux/html/chap_03.html}
+\BIBentrySTDinterwordspacing
 
-\bibitem{vega19b}
-J.~Vega and J.~Ca\~nas, ``{PyBoKids}: An innovative python-based educational framework using real and simulated {Arduino} robots,'' \emph{Electronics}, vol.~8, pp. 899--915, August 2019.
+\bibitem{hackerstack_namespaces}
+\BIBentryALTinterwordspacing
+{Gmkziz}, ``{Understanding Linux Namespaces},'' Hackerstack, online article, 2024, visto el 25 de febrero de 2026. [Online]. Available: \url{https://www.hackerstack.org/understanding-linux-namespaces/}
+\BIBentrySTDinterwordspacing
 
-\bibitem{vega19a}
-J.~Vega, ``El profesor {Julio} {Vega}, finalista del concurso '{Ciencia} en {Acci\'on} 2019','' URJC, on-line newspaper interview, July 2019.
+\bibitem{man_namespaces}
+\BIBentryALTinterwordspacing
+\emph{{namespaces(7) - Linux Programmer's Manual}}, Linux Kernel Organization, January 2024, disponible ejecutando \texttt{man 7 namespaces} en un terminal Linux o en la documentación oficial del Kernel. Vista la última actualización. [Online]. Available: \url{https://man7.org/linux/man-pages/man7/namespaces.7.html}
+\BIBentrySTDinterwordspacing
 
-\bibitem{vega18b}
-------, ``Educational framework using robots with vision for constructivist teaching {Robotics} to pre-university students,'' Doctoral thesis on Computer Science and Artificial Intelligence, University of Alicante, September 2018.
+\bibitem{docker_overview}
+\BIBentryALTinterwordspacing
+{Docker, Inc.}, ``{What is Docker?}'' Docker Docs, Tech. Rep., 2026, vista el 13 de marzo de 2026. [Online]. Available: \url{https://docs.docker.com/get-started/docker-overview/}
+\BIBentrySTDinterwordspacing
 
-\bibitem{vega18a}
-------, ``{JdeRobot-Kids} framework for teaching robotics and vision algorithms,'' in \emph{II jornada de investigaci\'on doctoral}.\hskip 1em plus 0.5em minus 0.4em\relax University of Alicante, June 2018.
+\bibitem{docker_brand}
+\BIBentryALTinterwordspacing
+------, ``{Docker Brand Guidelines and Logo Kit},'' Página oficial de recursos de marca, 2026, kit oficial de logotipos. Visto el 13 de marzo de 2026. [Online]. Available: \url{https://www.docker.com/company/newsroom/media-resources/}
+\BIBentrySTDinterwordspacing
 
-\bibitem{vega08b}
-------, ``Navegaci{\'o}n y autolocalizaci{\'o}n de un robot gu{\'i}a de visitantes,'' Master thesis on Computer Science, Rey Juan Carlos University, September 2008.
+\bibitem{geeks_lkm}
+\BIBentryALTinterwordspacing
+{GeeksforGeeks}, \emph{{Linux/Unix | Linux Kernel Module Programming (Hello World Program)}}, Online article, January 2019, visto el 7 de marzo de 2026. [Online]. Available: \url{https://www.geeksforgeeks.org/linux-unix/linux-kernel-module-programming-hello-world-program/}
+\BIBentrySTDinterwordspacing
 
-\bibitem{vega15}
-------, ``De la tiza al robot,'' Franciscanas Montpellier Schools, annual report, Tech. Rep., June 2015.
+\bibitem{medium_proc}
+\BIBentryALTinterwordspacing
+{Deeppadmani}, ``{Understanding the /proc file system in Linux},'' Artículo online, February 2025, visto el 8 de marzo de 2026. [Online]. Available: \url{https://medium.com/@deeppadmani98.2021/understanding-the-proc-file-system-in-linux-90746e3ba76a}
+\BIBentrySTDinterwordspacing
+
+\bibitem{rpi4_specs}
+\BIBentryALTinterwordspacing
+{Raspberry Pi Ltd}, ``{Raspberry Pi 4 Model B specifications},'' Raspberry Pi, Tech. Rep., visto el 23 de marzo de 2026. [Online]. Available: \url{https://www.raspberrypi.com/products/raspberry-pi-4-model-b/specifications/}
+\BIBentrySTDinterwordspacing
+
+\bibitem{rpi4_product}
+\BIBentryALTinterwordspacing
+------, ``{Raspberry Pi 4},'' Raspberry Pi, Tech. Rep., visto el 23 de marzo de 2026. [Online]. Available: \url{https://www.raspberrypi.com/products/raspberry-pi-4-model-b/}
+\BIBentrySTDinterwordspacing
+
+\bibitem{armbian_intro}
+\BIBentryALTinterwordspacing
+{Armbian Community}, ``{Armbian Documentation},'' Armbian Documentation, Tech. Rep., visto el 23 de marzo de 2026. [Online]. Available: \url{https://docs.armbian.com/}
+\BIBentrySTDinterwordspacing
+
+\bibitem{armbian_rpi4b}
+\BIBentryALTinterwordspacing
+{Prima produkcija}, ``{Raspberry Pi - Armbian},'' Armbian Documentation, Tech. Rep., visto el 23 de marzo de 2026. [Online]. Available: \url{https://www.armbian.com/rpi4b/}
+\BIBentrySTDinterwordspacing
+
+\bibitem{armbian_brand}
+\BIBentryALTinterwordspacing
+{Armbian Community}, ``{Armbian Linux branding material},'' Repositorio oficial en GitHub, 2026, visto el 23 de marzo de 2026. [Online]. Available: \url{https://github.com/armbian/stationery/blob/master/logo/PDF.PDF}
+\BIBentrySTDinterwordspacing
+
+\bibitem{nist_rootkit}
+\BIBentryALTinterwordspacing
+{NIST CSRC}, ``{Rootkit - Glossary},'' Computer Security Resource Center based on NIST SP 800-83 Rev. 1 under Rootkit resource, visto el 30 de marzo de 2026. [Online]. Available: \url{https://csrc.nist.gov/glossary/term/rootkit}
+\BIBentrySTDinterwordspacing
+
+\bibitem{unhide_man}
+\BIBentryALTinterwordspacing
+{Marier, Francois} and {Gouin, Patrick}, \emph{{unhide-linux(8) --- unhide --- forensic tool to find hidden processes}}, {Debian Manpages}, January 2017, visto el 26 de marzo de 2026. [Online]. Available: \url{https://manpages.debian.org/testing/unhide/unhide-linux.8.en.html}
+\BIBentrySTDinterwordspacing
+
+\bibitem{chkrootkit_man}
+\BIBentryALTinterwordspacing
+{Debian Manpages}, ``{chkrootkit(8) --- Scan the system for signs of rootkits},'' 2026, visto el 27 de marzo de 2026. [Online]. Available: \url{https://manpages.debian.org/testing/chkrootkit/chkrootkit.8.en.html}
+\BIBentrySTDinterwordspacing
+
+\bibitem{parmar_ns}
+\BIBentryALTinterwordspacing
+{Parmar, Kelvin}, ``{Deep Dive into Linux Namespaces: Building Your Own Containers},'' Hashnode, online article, August 2024, visto el 2 de marzo de 2026. [Online]. Available: \url{https://kelvin-parmar.hashnode.dev/deep-dive-into-linux-namespaces-building-your-own-containers}
+\BIBentrySTDinterwordspacing
 
 \end{thebibliography}
