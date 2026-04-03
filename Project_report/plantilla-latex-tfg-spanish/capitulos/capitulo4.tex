@@ -1,24 +1,75 @@
 \chapter{Planteamiento del problema y objetivos}
 \label{cap:capitulo4}
 
+Tras establecer previamente el contexto necesario sobre el entorno de los sistemas \textit{Linux} y la amenaza que representan los \textit{rootkits}, en este capítulo se describe la problemática concreta que motiva el presente proyecto y los objetivos que se persiguen con el mismo.
+
 \section{Descripción del problema}
 
-Cuenta aquí el objetivo u objetivos generales y, a continuación, concrétalos mediante objetivos específicos.
+Uno de los problemas fundamentales en el ámbito de la seguridad de sistemas operativos consiste en determinar hasta qué punto la información crítica ofrecida al administrador sobre el estado de una máquina puede considerarse fiable una vez que el entorno ha sido comprometido, en particular, el \textit{Espacio de Usuario}.
+Con base en lo expuesto en el estado del arte, los \textit{rootkits} de esta región pueden interceptar funciones de bibliotecas fundamentales y manipular la salida de herramientas como \texttt{ps}, \texttt{ls} o \texttt{netstat}, falseando la visión que el operador tiene del sistema y dificultando la detección de actividad maliciosa~\cite{rootkits}.\\
+
+Este escenario resulta especialmente problemático en sistemas \textit{Linux}, debido a que gran parte de sus tareas de monitorización y administración se apoyan en utilidades de \textit{Espacio de Usuario}, donde la información se expone a través de interfaces de alto nivel.
+Si dicha región se encuentra comprometida, confiar en ella para verificar el estado del sistema deja de ser una estrategia sólida.
+Consecuentemente, aparece la necesidad de obtener información sensible desde una capa con mayores privilegios, dificultando su manipulación y, además, dotar a esa información de un mecanismo que permita comprobar posteriormente su integridad y autenticidad.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.9}{\input{figs/secure_reporting_scheme.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Mecanismo de reporte autenticado entre \textit{Espacio de Usuario} y \textit{Espacio de Kernel}.}
+  \label{fig:secure_reporting_scheme}
+\end{figure}
+
+\newpage
+
+En este proyecto, se aborda un caso concreto y representativo, tomando como información crítica un listado de todos los procesos del sistema junto con sus metadatos más relevantes, entre ellos identificadores globales y locales de los procesos, de los usuarios que los ejecutan y referencias a sus \textit{namespaces}.
+Esta elección no es arbitraria, ya que mediante esta información se puede obtener una visión global del estado del sistema y, por tanto, compararla con los datos obtenidos por otras herramientas para detectar posibles indicios de manipulación y ocultación en dicha región.
+Sin embargo, en manos del atacante, podría ser catastrófico, ya que tendría prácticamente el poder absoluto sobre el sistema.\\
+
+En conclusión, el problema del proyecto puede formularse del siguiente modo: \textbf{cómo proporcionar al administrador de un sistema \textit{Linux} una visión fiable de información crítica del sistema cuando el \textit{Espacio de Usuario} puede haber sido comprometido por \textit{malware} con capacidades de persistencia y ocultación, como los \textit{rootkits}}.\\
+
+\newpage
 
 \section{Objetivos}
 
-Describe los requisitos/objetivos que ha de cumplir tu trabajo.
+El objetivo principal del presente proyecto consiste en \textbf{diseñar un mecanismo de reporte seguro para sistemas \textit{Linux} capaz de proporcionar al administrador una visión más fiable de información crítica del sistema, concretamente del estado de sus procesos activos, especialmente en entornos comprometidos por \textit{rootkits} de \textit{Espacio de Usuario}}.
+Para ello, la solución propuesta desplaza la obtención de la información crítica al \textit{Espacio de Kernel} mediante un \textit{LKM}, incorporando además un mecanismo criptográfico que permita verificar posteriormente su integridad y autenticidad desde \textit{Espacio de Usuario} por el propio administrador.\\
+
+Con base en este objetivo general, el proyecto se concreta en los siguientes objetivos:
 
 \subsection{Objetivos funcionales}
 \label{sec:ofunc}
 
+Los objetivos funcionales describen \textbf{qué debe hacer} la solución propuesta, en otras palabras, las capacidades específicas que el sistema debe adquirir para resolver el problema planteado.
+En este caso, son los siguientes:
 
-
+\begin{itemize}
+    \item \textbf{Obtener información crítica del sistema desde \textit{Espacio del Kernel}.} Se precisa del diseño de un mecanismo de reporte seguro desde el \textit{Espacio de Kernel}, mediante un \textit{LKM}, capaz de recopilar información de los procesos activos sin depender de herramientas de \textit{Espacio de Usuario}.
+    \item \textbf{Construir una vista global y estructurada de los procesos del sistema.} Dicho mecanismo de reporte debe generar un listado estructurado de los procesos activos del sistema, que incluya los metadatos más relevantes de los mismos: \textit{UID} global, \textit{UID} local, identificador del \textit{namespace} de usuario, \textit{PID} global, \textit{PID} local, identificador del \textit{namespace} de procesos, \textit{GID} y comando asociado.
+    \item \textbf{Transferir la información obtenida desde el \textit{Espacio de Kernel} a un canal accesible desde \textit{Espacio de Usuario}, cuando el administrador lo solicite.} Se debe habilitar un mecanismo de comunicación controlado entre ambas regiones, de modo que el \textit{Kernel} pueda detectar la solicitud de información y transferirla. En este caso, se articula la transferencia de información enviando la referencia de un fichero fijado por el administrador, mediante su \textit{File Descriptor}, desde \textit{Espacio de Usuario} a \textit{Espacio del Kernel}.
+    \item \textbf{Autenticar criptográficamente el contenido generado en \textit{Espacio de Kernel}.} El reporte producido debe ir acompañado de un mecanismo que demuestre su autenticidad e integridad, implementado en este proyecto mediante un \textit{HMAC} basado en \texttt{SHA-256}, calculado mediante una clave simétrica \textit{K} a partir de la información del listado de procesos.
+    \item \textbf{Permitir una verificación posterior de la información solicitada al \textit{Kernel} desde \textit{Espacio de Usuario}.} Desde \textit{Espacio de Usuario}, el administrador debe poder verificar la autenticidad e integridad del reporte generado por el \textit{LKM}. Para ello, se crea un \textit{marco de confianza} en el que tanto el administrador como el \textit{Kernel} deben compartir una clave simétrica \textit{K}. En este contexto, se implementa en \textit{Espacio de Usuario} un mecanismo que recalcula el \textit{HMAC} correspondiente y comprueba si el resultado coincide con el valor autenticado emitido por el \textit{Kernel}.
+    \item \textbf{Facilitar la detección de amenazas de ocultación y manipulación.} El sistema de reporte desarrollado debe permitir comparar la información autenticada obtenida desde \textit{Espacio del Kernel} con la ofrecida por herramientas de monitorización de \textit{Espacio de Usuario}, posibilitando la identificación de indicios de ocultación o manipulación.
+    \item \textbf{Validar el funcionamiento del prototipo.} El mecanismo diseñado debe probarse en un entorno \textit{Linux} real, incluyendo procesos y usuarios pertenecientes a distintos \textit{namespaces}, con el fin de demostrar que el administrador obtiene correctamente la información crítica y que su autenticación puede verificarse satisfactoriamente.
+\end{itemize}
 
 \subsection{Objetivos no funcionales}
 \label{sec:onf}
 
-    
+Los objetivos no funcionales describen \textbf{cómo debe hacerlo} el sistema diseñado, estableciendo los criterios de seguridad, calidad, robustez y viabilidad que se deben cumplir.
+En este proyecto, se establecen estos criterios:
+
+\begin{itemize}
+    \item \textbf{Integridad y autenticidad verificables de la información crítica.} El sistema de reporte no debe limitarse a exponer datos del \textit{Kernel} únicamente, sino que debe garantizar que dichos datos puedan comprobarse posteriormente mediante un mecanismo criptográfico de autenticación, en este caso un \textit{HMAC} basado en \texttt{SHA-256}.
+    \item \textbf{Robustez en la comunicación entre espacios.} La interfaz entre \textit{Espacio del Kernel} y \textit{Espacio de Usuario} debe incorporar validaciones de toda la información que entre dentro del \textit{Kernel}, ya sean sobre permisos, descriptores de fichero, modos de apertura o límites de memoria, reduciendo el riesgo de usos incorrectos o comportamientos inseguros que puedan comprometer la estabilidad del sistema.
+    \item \textbf{Seguridad.} El sistema implementado debe minimizar la confianza depositada en el \textit{Espacio de Usuario}, de forma que la información crítica sea generada prioritariamente en una región con mayor privilegio, como el \textit{Espacio del Kernel}, y se acompañe de mecanismos criptográficos y autenticables que permitan detectar modificaciones no autorizadas.
+    \item \textbf{Modularidad y bajo impacto en el \textit{Kernel} del sistema.} El mecanismo de reporte seguro debe integrarse como un \textit{Módulo del Kernel} (\textit{LKM}), evitando modificar el núcleo de forma permanente y facilitando tanto su despliegue controlado como su descarga del sistema, además de cumplir con el objetivo anterior de generar la información crítica desde una región con altos privilegios para favorecer su integridad.
+    \item \textbf{Compatibilidad con entornos \textit{Linux}.} El diseño debe apoyarse en interfaces y mecanismos estándar del ecosistema \textit{Linux}, como \texttt{/proc}, la \textit{Crypto API} del \textit{Kernel}, utilidades convencionales de compilación en lenguaje \texttt{C} y las cabeceras necesarias para la compilación de \textit{LKMs}.
+    \item \textbf{Reproducibilidad del prototipo.} El prototipo debe poder compilarse, cargarse, descargarse y verificarse mediante un procedimiento claro y preciso, de forma que los resultados obtenidos durante el desarrollo puedan repetirse y analizarse posteriormente.
+    \item \textbf{Formato de salida.} La información proporcionada por el mecanismo de reporte debe presentarse en una estructura legible y ordenada, facilitando su inspección, análisis y su comparación con la salida de herramientas habituales de monitorización del sistema.
+\end{itemize}
+
+
 
 
 \section{Competencias}
@@ -32,4 +83,3 @@ Qué paradigma de desarrollo software has seguido para alcanzar tus objetivos.
 \section{Plan de trabajo}
 
 Qué agenda has seguido. Si has ido manteniendo reuniones semanales, cumplimentando objetivos parciales, si has ido afinando poco a poco un producto final completo, etc.
-

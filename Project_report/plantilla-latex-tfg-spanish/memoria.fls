@@ -539,6 +539,16 @@ INPUT ./capitulos/capitulo4.tex
 INPUT ./capitulos/capitulo4.tex
 INPUT ./capitulos/capitulo4.tex
 INPUT capitulos/capitulo4.tex
+INPUT ./figs/secure_reporting_scheme.tex
+INPUT ./figs/secure_reporting_scheme.tex
+INPUT figs/secure_reporting_scheme.tex
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmssbx10.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmss8.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/fontawesome5/ufontawesomefree2.fd
+INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/fontawesome5/ufontawesomefree2.fd
+INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/fontawesome5/ufontawesomefree2.fd
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/fontawesome5/fa5free2solid.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/fontawesome5/fa5free2.enc
 INPUT ./capitulos/capitulo5.tex
 INPUT ./capitulos/capitulo5.tex
 INPUT ./capitulos/capitulo5.tex

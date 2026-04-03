@@ -17,27 +17,27 @@
 \contentsline {section}{\numberline {3.2}Rootkits de Espacio del Kernel}{31}{section.3.2}%
 \contentsline {chapter}{\numberline {4}Planteamiento del problema y objetivos}{33}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Descripción del problema}{33}{section.4.1}%
-\contentsline {section}{\numberline {4.2}Objetivos}{33}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Objetivos funcionales}{33}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}Objetivos no funcionales}{33}{subsection.4.2.2}%
-\contentsline {section}{\numberline {4.3}Competencias}{33}{section.4.3}%
-\contentsline {section}{\numberline {4.4}Metodología}{33}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Plan de trabajo}{33}{section.4.5}%
-\contentsline {chapter}{\numberline {5}Diseño y Desarrollo}{35}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Prototipos}{35}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Implementación}{35}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Errores}{35}{section.5.3}%
-\contentsline {section}{\numberline {5.4}Validación}{35}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Snippets}{35}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Verbatim}{35}{section.5.6}%
-\contentsline {section}{\numberline {5.7}Ecuaciones}{36}{section.5.7}%
-\contentsline {section}{\numberline {5.8}Tablas o cuadros}{37}{section.5.8}%
-\contentsline {chapter}{\numberline {6}Resultados}{38}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Objetivos cumplidos}{38}{section.6.1}%
-\contentsline {chapter}{\numberline {7}Conclusiones}{39}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Impacto social y medioambiental}{39}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Competencias adquiridas y utilizadas}{39}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Trabajo futuro}{39}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Conclusiones}{39}{section.7.4}%
-\contentsline {section}{\numberline {7.5}Corrector ortográfico}{40}{section.7.5}%
-\contentsline {chapter}{Bibliograf\'{\i }a}{41}{appendix*.33}%
+\contentsline {section}{\numberline {4.2}Objetivos}{35}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Objetivos funcionales}{35}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Objetivos no funcionales}{36}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Competencias}{37}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Metodología}{38}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Plan de trabajo}{38}{section.4.5}%
+\contentsline {chapter}{\numberline {5}Diseño y Desarrollo}{39}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Prototipos}{39}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Implementación}{39}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Errores}{39}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Validación}{39}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Snippets}{39}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Verbatim}{39}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Ecuaciones}{40}{section.5.7}%
+\contentsline {section}{\numberline {5.8}Tablas o cuadros}{41}{section.5.8}%
+\contentsline {chapter}{\numberline {6}Resultados}{42}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Objetivos cumplidos}{42}{section.6.1}%
+\contentsline {chapter}{\numberline {7}Conclusiones}{43}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Impacto social y medioambiental}{43}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Competencias adquiridas y utilizadas}{43}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Trabajo futuro}{43}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Conclusiones}{43}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Corrector ortográfico}{44}{section.7.5}%
+\contentsline {chapter}{Bibliograf\'{\i }a}{45}{appendix*.34}%
