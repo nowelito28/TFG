@@ -69,12 +69,30 @@ En este proyecto, se establecen estos criterios:
     \item \textbf{Formato de salida.} La información proporcionada por el mecanismo de reporte debe presentarse en una estructura legible y ordenada, facilitando su inspección, análisis y su comparación con la salida de herramientas habituales de monitorización del sistema.
 \end{itemize}
 
-
-
-
 \section{Competencias}
 
-Enumera las competencias generales adquiridas y empleadas. Es decir, las que consideres que has adquirido durante la realización de tu TFG (las podrás encontrar en la guía docente de la asignatura TFG), así como las que creas que has adquirido en las distintas asignaturas del grado (descritas en sus respectivas guías docentes) y que has empleado para llevarlo a cabo.
+La realización de este TFG ha requerido aplicar e integrar competencias adquiridas tanto a lo largo del \textit{Grado en Ingeniería en Tecnologías de la Telecomunicación} como a partir del propio trabajo autónomo de investigación, diseño, implementación y validación del prototipo.
+Concretamente, las competencias más relevantes empleadas y consolidadas durante el proyecto son las siguientes:
+
+\begin{itemize}
+    \item \textbf{Capacidad de resolver problemas con criterio técnico y autonomía.} Este proyecto ha exigido analizar un problema de seguridad complejo, estudiar distintas alternativas de diseño dentro del \textit{Kernel} del sistema y tomar decisiones sobre el mecanismo de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio de Kernel}, la forma de representar la información crítica que debe proporcionarse y la implementación criptográfica de HMAC como mecanismo de autenticación.
+    
+    \item \textbf{Capacidad de comunicar de forma técnica conocimientos, procedimientos y resultados.} Esta competencia se ha aplicado en la redacción de la memoria, en la organización y metodología utilizada para el desarrollo del prototipo, y en la posterior preparación de la presentación del mismo, buscando mostrar el trabajo realizado con un formato técnico, riguroso y comprensible.
+    
+    \item \textbf{Capacidad de aprendizaje autónomo y adaptación a nuevas tecnologías.} Durante el desarrollo del proyecto, se ha requerido profundizar de forma autodidacta en aspectos no triviales de entornos \textit{Linux}, como la programación de \textit{LKMs}, la gestión de procesos y \textit{namespaces}, el funcionamiento de \textit{rootkits} de \textit{Espacio de Usuario}, el sistema de ficheros \texttt{/proc} y la interacción segura entre distintas regiones de memoria del sistema operativo.
+    
+    \item \textbf{Competencia en programación de sistemas y uso avanzado de entornos \textit{Linux}.} A partir de conocimientos adquiridos en asignaturas como \textit{Programación de Sistemas de Telecomunicación}, \textit{Sistemas Operativos} y \textit{Seguridad en Redes de Ordenadores}, y por otro lado, mediante un aprendizaje autónomo sobre programación en el \textit{Kernel} de \textit{Linux}, se han diseñado e implementado en lenguaje \texttt{C} tanto el \textit{LKM} como los programas de usuario necesarios para probar el prototipo y verificar criptográficamente la información generada.
+    
+    \item \textbf{Comprensión y utilización de sistemas operativos, procesos y mecanismos internos del sistema.} El trabajo realizado ha implicado aplicar conocimientos propios de la asignatura de \textit{Sistemas Operativos}, complementados con un aprendizaje autónomo sobre el \textit{Kernel} de \textit{Linux}, para poder abordar temas como la gestión de procesos, la gestión de ficheros, el control de permisos, la arquitectura del sistema operativo, el acceso a estructuras internas del \textit{Kernel} y la validación de operaciones sensibles en un entorno privilegiado.
+    
+    \item \textbf{Conocimiento y aplicación de fundamentos de seguridad y autenticación en sistemas telemáticos.} Este TFG ha permitido aplicar conocimientos adquiridos en asignaturas como \textit{Sistemas Telemáticos} y \textit{Seguridad en Redes de Ordenadores}, especialmente en lo relativo al análisis de \textit{malware}, la gestión de claves criptográficas, conceptos de ciberseguridad como la autenticación y la integridad de la información, y el diseño de mecanismos seguros de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio de Kernel}.
+        
+    \item \textbf{Capacidad de diseñar, ejecutar y analizar pruebas de validación.} El prototipo desarrollado no solo se ha implementado, sino que también se ha probado en un entorno \textit{Linux} real mediante escenarios con procesos y usuarios en distintos \textit{namespaces}, asegurando el correcto funcionamiento de la comunicación con el \textit{Kernel} a través de \texttt{/proc}, la generación correcta de la información crítica del sistema y la comprobación, desde \textit{Espacio de Usuario}, del HMAC calculado por el \textit{Kernel}, verificando así la integridad de la información proporcionada.
+    
+    \item \textbf{Comprensión técnica y contextual de la problemática abordada.} El proyecto aborda un problema directamente relacionado con la seguridad de sistemas de información, lo que ha exigido aplicar una perspectiva técnica y coherente con base en la documentación y código fuente oficial de \textit{Linux}, organizaciones representativas del ámbito como la \textit{ENISA} (\textit{European Union Agency for Cybersecurity})~\cite{threat_enisa}, artículos de divulgación técnica de expertos en la materia como \textit{User-space library rootkits revisited: Are user-space detection mechanisms futile?}~\cite{rootkits} y portales técnicos oficiales como el de \textit{MITRE ATT\&CK}~\cite{mitre_attack}.
+\end{itemize}
+
+En conjunto, este proyecto ha servido como una tarea integradora de conceptos del grado, complementada con un aprendizaje técnico autodidacta centrado en la problemática abordada.
  
 \section{Metodología}
 
