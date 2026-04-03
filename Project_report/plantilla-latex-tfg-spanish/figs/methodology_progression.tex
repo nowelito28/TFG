@@ -1,0 +1,58 @@
+\definecolor{wftext}{RGB}{34,38,45}
+\definecolor{wfline}{RGB}{141,118,100}
+\definecolor{wffill}{RGB}{252,245,238}
+\definecolor{wfdraw}{RGB}{198,132,76}
+\definecolor{wfaccent}{RGB}{221,132,59}
+
+\begin{tikzpicture}[
+  x=1cm,
+  y=1cm,
+  >=stealth,
+  every node/.style={inner sep=0pt, outer sep=0pt},
+  wfTitle/.style={font=\sffamily\bfseries\fontsize{11}{11.8}\selectfont, text=wftext, align=center},
+  wfLabel/.style={font=\sffamily\fontsize{8}{8.6}\selectfont, text=wftext, align=center},
+  wfMain/.style={draw=wfline, line width=1.05pt, ->},
+  wfConn/.style={draw=wfline, line width=0.9pt},
+  wfNode/.style={draw=wfline, fill=white, line width=0.9pt, circle, minimum size=0.34cm},
+  wfBoxA/.style={draw=wfdraw, fill=wffill, rounded corners=0.12cm, line width=0.9pt},
+  wfBoxB/.style={draw=wfaccent, fill=wffill, rounded corners=0.12cm, line width=0.9pt}
+]
+
+  \path[use as bounding box] (0,1.05) rectangle (15.8,5.0);
+
+  \node[wfTitle] at (7.55,4.45) {Waterfall schema};
+
+  % Main branch
+  \draw[wfMain] (1.0,2.15) -- (14.8,2.15);
+  \node[wfLabel] at (7.55,1.52) {Main branch (\textit{Main Prototype})};
+
+  % Merge points
+  \foreach \x in {2.1,4.9,7.7,10.5,13.3} {
+    \node[wfNode] at (\x,2.15) {};
+  }
+
+  % Generic features
+  \draw[wfBoxA] (1.00,3.00) rectangle (3.20,3.78);
+  \node[wfLabel] at (2.10,3.39) {Feature 1};
+  \draw[wfConn] (2.10,3.00) -- (2.10,2.32);
+
+  \draw[wfBoxB] (3.80,3.00) rectangle (6.00,3.78);
+  \node[wfLabel] at (4.90,3.39) {Feature 2};
+  \draw[wfConn] (4.90,3.00) -- (4.90,2.32);
+
+  \draw[wfBoxA] (6.60,3.00) rectangle (8.80,3.78);
+  \node[wfLabel] at (7.70,3.39) {Feature 3};
+  \draw[wfConn] (7.70,3.00) -- (7.70,2.32);
+
+  \draw[wfBoxB] (9.40,3.00) rectangle (11.60,3.78);
+  \node[wfLabel] at (10.50,3.39) {Feature 4};
+  \draw[wfConn] (10.50,3.00) -- (10.50,2.32);
+
+  % Dots between generic later additions
+  \node[wfLabel, text=wfline] at (11.90,2.50) {\Large$\cdots$};
+
+  \draw[wfBoxA] (12.20,3.00) rectangle (14.40,3.78);
+  \node[wfLabel] at (13.30,3.39) {Feature $n$};
+  \draw[wfConn] (13.30,3.00) -- (13.30,2.32);
+
+\end{tikzpicture}

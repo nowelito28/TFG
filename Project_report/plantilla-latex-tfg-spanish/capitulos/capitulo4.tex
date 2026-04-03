@@ -89,14 +89,32 @@ Concretamente, las competencias más relevantes empleadas y consolidadas durante
         
     \item \textbf{Capacidad de diseñar, ejecutar y analizar pruebas de validación.} El prototipo desarrollado no solo se ha implementado, sino que también se ha probado en un entorno \textit{Linux} real mediante escenarios con procesos y usuarios en distintos \textit{namespaces}, asegurando el correcto funcionamiento de la comunicación con el \textit{Kernel} a través de \texttt{/proc}, la generación correcta de la información crítica del sistema y la comprobación, desde \textit{Espacio de Usuario}, del HMAC calculado por el \textit{Kernel}, verificando así la integridad de la información proporcionada.
     
-    \item \textbf{Comprensión técnica y contextual de la problemática abordada.} El proyecto aborda un problema directamente relacionado con la seguridad de sistemas de información, lo que ha exigido aplicar una perspectiva técnica y coherente con base en la documentación y código fuente oficial de \textit{Linux}, organizaciones representativas del ámbito como la \textit{ENISA} (\textit{European Union Agency for Cybersecurity})~\cite{threat_enisa}, artículos de divulgación técnica de expertos en la materia como \textit{User-space library rootkits revisited: Are user-space detection mechanisms futile?}~\cite{rootkits} y portales técnicos oficiales como el de \textit{MITRE ATT\&CK}~\cite{mitre_attack}.
+    \item \textbf{Comprensión técnica y contextual de la problemática abordada.} El proyecto aborda un problema directamente relacionado con la seguridad de sistemas de información, lo que ha exigido aplicar una perspectiva técnica y coherente con base en la documentación y código fuente oficial de \textit{Linux}, organizaciones representativas del ámbito como la \textit{ENISA} (\textit{European Union Agency for Cybersecurity})~\cite{threat_enisa}, artículos de divulgación técnica de expertos en la materia como \textit{User-space library rootkits revisited: Are user-space detection mechanisms futile?}~\cite{rootkits} y portales técnicos oficiales como el de MITRE ATT\&CK~\cite{mitre_attack}.
 \end{itemize}
 
 En conjunto, este proyecto ha servido como una tarea integradora de conceptos del grado, complementada con un aprendizaje técnico autodidacta centrado en la problemática abordada.
  
 \section{Metodología}
 
-Qué paradigma de desarrollo software has seguido para alcanzar tus objetivos.
+La metodología seguida en este proyecto ha sido principalmente de tipo \textbf{\textit{Waterfall}} o secuencial.
+Esta elección se debe a que, aunque la problemática a abordar estaba claramente definida desde el inicio, la solución técnica concreta a la misma no lo estaba.
+Por ello, no resultó adecuado plantear una metodología puramente \textbf{\textit{Agile}} (\textit{Ágil}), ya que durante las primeras fases del proyecto todavía no se conocían con precisión varios aspectos necesarios para poder diseñar una solución adecuada al problema.
+Por esta razón, se optó por una metodología secuencial, la cual permite ir investigando y adquiriendo poco a poco los conocimientos requeridos para desarrollar un prototipo funcional que sirva como solución a la problemática planteada.
+
+De esta manera, el trabajo se ha desarrollado de forma progresiva, apoyando cada etapa sobre los conocimientos adquiridos en la anterior.
+En primer lugar, se estudió a fondo el problema planteado y el marco tecnológico donde se desarrolla el prototipo, así como los fundamentos técnicos necesarios para empezar a diseñar el \textit{LKM}.
+Posteriormente, se diseñó e implementó el prototipo de forma incremental, incorporando sucesivamente los distintos elementos y funcionalidades nuevas que se fueron implementando durante la investigación, lo que permitió construir progresivamente el componente hasta lograr las funcionalidades definidas.
+Finalmente, se validó el sistema de reporte creado en el propio entorno \textit{Linux} de desarrollo, mediante el diseño de dos componentes de \textit{Espacio de Usuario}, que permitieron comprobar su correcto funcionamiento.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.9}{\input{figs/methodology_progression.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Esquema de la metodología \textit{Waterfall} empleada en el proyecto.}
+  \label{fig:methodology_progression}
+\end{figure}
+
+En conclusión, puede considerarse que el proyecto ha seguido una metodología secuencial (\textit{Waterfall}) con refinamiento progresivo sobre lo desarrollado en etapas anteriores, ya que el diseño final del prototipo se fue consolidando a medida que se avanzaba en el estudio técnico, la implementación y la validación.
 
 \section{Plan de trabajo}
 
