@@ -1,8 +1,8 @@
-SEALFS_VERSION="0.91"
+SEALFS_VERSION="1.2"
 
 # Adds an extra flag/option to the compiler (gcc) when compiling .c modules with kbuild":
 # EXTRA_CFLAGS += -DSEALFS_VERSION=\"$(SEALFS_VERSION)\"
-EXTRA_CFLAGS += -DSEALFS_VERSION=\"0.91\" 
+EXTRA_CFLAGS += -DSEALFS_VERSION=\"1.2\" 
 
 # Name of the main .c module to be compiled with kbuild --> .ko:
 obj-m += crypto_fd.o
@@ -20,5 +20,5 @@ all: k_embedded.h
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) clean
 
-# Indicates that all and clean are not files, but “phony” targets -> To avoid confusion with files of the same name
+# Indicates that 'all' and 'clean' are not files, but “phony” targets -> To avoid confusion with files of the same name
 .PHONY: all clean

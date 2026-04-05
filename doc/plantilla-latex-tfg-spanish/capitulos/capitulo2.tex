@@ -316,7 +316,10 @@ Una vez compilado, la gestión de su ciclo de vida se resume en cuatro fases bá
 
 \begin{code}[h!]
 \begin{lstlisting}[language=bash]
-# 0. Compilado del modulo mediante el fichero Makefile
+# 0. Root privileges
+$ su
+
+# 1. Compile the module using Makefile
 $ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
@@ -326,10 +329,10 @@ make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   LD [M]  /home/lkms/hw.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 
-# 1. Cargar el modulo (.ko) en el kernel
-$ sudo insmod hw.ko
+# 2. Load the module (.ko) into the Kernel
+$ insmod hw.ko
 
-# 2. Inspeccionar los metadatos del modulo
+# 3. Inspect the module metadata
 $ modinfo hw.ko
 filename:       /home/lkms/hw.ko
 version:        0.1
@@ -340,11 +343,11 @@ srcversion:     2F2B1B95DA1F08AC18B09BC
 depends:        
 vermagic:       6.12.41-current-bcm2711 SMP mod_unload modversions
 
-# 3. Consultar las trazas generadas por printk
+# 4. Check the generated logs by printk
 $ dmesg
 
-# 4. Descargar el modulo liberando sus recursos
-$ sudo rmmod hw
+# 5. Unload the module freeing its resources
+$ rmmod hw
 \end{lstlisting}
 \caption[Comandos básicos de gestión de LKMs]{Comandos básicos para la gestión de un \textit{LKM}.}
 \label{cod:lkm_commands}

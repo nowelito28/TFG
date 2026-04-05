@@ -1,7 +1,156 @@
 \chapter{Diseño y Desarrollo}
 \label{cap:capitulo5}
 
+Una vez definida la problemática abordada, los objetivos del proyecto y el marco tecnológico en el que se desarrolla, en este capítulo se describe el proceso seguido para construir la solución propuesta.
+Se presentan los prototipos desarrollados hasta alcanzar la versión final funcional, describiendo su implementación y validación, así como los errores encontrados y las soluciones adoptadas.
+
 \section{Prototipos}
+
+El desarrollo principal del proyecto se articuló mediante varios prototipos de \textit{LKM} construidos progresivamente y apoyados en las funcionalidades validadas en los anteriores.
+Esta estrategia permitió avanzar desde una primera toma de contacto con la programación en \textit{Espacio del Kernel} hasta la construcción del prototipo final capaz de generar un listado autenticado de los procesos activos del sistema desde dicha región privilegiada.
+
+\subsection{\textit{Hello World}}
+\label{sec:proto-helloworld}
+
+El primer paso del desarrollo consistió en construir un \textit{LKM} básico cuyo objetivo era verificar cómo funciona el flujo básico de trabajo asociado a los \textit{Módulos del Kernel}.\\
+
+Para ello, se diseñó inicialmente el fichero de compilación externa \textit{Makefile} basado en \textit{kbuild}, que delega el proceso de compilación en el sistema de construcción del propio \textit{Kernel} y se reutiliza en la compilación de los prototipos posteriores.
+En este fichero se define la variable \verb|obj-m|, que indica a \textit{kbuild} qué fichero objeto (\texttt{.o}) debe compilarse como módulo cargable (\texttt{.ko}).
+Por otro lado, se declaran dos reglas principales que estructuran el flujo de compilación. La primera, \verb|all|, invoca el sistema de construcción del \textit{Kernel} activo mediante la ruta \verb|/lib/modules/$(shell uname -r)/build|, y especifica la ruta del código fuente del módulo a compilar en el directorio actual con \verb|M=$(shell pwd)|, por lo que para realizar la compilación es necesario situar el \textit{Makefile} en el mismo directorio que el código fuente del módulo y ejecutar la compilación desde ese mismo directorio.
+La regla \verb|clean|, como segunda regla, elimina los ficheros intermedios generados durante la compilación.
+Por último, se declaran dichas reglas como \textit{phony targets} para evitar conflictos con ficheros del mismo nombre.
+De este modo, el módulo puede compilarse de manera externa sin necesidad de modificar ni recompilar el núcleo del sistema.
+
+\begin{code}[h]
+\begin{lstlisting}[language=make]
+obj-m := module_name.o
+
+all: aux.sh
+	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
+
+clean:
+	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) clean
+
+.PHONY: all clean
+\end{lstlisting}
+\caption[\textit{Makefile} genérico empleado para compilar \textit{LKM}s.]{\textit{Makefile} genérico empleado para compilar \textit{LKM}s.}
+\label{cod:makefile}
+\end{code}
+
+En caso de ser necesario proporcionar alguna dependencia previa a la compilación, como un fichero auxiliar, esta puede declararse en la regla \verb|all|, como se muestra en el código anterior con el fichero \texttt{aux.sh}.
+En este prototipo inicial no fue necesario hacer uso de esta característica, por lo que la dependencia mostrada debe entenderse únicamente como un ejemplo general de cómo declararla en caso de que fuera necesario.\\
+
+Una vez definida la herramienta de compilación mediante \textit{Makefile} y \textit{kbuild}, se implementó un módulo simple, \verb|hello_world.c|, con el fin de validar el ciclo de vida básico de un \textit{LKM}: carga del módulo en el \textit{Kernel}, ejecución de funciones controladoras de carga y descarga del módulo, registro de mensajes en el \textit{log} del \textit{Kernel} y posterior descarga del módulo.\\
+
+En primer lugar, se incluyeron las cabeceras necesarias para compilar el módulo y se declararon los metadatos básicos del componente:
+
+\begin{code}[h]
+\begin{lstlisting}[language=C]
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Noel Rodriguez Perez");
+MODULE_DESCRIPTION("A simple Hello world LKM!");
+MODULE_VERSION("0.1");
+\end{lstlisting}
+\caption[Cabeceras y metadatos del módulo \textit{Hello World}]{Cabeceras y metadatos del módulo \textit{Hello World}.}
+\label{cod:hello_headers}
+\end{code}
+
+En este fragmento se incorporan las cabeceras necesarias para programar un \textit{LKM} de \textit{Linux} y, por otro lado, se definen varios metadatos descriptivos del componente, visibles posteriormente mediante la herramienta \texttt{modinfo}.
+Entre ellos, la licencia resulta especialmente importante, debido a que condiciona el comportamiento del módulo dentro del \textit{Kernel} y determina si este queda marcado como \textit{tainted} al cargarse, no considerándose completamente limpio a efectos de depuración y soporte.\\
+
+A continuación, el módulo necesita implementar sus funciones de inicialización y salida:
+
+\begin{code}[h]
+\begin{lstlisting}[language=C]
+static int __init hello_start(void)
+{
+    printk(KERN_INFO "Loading hello world module...\n");
+    printk(KERN_INFO "Hello world!!\n");
+    return 0;
+}
+
+static void __exit hello_end(void)
+{
+    printk(KERN_INFO "Goodbye Mr.\n");
+}
+\end{lstlisting}
+\caption[Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}]{Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}.}
+\label{cod:hello_init_exit}
+\end{code}
+
+La función \verb|hello_start| se ejecuta al cargar el módulo en el \textit{Kernel} con \verb|insmod <module_name>.ko|. En este prototipo, su única finalidad es escribir mensajes en el \textit{buffer} de \textit{logs} del \textit{Kernel} mediante la función \verb|printk|, registrados también en el fichero \texttt{/var/log/kern.log}, utilizada como mecanismo habitual de salida de depuración y trazabilidad en \textit{Espacio del Kernel}, pudiendo elegir el nivel de prioridad de los mensajes.
+Análogamente, la función \verb|hello_end| se ejecuta al descargar el módulo con \verb|rmmod <module_name>| y permite comprobar que el ciclo de vida del componente se completa correctamente, verificando los \textit{logs} del \textit{Kernel} con \verb|dmesg|.\\
+
+Finalmente, ambos controladores deben asociarse explícitamente al flujo de control del módulo:
+
+\newpage
+
+\begin{code}[h]
+\begin{lstlisting}[language=C]
+module_init(hello_start);
+module_exit(hello_end);
+\end{lstlisting}
+\caption[Asociación de los puntos de entrada/carga y salida/descarga del módulo]{Asociación de los puntos de entrada/carga y salida/descarga del módulo.}
+\label{cod:hello_module_init}
+\end{code}
+
+Estas macros indican al \textit{Kernel} qué función debe ejecutarse durante la carga del módulo y cuál debe invocarse durante su descarga.
+Con ello queda definida la estructura mínima funcional de un \textit{LKM} y puede procederse a validar su correcto funcionamiento.\\
+
+Con permisos de administrador (\textit{root}), se compiló el módulo, se cargó en el \textit{Kernel}, se inspeccionaron las trazas registradas en el log del \textit{Kernel}, se consultaron los metadatos del propio módulo y, finalmente, se descargó verificando también la ejecución de la rutina de salida:
+
+\begin{code}[h]
+\begin{lstlisting}[language=bash]
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/lkms/hello_world.o
+  MODPOST /home/lkms/Module.symvers
+  CC [M]  /home/lkms/hello_world.mod.o
+  LD [M]  /home/lkms/hello_world.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod hello_world.ko
+$ dmesg -T | tail
+...
+[vie sept  5 19:45:58 2025] Loading hello world module...
+[vie sept  5 19:45:58 2025] Hello world!!
+...
+$ modinfo hello_world.ko
+filename:       /home/lkms/hello_world.ko
+version:        0.1
+description:    A simple Hello world LKM!
+author:         Noel Rodriguez Perez
+license:        GPL
+$ rmmod hello_world
+$ dmesg -T | tail
+...
+[vie sept  5 19:45:58 2025] Loading hello world module...
+[vie sept  5 19:45:58 2025] Hello world!!
+...
+[vie sept  5 19:46:30 2025] Goodbye Mr.
+...
+\end{lstlisting}
+\caption[Compilación, carga, consulta y descarga del prototipo \textit{Hello World}]{Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.}
+\label{cod:hello_validation}
+\end{code}
+
+Mediante este flujo de trabajo se verificó que el módulo podía compilarse correctamente como un \textit{LKM} externo, cargarse sin errores en el \textit{Kernel} ejecutando su rutina de inicialización, quedando correctamente asociados sus metadatos, ejecutar su rutina de salida al descargarse y registrar adecuadamente los mensajes mediante \verb|printk| durante ambas fases.
+
+\subsection{Manejadores del fichero virtual \texttt{/proc/fdev}}
+\label{sec:proto-proc-fdev}
+
+\subsection{\textit{File Handoff}}
+\label{sec:proto-file-handoff}
+
+\subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
+\label{sec:proto-crypto}
+
+\subsection{Sistema de reporte seguro entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}}
+\label{sec:proto-report}
 
 \section{Implementación}
 
