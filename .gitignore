@@ -1,7 +1,8 @@
-# Archivos temporales de macOS
+# Temporal macOS files
 .DS_Store
+.vscode
 
-# Artefactos de compilacion LaTeX
+# LaTeX compilation artifacts
 *.aux
 *.bbl
 *.bcf
@@ -17,9 +18,13 @@
 *.out
 *.run.xml
 *.synctex.gz
+*.synctex(busy)
 *.toc
 *.locode
 *.lomyequation
 
-# PDFs intermedios
+# Intermediate PDFs
 *tmp.pdf
+
+# PDFs - reports
+*.pdf

@@ -4,7 +4,7 @@
 Una vez definida la problemática abordada, los objetivos del proyecto y el marco tecnológico en el que se desarrolla, en este capítulo se describe el proceso seguido para construir la solución propuesta.
 Se presentan los prototipos desarrollados hasta alcanzar la versión final funcional, describiendo su implementación y validación, así como los errores encontrados y las soluciones adoptadas.
 
-\section{Prototipos}
+\section{Prototipos e Implementaciones}
 
 El desarrollo principal del proyecto se articuló mediante varios prototipos de \textit{LKM} construidos progresivamente y apoyados en las funcionalidades validadas en los anteriores.
 Esta estrategia permitió avanzar desde una primera toma de contacto con la programación en \textit{Espacio del Kernel} hasta la construcción del prototipo final capaz de generar un listado autenticado de los procesos activos del sistema desde dicha región privilegiada.
@@ -44,13 +44,15 @@ Una vez definida la herramienta de compilación mediante \textit{Makefile} y \te
 
 En primer lugar, se incluyeron las cabeceras necesarias para compilar el módulo y se declararon los metadatos básicos del componente:
 
+\newpage
+
 \begin{code}[h]
 \begin{lstlisting}[language=C]
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Noel Rodriguez Perez");
 MODULE_DESCRIPTION("A simple Hello world LKM!");
 MODULE_VERSION("0.1");
@@ -60,7 +62,10 @@ MODULE_VERSION("0.1");
 \end{code}
 
 En este fragmento se incorporan las cabeceras necesarias para programar un \textit{LKM} de \textit{Linux} y, por otro lado, se definen varios metadatos descriptivos del componente, visibles posteriormente mediante la herramienta \texttt{modinfo}.
-Entre ellos, la licencia resulta especialmente importante, debido a que condiciona el comportamiento del módulo dentro del \textit{Kernel} y determina si este queda marcado como \textit{tainted} al cargarse, no considerándose completamente limpio a efectos de depuración y soporte.\\
+Entre ellos, la licencia resulta especialmente importante, debido a que condiciona el comportamiento del módulo dentro del \textit{Kernel} y determina si este queda marcado como \textit{tainted} al cargarse, no considerándose completamente limpio a efectos de depuración y soporte.
+En este caso, se elige una licencia dual \textit{BSD/GPL}.
+Por un lado, la compatibilidad con \textit{GPL}, empleada por el propio \textit{Kernel} de \textit{Linux}, evita que el módulo quede marcado como \textit{tainted}.
+Por otro lado, la licencia \textit{BSD}, de carácter permisivo, permite el uso del módulo en entornos privativos sin tener que compartir el código fuente.\\
 
 A continuación, el módulo necesita implementar sus funciones de inicialización y salida:
 
@@ -87,8 +92,6 @@ Análogamente, la función \verb|hello_end| se ejecuta al descargar el módulo c
 
 Finalmente, ambos controladores deben asociarse explícitamente al flujo de control del módulo:
 
-\newpage
-
 \begin{code}[h]
 \begin{lstlisting}[language=C]
 module_init(hello_start);
@@ -103,7 +106,6 @@ Con ello queda definida la estructura mínima funcional de un \textit{LKM} y pue
 
 Con permisos de administrador (\textit{root}), se compiló el módulo, se cargó en el \textit{Kernel}, se inspeccionaron las trazas registradas en el log del \textit{Kernel}, se consultaron los metadatos del propio módulo y, finalmente, se descargó verificando también la ejecución de la rutina de salida:
 
-\begin{code}[h]
 \begin{lstlisting}[language=bash]
 $ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
@@ -116,8 +118,8 @@ make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 $ insmod hello_world.ko
 $ dmesg -T | tail
 ...
-[vie sept  5 19:45:58 2025] Loading hello world module...
-[vie sept  5 19:45:58 2025] Hello world!!
+[Fri Sep  5 19:45:58 2025] Loading hello world module...
+[Fri Sep  5 19:45:58 2025] Hello world!!
 ...
 $ modinfo hello_world.ko
 filename:       /home/lkms/hello_world.ko
@@ -128,31 +130,218 @@ license:        GPL
 $ rmmod hello_world
 $ dmesg -T | tail
 ...
-[vie sept  5 19:45:58 2025] Loading hello world module...
-[vie sept  5 19:45:58 2025] Hello world!!
+[Fri Sep  5 19:45:58 2025] Loading hello world module...
+[Fri Sep  5 19:45:58 2025] Hello world!!
 ...
-[vie sept  5 19:46:30 2025] Goodbye Mr.
+[Fri Sep  5 19:46:30 2025] Goodbye Mr.
 ...
 \end{lstlisting}
-\caption[Compilación, carga, consulta y descarga del prototipo \textit{Hello World}]{Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.}
+\captionsetup{type=code}
+\captionof{code}[Compilación, carga, consulta y descarga del prototipo \textit{Hello World}]{Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.}
 \label{cod:hello_validation}
-\end{code}
+
+\
+
+\
 
 Mediante este flujo de trabajo se verificó que el módulo podía compilarse correctamente como un \textit{LKM} externo, cargarse sin errores en el \textit{Kernel} ejecutando su rutina de inicialización, quedando correctamente asociados sus metadatos, ejecutar su rutina de salida al descargarse y registrar adecuadamente los mensajes mediante \verb|printk| durante ambas fases.
 
-\subsection{Manejadores del fichero virtual \texttt{/proc/fdev}}
+\subsection{Fichero virtual \texttt{/proc/fdev}}
 \label{sec:proto-proc-fdev}
+
+El siguiente paso consistió en dotar al módulo de una interfaz de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.
+Para ello, se recurrió al sistema de ficheros virtual \texttt{/proc} para exponer información del \textit{Kernel} y permitir la interacción controlada con el \textit{LKM} mediante la creación de un fichero virtual propio en este sistema, \texttt{/proc/fdev}.\\
+
+El objetivo principal de esta fase fue comprobar que el módulo podía crear una entrada propia en \texttt{/proc}, asociarle funciones manejadoras (\textit{handlers}) de lectura y escritura, y responder de manera controlada a estas operaciones invocadas desde \textit{Espacio de Usuario}.\\
+
+En primer lugar, fue necesario ampliar el conjunto de cabeceras incluidas en el módulo para poder trabajar con \texttt{/proc} y con las transferencias de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}:
+
+\begin{code}[h]
+\begin{lstlisting}[language=C]
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/proc_fs.h>
+#include <asm/uaccess.h>
+\end{lstlisting}
+\caption[Cabeceras para el prototipo basado en \texttt{/proc}]{Cabeceras para el prototipo basado en \texttt{/proc}.}
+\label{cod:proc_headers}
+\end{code}
+
+Se incorporan \verb|<linux/proc_fs.h>|, necesaria para crear y gestionar entradas dentro del sistema de ficheros virtual \texttt{/proc}, y por otro lado, \verb|<asm/uaccess.h>|, que importa funcionalidades como \verb|copy_to_user| y \verb|copy_from_user|, utilizadas para transferir información de forma controlada y segura entre la memoria del \textit{Kernel} y la memoria de \textit{Espacio de Usuario}.\\
+
+A continuación, fue necesario definir una referencia a la entrada virtual y la tabla de operaciones asociada a dicha entrada en \texttt{/proc}:
+
+\begin{code}[h]
+\begin{lstlisting}[language=C]
+static struct proc_dir_entry *ent;
+
+static struct file_operations myops =
+{
+    .owner = THIS_MODULE,
+    .read = myread,
+    .write = mywrite,
+};
+
+static int simple_init(void)
+{
+    ent = proc_create("fdev", 0660, NULL, &myops);
+    if (!ent)
+        return -ENOMEM;
+    printk(KERN_INFO "/proc/fdev created\n");
+    return 0;
+}
+
+static void simple_cleanup(void)
+{
+    proc_remove(ent);
+    printk(KERN_INFO "/proc/fdev removed\n");
+}
+
+module_init(simple_init);
+module_exit(simple_cleanup);
+\end{lstlisting}
+\caption[Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}]{Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}.}
+\label{cod:proc_entry_ops}
+\end{code}
+
+En este fragmento, el puntero \verb|ent| almacena la referencia a la entrada que se crea en \texttt{/proc} al cargar el módulo, permitiendo posteriormente su gestión y eliminación al descargarlo.
+Por otro lado, la estructura \verb|myops| define la tabla de operaciones del fichero virtual a crear, asociando las acciones de lectura y escritura sobre dicho fichero con las funciones manejadoras (\textit{handlers}) \verb|myread| y \verb|mywrite|, respectivamente.
+Además, el campo \verb|.owner = THIS_MODULE| vincula estas operaciones al propio módulo cargado.
+Por último, \verb|simple_init| crea la entrada virtual \texttt{/proc/fdev} mediante \verb|proc_create| durante la carga del módulo, devolviendo \texttt{-ENOMEM} (\textit{no memory error}) si la entrada no puede crearse, mientras que \verb|simple_cleanup| la elimina con \verb|proc_remove| durante su descarga.\\
+
+Un aspecto a resaltar en el desarrollo de los prototipos de \textit{Módulos del Kernel} es la conveniencia de usar \textit{static} para declarar variables y funciones que no se van a utilizar fuera del propio módulo, restringiendo así su visibilidad al código fuente del módulo y favoreciendo una mejor encapsulación del código, por lo que este criterio se mantendrá en el resto del proyecto.\\
+
+Una vez creada la entrada al fichero virtual \texttt{/proc/fdev} y asociada su tabla de operaciones, se implementaron los \textit{handlers} de escritura y lectura de dicho fichero:
+
+\begin{lstlisting}[language=C]
+enum { BUFSIZE = 100 };
+
+static int irq = 20;
+static int mode = 1;
+
+static ssize_t mywrite(struct file *file, const char __user *ubuf,
+		       size_t count, loff_t *ppos)
+{
+	int num, c, i, m;
+	char buf[BUFSIZE];
+
+	printk(KERN_DEBUG "write handler\n");
+
+	if (*ppos > 0 || count >= BUFSIZE)
+		return -EFAULT;
+
+	if (copy_from_user(buf, ubuf, count))
+		return -EFAULT;
+
+	num = sscanf(buf, "%d %d", &i, &m);
+	if (num != 2)
+		return -EFAULT;
+
+	irq = i;
+	mode = m;
+
+	c = strlen(buf);
+	*ppos = c;
+
+	printk(KERN_DEBUG "written to /proc/fdev: %d bytes received from user\n", c);
+	return c;
+}
+
+static ssize_t myread(struct file *file, char __user *ubuf,
+		      size_t count, loff_t *ppos)
+{
+	char buf[BUFSIZE];
+	int len = 0;
+
+	printk(KERN_DEBUG "read handler\n");
+
+	if (*ppos > 0 || count < BUFSIZE)
+		return 0;
+
+	len += sprintf(buf, "irq = %d\n", irq);
+	len += sprintf(buf + len, "mode = %d\n", mode);
+
+	if (copy_to_user(ubuf, buf, len))
+		return -EFAULT;
+
+	*ppos = len;
+
+	printk(KERN_DEBUG "read from /proc/fdev: %d bytes sent to user\n", len);
+	return len;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[\textit{Handlers} con transferencia de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}]{\textit{Handlers} con transferencia de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.}
+\label{cod:proc_rw_handlers}
+
+\
+
+\
+
+La función manejadora de escritura, \verb|mywrite|, recibe datos desde \textit{Espacio de Usuario} mediante \verb|copy_from_user|, trasladando \verb|count| bytes del \textit{buffer} de memoria de usuario (\textit{ubuf}) a un \textit{buffer} en memoria del \textit{Kernel} (\textit{buf}).
+Análogamente, \verb|myread| devuelve datos hacia \textit{Espacio de Usuario} mediante \verb|copy_to_user|, trasladando \verb|len| bytes del \textit{buffer} en memoria del \textit{Kernel} (\textit{buf}) al \textit{buffer} de memoria de usuario (\textit{ubuf}).
+Además, mediante el puntero de posición del fichero (\verb|*ppos|) se impuso una semántica de acceso de tipo \textit{single-shot}, evitando lecturas o escrituras repetidas sobre la misma apertura del fichero virtual.\\
+
+En este ejemplo, los valores \verb|irq| y \verb|mode| se emplean como variables enteras de prueba para validar el intercambio de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, permitiendo comprobar su correcta interpretación a partir de los datos recibidos mediante \verb|sscanf|, así como su formateo para la salida mediante \verb|sprintf|, y retornando errores como \texttt{-EFAULT} (\textit{bad address}) cuando no se cumplen dichas restricciones o cuando el formato de entrada no es el esperado.
+Por otro lado, se define una constante de tipo enumerado \verb|BUFSIZE| para fijar de forma simple el tamaño máximo del \textit{buffer} temporal utilizado, en este caso 100 bytes, tanto para la lectura como para la escritura.\\
+
+Ya creado el fichero virtual \texttt{/proc/fdev} y sus funciones manejadoras de lectura y escritura, se procedió a comprobar el correcto funcionamiento del prototipo asumiendo que se dispone de permisos de administrador (\texttt{root}) sobre el sistema:
+
+\begin{lstlisting}[language=bash]
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/lkms/proc_fdev.o
+  MODPOST /home/lkms/Module.symvers
+  CC [M]  /home/lkms/proc_fdev.mod.o
+  LD [M]  /home/lkms/proc_fdev.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod proc_fdev.ko
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:25:58 2025] /proc/fdev created
+$ ls -l /proc/fdev
+-rw-rw---- 1 root root 0 Oct  14 17:25 /proc/fdev
+$ echo "7 3" > /proc/fdev
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:26:10 2025] write handler
+[Tue Oct 14 17:26:10 2025] written to /proc/fdev: 4 bytes received from user
+$ cat /proc/fdev
+irq = 7
+mode = 3
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:26:18 2025] read handler
+[Tue Oct 14 17:26:18 2025] read from /proc/fdev: 17 bytes sent to user
+$ rmmod proc_fdev
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:26:30 2025] /proc/fdev removed
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Validación básica del prototipo basado en \texttt{/proc/fdev}]{Validación básica del prototipo basado en \texttt{/proc/fdev}.}
+\label{cod:proc_validation}
+
+\
+
+\
+
+Mediante esta validación se comprobó que toda la funcionalidad del módulo se ejecutaba correctamente, tanto la creación de la entrada virtual \texttt{/proc/fdev}, como sus operaciones personalizadas de lectura y escritura, asegurando una vía básica de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.\\
 
 \subsection{\textit{File Handoff}}
 \label{sec:proto-file-handoff}
+
+
+
+
 
 \subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
 \label{sec:proto-crypto}
 
 \subsection{Sistema de reporte seguro entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}}
 \label{sec:proto-report}
-
-\section{Implementación}
 
 \section{Validación y Errores}
 
@@ -268,4 +457,3 @@ Lente SLR equivalente & 29 mm \\
 \label{cuadro:ejemplo}
 \end{center}
 \end{table}
-
