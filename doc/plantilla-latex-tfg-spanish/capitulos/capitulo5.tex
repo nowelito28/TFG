@@ -2,7 +2,10 @@
 \label{cap:capitulo5}
 
 Una vez definida la problemática abordada, los objetivos del proyecto y el marco tecnológico en el que se desarrolla, en este capítulo se describe el proceso seguido para construir la solución propuesta.
-Se presentan los prototipos desarrollados hasta alcanzar la versión final funcional, describiendo su implementación y validación, así como los errores encontrados y las soluciones adoptadas.
+Se presentan los prototipos desarrollados hasta alcanzar la versión final funcional, describiendo su implementación y validación, así como los errores encontrados y las soluciones adoptadas.\\
+
+Cabe resaltar que el código fuente oficial del \textit{Kernel} de \textit{Linux} se encuentra disponible en \url{https://www.kernel.org}, y que la versión del \textit{Kernel} utilizada en el proyecto es la \texttt{6.12.41-current-bcm2711}.
+Esta precisión resulta importante, ya que el desarrollo y las referencias consultadas se basan en el código fuente de esta versión, pudiendo variar tanto la funcionalidad como la localización de algunos recursos respecto a otras versiones del \textit{Kernel}.\\
 
 \section{Prototipos e Implementaciones}
 
@@ -43,8 +46,6 @@ En este prototipo inicial no fue necesario hacer uso de esta característica, po
 Una vez definida la herramienta de compilación mediante \textit{Makefile} y \textit{kbuild}, se implementó un módulo simple, \verb|hello_world.c|, con el fin de validar el ciclo de vida básico de un \textit{LKM}: carga del módulo en el \textit{Kernel}, ejecución de funciones controladoras de carga y descarga del módulo, registro de mensajes en el \textit{log} del \textit{Kernel} y posterior descarga del módulo.\\
 
 En primer lugar, se incluyeron las cabeceras necesarias para compilar el módulo y se declararon los metadatos básicos del componente:
-
-\newpage
 
 \begin{code}[h]
 \begin{lstlisting}[language=C]
@@ -90,6 +91,8 @@ static void __exit hello_end(void)
 La función \verb|hello_start| se ejecuta al cargar el módulo en el \textit{Kernel} con \verb|insmod <module_name>.ko|. En este prototipo, su única finalidad es escribir mensajes en el \textit{buffer} de \textit{logs} del \textit{Kernel} mediante la función \verb|printk|, registrados también en el fichero \texttt{/var/log/kern.log}, utilizada como mecanismo habitual de salida de depuración y trazabilidad en \textit{Espacio del Kernel}, pudiendo elegir el nivel de prioridad de los mensajes.
 Análogamente, la función \verb|hello_end| se ejecuta al descargar el módulo con \verb|rmmod <module_name>| y permite comprobar que el ciclo de vida del componente se completa correctamente, verificando los \textit{logs} del \textit{Kernel} con \verb|dmesg|.\\
 
+El uso de \verb|printk| se verificó en el código fuente del registro de mensajes del \textit{Kernel}, expuesto en \texttt{include/linux/printk.h}, donde se definen la propia función y los distintos niveles de prioridad que pueden asociarse a cada traza, como \verb|KERN_INFO|, \verb|KERN_DEBUG| o \verb|KERN_ERR|.\\
+
 Finalmente, ambos controladores deben asociarse explícitamente al flujo de control del módulo:
 
 \begin{code}[h]
@@ -126,7 +129,7 @@ filename:       /home/lkms/hello_world.ko
 version:        0.1
 description:    A simple Hello world LKM!
 author:         Noel Rodriguez Perez
-license:        GPL
+license:        Dual BSD/GPL
 $ rmmod hello_world
 $ dmesg -T | tail
 ...
@@ -207,6 +210,8 @@ Por otro lado, la estructura \verb|myops| define la tabla de operaciones del fic
 Además, el campo \verb|.owner = THIS_MODULE| vincula estas operaciones al propio módulo cargado.
 Por último, \verb|simple_init| crea la entrada virtual \texttt{/proc/fdev} mediante \verb|proc_create| durante la carga del módulo, devolviendo \texttt{-ENOMEM} (\textit{no memory error}) si la entrada no puede crearse, mientras que \verb|simple_cleanup| la elimina con \verb|proc_remove| durante su descarga.\\
 
+El empleo de \verb|struct proc_dir_entry|, \verb|proc_create| y \verb|proc_remove| se contrastó en el código fuente del sistema de ficheros \texttt{/proc} del \textit{Kernel}, definido en \texttt{include/linux/proc\_fs.h} y desarrollado en el subsistema \texttt{fs/proc}, mientras que \verb|struct file_operations| se implementa en la interfaz general de operaciones sobre ficheros expuesta en \texttt{include/linux/fs.h}.\\
+
 Un aspecto a resaltar en el desarrollo de los prototipos de \textit{Módulos del Kernel} es la conveniencia de usar \textit{static} para declarar variables y funciones que no se van a utilizar fuera del propio módulo, restringiendo así su visibilidad al código fuente del módulo y favoreciendo una mejor encapsulación del código, por lo que este criterio se mantendrá en el resto del proyecto.\\
 
 Una vez creada la entrada al fichero virtual \texttt{/proc/fdev} y asociada su tabla de operaciones, se implementaron los \textit{handlers} de escritura y lectura de dicho fichero:
@@ -226,7 +231,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,
     if (*ppos > 0 || count >= BUFSIZE)
         return -EFAULT;
 
-    printk(KERN_DEBUG "/proc/fddev: write handler\n");
+    printk(KERN_DEBUG "/proc/fdev: write handler\n");
 
     if (copy_from_user(buf, ubuf, count))
         return -EFAULT;
@@ -241,7 +246,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,
     c = strlen(buf);
     *ppos = c;
 
-    printk(KERN_DEBUG "/proc/fddev: %d bytes received from userspace\n", c);
+    printk(KERN_DEBUG "/proc/fdev: %d bytes received from userspace\n", c);
     return c;
 }
 
@@ -254,7 +259,7 @@ static ssize_t myread(struct file *file, char __user *ubuf,
     if (*ppos > 0 || count < BUFSIZE)
         return 0;
 
-    printk(KERN_DEBUG "/proc/fddev: read handler\n");
+    printk(KERN_DEBUG "/proc/fdev: read handler\n");
 
     len += sprintf(buf, "irq = %d\n", irq);
     len += sprintf(buf + len, "mode = %d\n", mode);
@@ -264,7 +269,7 @@ static ssize_t myread(struct file *file, char __user *ubuf,
 
     *ppos = len;
 
-    printk(KERN_DEBUG "/proc/fddev: %d bytes sent to userspace\n", len);
+    printk(KERN_DEBUG "/proc/fdev: %d bytes sent to userspace\n", len);
     return len;
 }
 \end{lstlisting}
@@ -279,6 +284,8 @@ static ssize_t myread(struct file *file, char __user *ubuf,
 La función manejadora de escritura, \verb|mywrite|, recibe datos desde \textit{Espacio de Usuario} mediante \verb|copy_from_user|, trasladando \verb|count| bytes del \textit{buffer} de memoria de usuario (\verb|ubuf|) a un \textit{buffer} en memoria del \textit{Kernel} (\verb|buf|).
 Análogamente, \verb|myread| devuelve datos hacia \textit{Espacio de Usuario} mediante \verb|copy_to_user|, trasladando \verb|len| bytes del \textit{buffer} en memoria del \textit{Kernel} (\verb|buf|) al \textit{buffer} de memoria de usuario (\verb|ubuf|).
 Además, mediante el puntero de posición del fichero (\verb|*ppos|) se impuso una semántica de acceso de tipo \textit{single-shot}, evitando lecturas o escrituras repetidas sobre la misma apertura del fichero virtual.\\
+
+El empleo de \verb|copy_from_user| y \verb|copy_to_user| se contrastó en la infraestructura \texttt{uaccess} del código fuente del \textit{Kernel}, concretamente en \texttt{include/linux/uaccess.h}, donde ambas funciones se apoyan sobre las primitivas internas \verb|raw_copy_from_user| y \verb|raw_copy_to_user|.\\
 
 En este ejemplo, los valores \verb|irq| y \verb|mode| se emplean como variables enteras de prueba para validar el intercambio de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, permitiendo comprobar su correcta interpretación a partir de los datos recibidos mediante \verb|sscanf|, así como su formateo para la salida mediante \verb|sprintf|, y retornando errores como \texttt{-EFAULT} (\textit{bad address}) cuando no se cumplen dichas restricciones o cuando el formato de entrada no es el esperado.
 Por otro lado, se define una constante de tipo enumerado \verb|BUFSIZE| para fijar de forma simple el tamaño máximo del \textit{buffer} temporal utilizado, en este caso 100 bytes, tanto para la lectura como para la escritura.\\
@@ -303,15 +310,15 @@ $ ls -l /proc/fdev
 $ echo "7 3" > /proc/fdev
 $ dmesg -T | tail
 ...
-[Tue Oct 14 17:26:10 2025] /proc/fddev: write handler
-[Tue Oct 14 17:26:10 2025] written to /proc/fdev: 4 bytes received from user
+[Tue Oct 14 17:26:10 2025] /proc/fdev: write handler
+[Tue Oct 14 17:26:10 2025] /proc/fdev: 4 bytes received from userspace
 $ cat /proc/fdev
 irq = 7
 mode = 3
 $ dmesg -T | tail
 ...
-[Tue Oct 14 17:26:18 2025] /proc/fddev: read handler
-[Tue Oct 14 17:26:18 2025] /proc/fddev: 17 bytes sent to userspace
+[Tue Oct 14 17:26:18 2025] /proc/fdev: read handler
+[Tue Oct 14 17:26:18 2025] /proc/fdev: 17 bytes sent to userspace
 $ rmmod proc_fdev
 $ dmesg -T | tail
 ...
@@ -366,14 +373,14 @@ static ssize_t myread(struct file *file, char __user *ubuf,
     if (*ppos > 0 || count < len)
         return 0;
 
-    printk(KERN_DEBUG "/proc/fddev: read handler\n");
+    printk(KERN_DEBUG "/proc/fdev: read handler\n");
 
     if (copy_to_user(ubuf, buf, len))
         return -EFAULT;
 
     *ppos = len;
 
-    printk(KERN_DEBUG "/proc/fddev: %d bytes sent to userspace\n", len);
+    printk(KERN_DEBUG "/proc/fdev: %d bytes sent to userspace\n", len);
     return len;
 }
 \end{lstlisting}
@@ -417,7 +424,11 @@ static int write_full(struct file *f, const char *buf, int len)
 
 \
 
+La función auxiliar \verb|write_full| encapsula la lógica de escritura completa sobre un fichero ya abierto desde \textit{Espacio del Kernel}, garantizando que todo el contenido del \textit{buffer} (\verb|buf|) se escriba mediante llamadas sucesivas a \verb|kernel_write| hasta completar el número total de \textit{bytes} solicitado.
+Además, se eligió operar sobre ficheros abiertos en modo \textit{append}, para poder realizar la escritura a partir del último \textit{byte} disponible del fichero, evitando así problemas de concurrencia asociados al manejo del puntero de escritura (\verb|ppos|). Estas condiciones son verificadas en la función auxiliar \verb|val_metadata|.
+Sin embargo, en caso de que la escritura devuelva un error o no avance, se retorna el código correspondiente, devolviendo \texttt{-EIO} en este último caso.
 
+El uso de \verb|kernel_write| se apoyó en la verificación de su implementación dentro del código fuente del \textit{VFS} del \textit{Kernel}, concretamente en el fichero \texttt{fs/read\_write.c}.\\
 
 \begin{lstlisting}[language=C]
 static int val_metadata(struct file *f)
@@ -442,7 +453,13 @@ static int val_metadata(struct file *f)
 
 \
 
+En este caso, la función auxiliar \verb|val_metadata| encapsula la lógica de validación previa del fichero referenciado desde \textit{Espacio de Usuario}, comprobando que se puede usar de forma segura en modo \textit{append} desde \textit{Espacio del Kernel}.
+En primer lugar, se verifica que haya sido abierto con capacidad de escritura (\verb|FMODE_WRITE|) y con el \textit{flag} \verb|O_APPEND|, evitando accesos incompatibles con la política definida para este prototipo.
+Seguidamente, se comprueban sus permisos efectivos mediante \verb|file_permission|, asegurando que el \textit{Kernel} puede realizar sobre él operaciones de escritura y anexado, mediante los permisos \verb|MAY_WRITE| y \verb|MAY_APPEND|.
+En caso de que alguna de estas restricciones no se cumpla, la función retorna el código de error correspondiente, devolviendo \texttt{-EBADF} (\textit{bad file error}) cuando los metadatos de apertura no son válidos.
 
+En esta parte se tuvo que consultar también el código fuente del \textit{Kernel}. El uso de \verb|file_permission| se apoyó en su definición en el fichero \texttt{include/linux/fs.h}, mientras que la relación entre \verb|O_APPEND| y \verb|MAY_APPEND| se contrastó en el fichero \texttt{fs/open.c}.
+Además, en \texttt{fs/namei.c}, dentro de la función \verb|inode_permission|, se expone explícitamente que toda comprobación con \verb|MAY_APPEND| debe incluir también \verb|MAY_WRITE|.\\
 
 \begin{lstlisting}[language=C]
 static ssize_t mywrite(struct file *file, const char __user *ubuf,
@@ -457,7 +474,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,
     if (*ppos > 0 || count > BUFSIZE)
         return -EFAULT;
 
-    printk(KERN_DEBUG "/proc/fddev: write handler\n");
+    printk(KERN_DEBUG "/proc/fdev: write handler\n");
 
     if (copy_from_user(buf, ubuf, count))
         return -EFAULT;
@@ -483,7 +500,7 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,
     if (rv < 0)
         goto out_put;
 
-    printk(KERN_DEBUG "/proc/fddev: %d bytes written to handoff file\n", rv);
+    printk(KERN_DEBUG "/proc/fdev: %d bytes written to handoff file\n", rv);
 
 out_put:
     fput(f);
@@ -498,6 +515,13 @@ out_put:
 
 \
 
+Finalmente, la función manejadora \verb|mywrite| concentra la lógica principal del mecanismo de \textit{File Handoff}, recibiendo desde \textit{Espacio de Usuario} el descriptor de fichero codificado como cadena de \textit{bytes} a través de \texttt{/proc/fdev}.
+En primer lugar, al igual que en el anterior prototipo, se comprueba que se cumpla la semántica de acceso de tipo \textit{single-shot} y que no se exceda el tamaño máximo fijado por \verb|BUFSIZE|, realizando posteriormente el traspaso de información a memoria del \textit{Kernel} mediante \verb|copy_from_user|.
+A continuación, la cadena de \textit{bytes} recibida se convierte a un valor entero decimal con \verb|kstrtoint|, obteniendo así el \textit{FD} correspondiente.
+De esta manera, mediante \verb|fget| y el \textit{FD} obtenido, se recupera la referencia al fichero real dentro del \textit{Kernel}, tras lo cual se verifican sus permisos con \verb|val_metadata| para comprobar que se ajustan a la política fijada, y se escribe en él una cadena estática de prueba mediante \verb|write_full|.
+Finalmente, la referencia al fichero se libera con \verb|fput|, devolviendo en cada caso el código de error correspondiente si alguna de las comprobaciones falla, con ayuda del uso de la etiqueta \verb|goto| (\verb|out_put|).
+
+El empleo de \verb|kstrtoint|, \verb|fget| y \verb|fput| se contrastó con el código fuente del \textit{Kernel}, localizando \verb|kstrtoint| en el fichero \texttt{lib/kstrtox.c}, mientras que \verb|fget| y \verb|fput| se encuentran dentro de \texttt{fs/file.c} y \texttt{fs/file\_table.c}, variando las líneas en las que se localizan según la versión del núcleo considerada.\\
 
 
 \subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
@@ -507,4 +531,3 @@ out_put:
 \label{sec:proto-report}
 
 \section{Validación y Errores}
-
