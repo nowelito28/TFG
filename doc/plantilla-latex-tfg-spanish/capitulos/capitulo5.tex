@@ -158,13 +158,10 @@ En primer lugar, fue necesario ampliar el conjunto de cabeceras incluidas en el 
 
 \begin{code}[h]
 \begin{lstlisting}[language=C]
-#include <linux/module.h>
-#include <linux/init.h>
-#include <linux/kernel.h>
 #include <linux/proc_fs.h>
 #include <asm/uaccess.h>
 \end{lstlisting}
-\caption[Cabeceras para el prototipo basado en \texttt{/proc}]{Cabeceras para el prototipo basado en \texttt{/proc}.}
+\caption[Cabeceras adicionales para el prototipo basado en \texttt{/proc}]{Cabeceras adicionales para el prototipo basado en \texttt{/proc}.}
 \label{cod:proc_headers}
 \end{code}
 
@@ -223,52 +220,52 @@ static int mode = 1;
 static ssize_t mywrite(struct file *file, const char __user *ubuf,
 		       size_t count, loff_t *ppos)
 {
-	int num, c, i, m;
-	char buf[BUFSIZE];
+    int num, c, i, m;
+    char buf[BUFSIZE];
 
-	printk(KERN_DEBUG "write handler\n");
+    if (*ppos > 0 || count >= BUFSIZE)
+        return -EFAULT;
 
-	if (*ppos > 0 || count >= BUFSIZE)
-		return -EFAULT;
+    printk(KERN_DEBUG "/proc/fddev: write handler\n");
 
-	if (copy_from_user(buf, ubuf, count))
-		return -EFAULT;
+    if (copy_from_user(buf, ubuf, count))
+        return -EFAULT;
 
-	num = sscanf(buf, "%d %d", &i, &m);
-	if (num != 2)
-		return -EFAULT;
+    num = sscanf(buf, "%d %d", &i, &m);
+    if (num != 2)
+        return -EFAULT;
 
-	irq = i;
-	mode = m;
+    irq = i;
+    mode = m;
 
-	c = strlen(buf);
-	*ppos = c;
+    c = strlen(buf);
+    *ppos = c;
 
-	printk(KERN_DEBUG "written to /proc/fdev: %d bytes received from user\n", c);
-	return c;
+    printk(KERN_DEBUG "/proc/fddev: %d bytes received from userspace\n", c);
+    return c;
 }
 
 static ssize_t myread(struct file *file, char __user *ubuf,
 		      size_t count, loff_t *ppos)
 {
-	char buf[BUFSIZE];
-	int len = 0;
+    char buf[BUFSIZE];
+    int len = 0;
 
-	printk(KERN_DEBUG "read handler\n");
+    if (*ppos > 0 || count < BUFSIZE)
+        return 0;
 
-	if (*ppos > 0 || count < BUFSIZE)
-		return 0;
+    printk(KERN_DEBUG "/proc/fddev: read handler\n");
 
-	len += sprintf(buf, "irq = %d\n", irq);
-	len += sprintf(buf + len, "mode = %d\n", mode);
+    len += sprintf(buf, "irq = %d\n", irq);
+    len += sprintf(buf + len, "mode = %d\n", mode);
 
-	if (copy_to_user(ubuf, buf, len))
-		return -EFAULT;
+    if (copy_to_user(ubuf, buf, len))
+        return -EFAULT;
 
-	*ppos = len;
+    *ppos = len;
 
-	printk(KERN_DEBUG "read from /proc/fdev: %d bytes sent to user\n", len);
-	return len;
+    printk(KERN_DEBUG "/proc/fddev: %d bytes sent to userspace\n", len);
+    return len;
 }
 \end{lstlisting}
 \captionsetup{type=code}
@@ -279,8 +276,8 @@ static ssize_t myread(struct file *file, char __user *ubuf,
 
 \
 
-La función manejadora de escritura, \verb|mywrite|, recibe datos desde \textit{Espacio de Usuario} mediante \verb|copy_from_user|, trasladando \verb|count| bytes del \textit{buffer} de memoria de usuario (\textit{ubuf}) a un \textit{buffer} en memoria del \textit{Kernel} (\textit{buf}).
-Análogamente, \verb|myread| devuelve datos hacia \textit{Espacio de Usuario} mediante \verb|copy_to_user|, trasladando \verb|len| bytes del \textit{buffer} en memoria del \textit{Kernel} (\textit{buf}) al \textit{buffer} de memoria de usuario (\textit{ubuf}).
+La función manejadora de escritura, \verb|mywrite|, recibe datos desde \textit{Espacio de Usuario} mediante \verb|copy_from_user|, trasladando \verb|count| bytes del \textit{buffer} de memoria de usuario (\verb|ubuf|) a un \textit{buffer} en memoria del \textit{Kernel} (\verb|buf|).
+Análogamente, \verb|myread| devuelve datos hacia \textit{Espacio de Usuario} mediante \verb|copy_to_user|, trasladando \verb|len| bytes del \textit{buffer} en memoria del \textit{Kernel} (\verb|buf|) al \textit{buffer} de memoria de usuario (\verb|ubuf|).
 Además, mediante el puntero de posición del fichero (\verb|*ppos|) se impuso una semántica de acceso de tipo \textit{single-shot}, evitando lecturas o escrituras repetidas sobre la misma apertura del fichero virtual.\\
 
 En este ejemplo, los valores \verb|irq| y \verb|mode| se emplean como variables enteras de prueba para validar el intercambio de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, permitiendo comprobar su correcta interpretación a partir de los datos recibidos mediante \verb|sscanf|, así como su formateo para la salida mediante \verb|sprintf|, y retornando errores como \texttt{-EFAULT} (\textit{bad address}) cuando no se cumplen dichas restricciones o cuando el formato de entrada no es el esperado.
@@ -306,15 +303,15 @@ $ ls -l /proc/fdev
 $ echo "7 3" > /proc/fdev
 $ dmesg -T | tail
 ...
-[Tue Oct 14 17:26:10 2025] write handler
+[Tue Oct 14 17:26:10 2025] /proc/fddev: write handler
 [Tue Oct 14 17:26:10 2025] written to /proc/fdev: 4 bytes received from user
 $ cat /proc/fdev
 irq = 7
 mode = 3
 $ dmesg -T | tail
 ...
-[Tue Oct 14 17:26:18 2025] read handler
-[Tue Oct 14 17:26:18 2025] read from /proc/fdev: 17 bytes sent to user
+[Tue Oct 14 17:26:18 2025] /proc/fddev: read handler
+[Tue Oct 14 17:26:18 2025] /proc/fddev: 17 bytes sent to userspace
 $ rmmod proc_fdev
 $ dmesg -T | tail
 ...
@@ -333,7 +330,173 @@ Mediante esta validación se comprobó que toda la funcionalidad del módulo se 
 \subsection{\textit{File Handoff}}
 \label{sec:proto-file-handoff}
 
+Una vez creada una entrada válida en \texttt{/proc} y logrado así el intercambio básico de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel} de forma controlada, el siguiente paso consistió en implementar un mecanismo que permitiese al módulo operar sobre un fichero real del sistema de ficheros.
+Para ello, se planteó el traspaso de la referencia de un fichero (\textit{File Descriptor} o \textit{Descriptor de Fichero}) desde \textit{Espacio de Usuario} hacia el \textit{LKM}, utilizando como interfaz de entrada el propio fichero virtual \texttt{/proc/fdev} desarrollado en el prototipo anterior.\\
 
+El objetivo general de este prototipo fue comprobar que el módulo podía recibir desde \textit{Espacio de Usuario} el \textit{FD} de un fichero codificado como cadena de \textit{bytes} y convertirlo a un valor de tipo \textit{int} (entero), resolver internamente dicha referencia para localizar en el \textit{Kernel} el fichero correspondiente y utilizarlo para transferir información desde dicha región privilegiada hacia un fichero del sistema.
+Con ello, el administrador puede decidir en qué fichero se deposita la información solicitada de forma controlada.\\
+
+Para implementar este mecanismo fue necesario ampliar nuevamente las cabeceras incluidas en el módulo:
+
+\begin{code}[h]
+\begin{lstlisting}[language=C]
+#include <linux/file.h>
+#include <linux/fs.h>
+#include <linux/kstrtox.h>
+#include <linux/security.h>
+\end{lstlisting}
+\caption[Cabeceras adicionales para el mecanismo de \textit{File Handoff}]{Cabeceras adicionales para el mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_headers}
+\end{code}
+
+La cabecera \verb|<linux/file.h>| permite trabajar con las referencias internas a ficheros del \textit{Kernel}, como la estructura de datos \verb|struct file|, así como resolver un \textit{FD} mediante \verb|fget|.
+Por otro lado, \verb|<linux/fs.h>| aporta definiciones generales del subsistema de ficheros, incluyendo modos y \textit{flags} de apertura.
+También se añade la cabecera \verb|<linux/kstrtox.h>|, que proporciona funciones de conversión seguras, como \verb|kstrtoint|, para transformar una cadena de \textit{bytes} en un entero.
+Finalmente, \verb|<linux/security.h>| permite validar permisos sobre ficheros referenciados mediante mecanismos de control de acceso del \textit{Kernel}, como \verb|file_permission|.\\
+
+En cuanto a la función manejadora de lectura, se simplificó respecto a la del anterior prototipo, limitándose a devolver una cadena de información determinista que indicase al administrador que el módulo se encuentra preparado para recibir un \textit{Descriptor de Fichero} (\textit{FD}) y realizar el \textit{File Handoff}:
+
+\begin{lstlisting}[language=C]
+static ssize_t myread(struct file *file, char __user *ubuf,
+		      size_t count, loff_t *ppos)
+{
+    char buf[] = "Waiting for a FD to perform file handoff\n";
+    int len = strlen(buf);
+
+    if (*ppos > 0 || count < len)
+        return 0;
+
+    printk(KERN_DEBUG "/proc/fddev: read handler\n");
+
+    if (copy_to_user(ubuf, buf, len))
+        return -EFAULT;
+
+    *ppos = len;
+
+    printk(KERN_DEBUG "/proc/fddev: %d bytes sent to userspace\n", len);
+    return len;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Función de lectura para el mecanismo de \textit{File Handoff}]{Función de lectura para el mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_read}
+
+\
+
+\
+
+Sin embargo, la funcionalidad principal de este prototipo se concentra en la función manejadora de escritura, la cual necesita funciones auxiliares para organizar la lógica de escritura de forma más clara y modular:
+
+\begin{lstlisting}[language=C]
+static int write_full(struct file *f, const char *buf, int len)
+{
+    int w = 0;
+    int off = 0;
+    loff_t *ppos = &f->f_pos;
+
+    while (off < len) {
+        w = kernel_write(f, buf + off, len - off, ppos);
+
+        if (w < 0)
+            return w;
+
+        if (w == 0)
+            return -EIO;
+
+        off += w;
+    }
+
+    return off;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Función auxiliar de escritura sobre un fichero desde el \textit{LKM}]{Función auxiliar de escritura sobre un fichero desde el \textit{LKM}.}
+\label{cod:file_handoff_write_full}
+
+\
+
+\
+
+
+
+\begin{lstlisting}[language=C]
+static int val_metadata(struct file *f)
+{
+    int rv = 0;
+
+    if (!(f->f_mode & FMODE_WRITE) || !(f->f_flags & O_APPEND))
+        return -EBADF;
+
+    rv = file_permission(f, MAY_WRITE | MAY_APPEND);
+    if (rv < 0)
+        return rv;
+
+    return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}]{Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}.}
+\label{cod:file_handoff_val_metadata}
+
+\
+
+\
+
+
+
+\begin{lstlisting}[language=C]
+static ssize_t mywrite(struct file *file, const char __user *ubuf,
+		       size_t count, loff_t *ppos)
+{
+    int fd = 0;
+    int rv = 0;
+    char buf[BUFSIZE];
+    static const char msg[] = "Kernel-Space: Writing test for file handoff\n";
+    struct file *f = NULL;
+
+    if (*ppos > 0 || count > BUFSIZE)
+        return -EFAULT;
+
+    printk(KERN_DEBUG "/proc/fddev: write handler\n");
+
+    if (copy_from_user(buf, ubuf, count))
+        return -EFAULT;
+
+    rv = strlen(buf);
+    *ppos = rv;
+
+    if (kstrtoint(buf, 10, &fd))
+        return -EINVAL;
+
+    if (fd < 0)
+        return -EBADF;
+
+    f = fget(fd);
+    if (!f)
+        return -EBADF;
+
+    rv = val_metadata(f);
+    if (rv < 0)
+        goto out_put;
+
+    rv = write_full(f, msg, strlen(msg));
+    if (rv < 0)
+        goto out_put;
+
+    printk(KERN_DEBUG "/proc/fddev: %d bytes written to handoff file\n", rv);
+
+out_put:
+    fput(f);
+    return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Función de escritura para el mecanismo de \textit{File Handoff}]{Función de escritura para el mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_write}
+
+\
+
+\
 
 
 
