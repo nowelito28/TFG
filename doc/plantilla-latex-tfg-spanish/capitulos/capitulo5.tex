@@ -7,7 +7,7 @@ Se presentan los prototipos desarrollados hasta alcanzar la versión final funci
 Cabe resaltar que el código fuente oficial del \textit{Kernel} de \textit{Linux} se encuentra disponible en \url{https://www.kernel.org}, y que la versión del \textit{Kernel} utilizada en el proyecto es la \texttt{6.12.41-current-bcm2711}.
 Esta precisión resulta importante, ya que el desarrollo y las referencias consultadas se basan en el código fuente de esta versión, pudiendo variar tanto la funcionalidad como la localización de algunos recursos respecto a otras versiones del \textit{Kernel}.\\
 
-\section{Prototipos e Implementaciones}
+\section{Prototipos, Implementaciones y Validaciones}
 
 El desarrollo principal del proyecto se articuló mediante varios prototipos de \textit{LKM} construidos progresivamente y apoyados en las funcionalidades validadas en los anteriores.
 Esta estrategia permitió avanzar desde una primera toma de contacto con la programación en \textit{Espacio del Kernel} hasta la construcción del prototipo final capaz de generar un listado autenticado de los procesos activos del sistema desde dicha región privilegiada.
@@ -88,8 +88,9 @@ static void __exit hello_end(void)
 \label{cod:hello_init_exit}
 \end{code}
 
-La función \verb|hello_start| se ejecuta al cargar el módulo en el \textit{Kernel} con \verb|insmod <module_name>.ko|. En este prototipo, su única finalidad es escribir mensajes en el \textit{buffer} de \textit{logs} del \textit{Kernel} mediante la función \verb|printk|, registrados también en el fichero \texttt{/var/log/kern.log}, utilizada como mecanismo habitual de salida de depuración y trazabilidad en \textit{Espacio del Kernel}, pudiendo elegir el nivel de prioridad de los mensajes.
-Análogamente, la función \verb|hello_end| se ejecuta al descargar el módulo con \verb|rmmod <module_name>| y permite comprobar que el ciclo de vida del componente se completa correctamente, verificando los \textit{logs} del \textit{Kernel} con \verb|dmesg|.\\
+La función \verb|hello_start| se ejecuta al cargar el módulo en el \textit{Kernel} con \verb|insmod <module_name>.ko|. En este prototipo, su única finalidad es escribir mensajes en el \textit{buffer} de \textit{logs} del \textit{Kernel} mediante la función \verb|printk|, utilizada como mecanismo habitual de salida de depuración y trazabilidad en \textit{Espacio del Kernel}, pudiendo elegir el nivel de prioridad de los mensajes.
+Dichos mensajes pueden consultarse directamente mediante \verb|dmesg| y, dependiendo de la configuración del sistema de registro, también quedan reflejados en ficheros de \textit{logs} del \textit{Kernel} como \texttt{/var/log/kern.log}.
+Análogamente, la función \verb|hello_end| se ejecuta al descargar el módulo con \verb|rmmod <module_name>|.\\
 
 El uso de \verb|printk| se verificó en el código fuente del registro de mensajes del \textit{Kernel}, expuesto en \texttt{include/linux/printk.h}, donde se definen la propia función y los distintos niveles de prioridad que pueden asociarse a cada traza, como \verb|KERN_INFO|, \verb|KERN_DEBUG| o \verb|KERN_ERR|.\\
 
@@ -152,7 +153,7 @@ Mediante este flujo de trabajo se verificó que el módulo podía compilarse cor
 \subsection{Fichero virtual \texttt{/proc/fdev}}
 \label{sec:proto-proc-fdev}
 
-El siguiente paso consistió en dotar al módulo de una interfaz de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.
+El siguiente paso consistió en dotar al módulo de una interfaz de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, implementado en \verb|proc_fdev.c|.
 Para ello, se recurrió al sistema de ficheros virtual \texttt{/proc} para exponer información del \textit{Kernel} y permitir la interacción controlada con el \textit{LKM} mediante la creación de un fichero virtual propio en este sistema, \texttt{/proc/fdev}.\\
 
 El objetivo principal de esta fase fue comprobar que el módulo podía crear una entrada propia en \texttt{/proc}, asociarle funciones manejadoras (\textit{handlers}) de lectura y escritura, y responder de manera controlada a estas operaciones invocadas desde \textit{Espacio de Usuario}.\\
@@ -337,13 +338,15 @@ Mediante esta validación se comprobó que toda la funcionalidad del módulo se 
 \subsection{\textit{File Handoff}}
 \label{sec:proto-file-handoff}
 
-Una vez creada una entrada válida en \texttt{/proc} y logrado así el intercambio básico de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel} de forma controlada, el siguiente paso consistió en implementar un mecanismo que permitiese al módulo operar sobre un fichero real del sistema de ficheros.
+Una vez creada una entrada válida en \texttt{/proc} y logrado así el intercambio básico de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel} de forma controlada, el siguiente paso consistió en implementar un mecanismo que permitiese al módulo operar sobre un fichero real del sistema de ficheros, materializado en \verb|fd_handoff.c|.
 Para ello, se planteó el traspaso de la referencia de un fichero (\textit{File Descriptor} o \textit{Descriptor de Fichero}) desde \textit{Espacio de Usuario} hacia el \textit{LKM}, utilizando como interfaz de entrada el propio fichero virtual \texttt{/proc/fdev} desarrollado en el prototipo anterior.\\
 
 El objetivo general de este prototipo fue comprobar que el módulo podía recibir desde \textit{Espacio de Usuario} el \textit{FD} de un fichero codificado como cadena de \textit{bytes} y convertirlo a un valor de tipo \textit{int} (entero), resolver internamente dicha referencia para localizar en el \textit{Kernel} el fichero correspondiente y utilizarlo para transferir información desde dicha región privilegiada hacia un fichero del sistema.
 Con ello, el administrador puede decidir en qué fichero se deposita la información solicitada de forma controlada.\\
 
 Para implementar este mecanismo fue necesario ampliar nuevamente las cabeceras incluidas en el módulo:
+
+\newpage
 
 \begin{code}[h]
 \begin{lstlisting}[language=C]
@@ -523,6 +526,125 @@ Finalmente, la referencia al fichero se libera con \verb|fput|, devolviendo en c
 
 El empleo de \verb|kstrtoint|, \verb|fget| y \verb|fput| se contrastó con el código fuente del \textit{Kernel}, localizando \verb|kstrtoint| en el fichero \texttt{lib/kstrtox.c}, mientras que \verb|fget| y \verb|fput| se encuentran dentro de \texttt{fs/file.c} y \texttt{fs/file\_table.c}, variando las líneas en las que se localizan según la versión del núcleo considerada.\\
 
+Para completar este prototipo fue necesario implementar también una utilidad extra en \textit{Espacio de Usuario}, \texttt{mk\_fhandoff.c}:
+
+\begin{lstlisting}[language=C]
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+static int write_full(int fd, const char *buf, int len)
+{
+    int off = 0;
+    int w = 0;
+
+    while (off < len) {
+        w = write(fd, buf + off, len - off);
+
+        if (w < 0) {
+            if (errno == EINTR)
+                continue;
+
+            return -1;
+        }
+
+        off += w;
+    }
+
+    return off;
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 3) {
+        errx(EXIT_FAILURE, "Usage: %s <common_path> <proc_path>\n"
+            "e.g.: %s ./file_handoff /proc/fdev", argv[0], argv[0]);
+    }
+
+    const char *f_handoff = argv[1];
+    const char *f_proc = argv[2];
+
+    int fd_handoff = open(f_handoff, O_CREAT | O_RDWR | O_APPEND, 0666);
+    if (fd_handoff < 0) {
+        err(EXIT_FAILURE, "Error opening/creating the file %s",
+            f_handoff);
+    }
+
+    int fd_proc = open(f_proc, O_RDWR);
+    if (fd_proc < 0) {
+        err(EXIT_FAILURE, "Error opening %s", f_proc);
+    }
+
+    char fd_str[12];
+    snprintf(fd_str, sizeof(fd_str), "%d", fd_handoff);
+
+    if (write_full(fd_proc, fd_str, strlen(fd_str)) <= 0) {
+        close(fd_proc);
+        close(fd_handoff);
+        err(EXIT_FAILURE, "Error writing in %s", f_proc);
+    }
+
+    printf("File descriptor written in %s:\n%d\n", f_proc, fd_handoff);
+
+    close(fd_proc);
+    close(fd_handoff);
+
+    exit(EXIT_SUCCESS);
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}]{Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}.}
+\label{cod:mk_fhandoff}
+
+Este programa actúa como intermediario desde \textit{Espacio de Usuario}, creando o abriendo el fichero real que actuará como destino a partir del nombre indicado como primer argumento, obteniendo su \textit{FD} y enviándolo al módulo a través de \texttt{/proc/fdev}, cuya ruta se indica como segundo argumento al ejecutar el programa, completando así el mecanismo de \textit{File Handoff}.\\
+
+Una vez terminado el mecanismo completo de \textit{File Handoff} básico, se procedió a validar su funcionamiento, comprobando que el módulo recibía correctamente el \textit{FD} de un fichero real desde \textit{Espacio de Usuario}, lo resolvía dentro del \textit{Kernel} y escribía sobre dicho fichero la cadena definida en \verb|mywrite|:
+
+\begin{lstlisting}[language=bash]
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/lkms/fd_handoff.o
+  MODPOST /home/lkms/Module.symvers
+  CC [M]  /home/lkms/fd_handoff.mod.o
+  LD [M]  /home/lkms/fd_handoff.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+$ gcc -o mk_fhandoff mk_fhandoff.o
+$ insmod fd_handoff.ko
+$ cat /proc/fdev
+Waiting for a FD to perform file handoff
+$ dmesg -T | tail
+...
+[Wed Oct 29 16:25:15 2025] /proc/fdev created
+...
+[Wed Oct 29 16:28:27 2025] /proc/fdev: read handler
+[Wed Oct 29 16:28:27 2025] /proc/fdev: 41 bytes sent to userspace
+$ ./mk_fhandoff ./file_handoff /proc/fdev
+File descriptor written in /proc/fdev:
+3
+$ dmesg -T | tail
+...
+[Wed Oct 29 16:30:11 2025] /proc/fdev: write handler
+[Wed Oct 29 16:30:11 2025] /proc/fdev: 1 bytes written to handoff file
+...
+$ cat ./file_handoff
+Kernel-Space: Writing test for file handoff
+$ rmmod fd_handoff
+$ dmesg -T | tail
+...
+[Wed Oct 29 16:32:20 2025] /proc/fdev removed
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Validación del mecanismo de \textit{File Handoff}]{Validación del mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_validation}
+
+A través de esta validación, se comprobó que el módulo podía recibir correctamente desde \textit{Espacio de Usuario} el \textit{FD} de un fichero real, resolver su referencia en el \textit{Kernel} y utilizarla como destino efectivo de escritura mediante el mecanismo de \textit{File Handoff}.
+Como consecuencia, quedó implementado un canal funcional para transferir información generada en \textit{Espacio del Kernel} de forma controlada hacia el fichero indicado por \textit{Espacio de Usuario}, sirviendo como base para la incorporación posterior del contenido crítico autenticado del reporte seguro.\\
 
 \subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
 \label{sec:proto-crypto}
@@ -530,4 +652,4 @@ El empleo de \verb|kstrtoint|, \verb|fget| y \verb|fput| se contrastó con el c�
 \subsection{Sistema de reporte seguro entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}}
 \label{sec:proto-report}
 
-\section{Validación y Errores}
+\section{Problemas y Errores encontrados}
