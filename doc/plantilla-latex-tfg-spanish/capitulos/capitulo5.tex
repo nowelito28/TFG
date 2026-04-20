@@ -58,7 +58,7 @@ MODULE_AUTHOR("Noel Rodriguez Perez");
 MODULE_DESCRIPTION("A simple Hello world LKM!");
 MODULE_VERSION("0.1");
 \end{lstlisting}
-\caption[Cabeceras y metadatos del módulo \textit{Hello World}]{Cabeceras y metadatos del módulo \textit{Hello World}.}
+\caption[Cabeceras y metadatos del módulo \textit{Hello World}.]{Cabeceras y metadatos del módulo \textit{Hello World}.}
 \label{cod:hello_headers}
 \end{code}
 
@@ -84,7 +84,7 @@ static void __exit hello_end(void)
     printk(KERN_INFO "Goodbye Mr.\n");
 }
 \end{lstlisting}
-\caption[Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}]{Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}.}
+\caption[Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}.]{Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}.}
 \label{cod:hello_init_exit}
 \end{code}
 
@@ -101,7 +101,7 @@ Finalmente, ambos controladores deben asociarse explícitamente al flujo de cont
 module_init(hello_start);
 module_exit(hello_end);
 \end{lstlisting}
-\caption[Asociación de los puntos de entrada/carga y salida/descarga del módulo]{Asociación de los puntos de entrada/carga y salida/descarga del módulo.}
+\caption[Asociación de los puntos de entrada/carga y salida/descarga del módulo.]{Asociación de los puntos de entrada/carga y salida/descarga del módulo.}
 \label{cod:hello_module_init}
 \end{code}
 
@@ -112,12 +112,12 @@ Con permisos de administrador (\textit{root}), se compiló el módulo, se cargó
 
 \begin{lstlisting}[language=bash]
 $ make
-make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-  CC [M]  /home/lkms/hello_world.o
-  MODPOST /home/lkms/Module.symvers
-  CC [M]  /home/lkms/hello_world.mod.o
-  LD [M]  /home/lkms/hello_world.ko
+  CC [M]  /home/LKM/hello_world.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/hello_world.mod.o
+  LD [M]  /home/LKM/hello_world.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 $ insmod hello_world.ko
 $ dmesg -T | tail
@@ -126,7 +126,7 @@ $ dmesg -T | tail
 [Fri Sep  5 19:45:58 2025] Hello world!!
 ...
 $ modinfo hello_world.ko
-filename:       /home/lkms/hello_world.ko
+filename:       /home/LKM/hello_world.ko
 version:        0.1
 description:    A simple Hello world LKM!
 author:         Noel Rodriguez Perez
@@ -141,7 +141,7 @@ $ dmesg -T | tail
 ...
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Compilación, carga, consulta y descarga del prototipo \textit{Hello World}]{Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.}
+\captionof{code}[Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.]{Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.}
 \label{cod:hello_validation}
 
 \
@@ -165,7 +165,7 @@ En primer lugar, fue necesario ampliar el conjunto de cabeceras incluidas en el 
 #include <linux/proc_fs.h>
 #include <asm/uaccess.h>
 \end{lstlisting}
-\caption[Cabeceras adicionales para el prototipo basado en \texttt{/proc}]{Cabeceras adicionales para el prototipo basado en \texttt{/proc}.}
+\caption[Cabeceras adicionales para el prototipo basado en \texttt{/proc}.]{Cabeceras adicionales para el prototipo basado en \texttt{/proc}.}
 \label{cod:proc_headers}
 \end{code}
 
@@ -202,7 +202,7 @@ static void simple_cleanup(void)
 module_init(simple_init);
 module_exit(simple_cleanup);
 \end{lstlisting}
-\caption[Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}]{Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}.}
+\caption[Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}.]{Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}.}
 \label{cod:proc_entry_ops}
 \end{code}
 
@@ -232,10 +232,10 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,
     if (*ppos > 0 || count >= BUFSIZE)
         return -EFAULT;
 
-    printk(KERN_DEBUG "/proc/fdev: write handler\n");
+	printk(KERN_DEBUG "/proc/fdev: write handler\n");
 
-    if (copy_from_user(buf, ubuf, count))
-        return -EFAULT;
+	if (copy_from_user(buf, ubuf, count))
+		return -EFAULT;
 
     num = sscanf(buf, "%d %d", &i, &m);
     if (num != 2)
@@ -295,12 +295,12 @@ Ya creado el fichero virtual \texttt{/proc/fdev} y sus funciones manejadoras de 
 
 \begin{lstlisting}[language=bash]
 $ make
-make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-  CC [M]  /home/lkms/proc_fdev.o
-  MODPOST /home/lkms/Module.symvers
-  CC [M]  /home/lkms/proc_fdev.mod.o
-  LD [M]  /home/lkms/proc_fdev.ko
+  CC [M]  /home/LKM/proc_fdev.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/proc_fdev.mod.o
+  LD [M]  /home/LKM/proc_fdev.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 $ insmod proc_fdev.ko
 $ dmesg -T | tail
@@ -326,7 +326,7 @@ $ dmesg -T | tail
 [Tue Oct 14 17:26:30 2025] /proc/fdev removed
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Validación básica del prototipo basado en \texttt{/proc/fdev}]{Validación básica del prototipo basado en \texttt{/proc/fdev}.}
+\captionof{code}[Validación básica del prototipo basado en \texttt{/proc/fdev}.]{Validación básica del prototipo basado en \texttt{/proc/fdev}.}
 \label{cod:proc_validation}
 
 \
@@ -355,7 +355,7 @@ Para implementar este mecanismo fue necesario ampliar nuevamente las cabeceras i
 #include <linux/kstrtox.h>
 #include <linux/security.h>
 \end{lstlisting}
-\caption[Cabeceras adicionales para el mecanismo de \textit{File Handoff}]{Cabeceras adicionales para el mecanismo de \textit{File Handoff}.}
+\caption[Cabeceras adicionales para el mecanismo de \textit{File Handoff}.]{Cabeceras adicionales para el mecanismo de \textit{File Handoff}.}
 \label{cod:file_handoff_headers}
 \end{code}
 
@@ -388,7 +388,7 @@ static ssize_t myread(struct file *file, char __user *ubuf,
 }
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Función de lectura para el mecanismo de \textit{File Handoff}]{Función de lectura para el mecanismo de \textit{File Handoff}.}
+\captionof{code}[Función de lectura para el mecanismo de \textit{File Handoff}.]{Función de lectura para el mecanismo de \textit{File Handoff}.}
 \label{cod:file_handoff_read}
 
 \
@@ -420,7 +420,7 @@ static int write_full(struct file *f, const char *buf, int len)
 }
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Función auxiliar de escritura sobre un fichero desde el \textit{LKM}]{Función auxiliar de escritura sobre un fichero desde el \textit{LKM}.}
+\captionof{code}[Función auxiliar de escritura sobre un fichero desde el \textit{LKM}.]{Función auxiliar de escritura sobre un fichero desde el \textit{LKM}.}
 \label{cod:file_handoff_write_full}
 
 \
@@ -449,7 +449,7 @@ static int val_metadata(struct file *f)
 }
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}]{Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}.}
+\captionof{code}[Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}.]{Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}.}
 \label{cod:file_handoff_val_metadata}
 
 \
@@ -511,7 +511,7 @@ out_put:
 }
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Función de escritura para el mecanismo de \textit{File Handoff}]{Función de escritura para el mecanismo de \textit{File Handoff}.}
+\captionof{code}[Función de escritura para el mecanismo de \textit{File Handoff}.]{Función de escritura para el mecanismo de \textit{File Handoff}.}
 \label{cod:file_handoff_write}
 
 \
@@ -597,30 +597,39 @@ int main(int argc, char *argv[])
 }
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}]{Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}.}
+\captionof{code}[Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}.]{Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}.}
 \label{cod:mk_fhandoff}
+
+\
+
+\
 
 Este programa actúa como intermediario desde \textit{Espacio de Usuario}, creando o abriendo el fichero real que actuará como destino a partir del nombre indicado como primer argumento, obteniendo su \textit{FD} y enviándolo al módulo a través de \texttt{/proc/fdev}, cuya ruta se indica como segundo argumento al ejecutar el programa, completando así el mecanismo de \textit{File Handoff}.\\
 
 Una vez terminado el mecanismo completo de \textit{File Handoff} básico, se procedió a validar su funcionamiento, comprobando que el módulo recibía correctamente el \textit{FD} de un fichero real desde \textit{Espacio de Usuario}, lo resolvía dentro del \textit{Kernel} y escribía sobre dicho fichero la cadena definida en \verb|mywrite|:
 
 \begin{lstlisting}[language=bash]
+$ uname -r
+6.12.41-current-bcm2711
+$ cd LKM
 $ make
-make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-  CC [M]  /home/lkms/fd_handoff.o
-  MODPOST /home/lkms/Module.symvers
-  CC [M]  /home/lkms/fd_handoff.mod.o
-  LD [M]  /home/lkms/fd_handoff.ko
+  CC [M]  /home/LKM/fd_handoff.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/fd_handoff.mod.o
+  LD [M]  /home/LKM/fd_handoff.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
-$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
-$ gcc -o mk_fhandoff mk_fhandoff.o
 $ insmod fd_handoff.ko
-$ cat /proc/fdev
-Waiting for a FD to perform file handoff
 $ dmesg -T | tail
 ...
 [Wed Oct 29 16:25:15 2025] /proc/fdev created
+$ cd ..
+$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+$ gcc -o mk_fhandoff mk_fhandoff.o
+$ cat /proc/fdev
+Waiting for a FD to perform file handoff
+$ dmesg -T | tail
 ...
 [Wed Oct 29 16:28:27 2025] /proc/fdev: read handler
 [Wed Oct 29 16:28:27 2025] /proc/fdev: 41 bytes sent to userspace
@@ -634,22 +643,696 @@ $ dmesg -T | tail
 ...
 $ cat ./file_handoff
 Kernel-Space: Writing test for file handoff
+
+$ cd LKM
 $ rmmod fd_handoff
 $ dmesg -T | tail
 ...
 [Wed Oct 29 16:32:20 2025] /proc/fdev removed
 \end{lstlisting}
 \captionsetup{type=code}
-\captionof{code}[Validación del mecanismo de \textit{File Handoff}]{Validación del mecanismo de \textit{File Handoff}.}
+\captionof{code}[Validación del mecanismo de \textit{File Handoff}.]{Validación del mecanismo de \textit{File Handoff}.}
 \label{cod:file_handoff_validation}
 
+\
+
+\
+
 A través de esta validación, se comprobó que el módulo podía recibir correctamente desde \textit{Espacio de Usuario} el \textit{FD} de un fichero real, resolver su referencia en el \textit{Kernel} y utilizarla como destino efectivo de escritura mediante el mecanismo de \textit{File Handoff}.
+
 Como consecuencia, quedó implementado un canal funcional para transferir información generada en \textit{Espacio del Kernel} de forma controlada hacia el fichero indicado por \textit{Espacio de Usuario}, sirviendo como base para la incorporación posterior del contenido crítico autenticado del reporte seguro.\\
+
 
 \subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
 \label{sec:proto-crypto}
 
-\subsection{Sistema de reporte seguro entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}}
+Una vez validado el proceso de \textit{File Handoff}, el siguiente paso consistió en incorporar en el módulo \verb|crypto_fd.c| un mecanismo de autenticación criptográfica del contenido generado en \textit{Espacio del Kernel} (\textit{HMAC-SHA256}) e incluir dicha etiqueta \textit{HMAC} en el fichero final de transferencia, con el fin de garantizar su integridad y autenticidad apoyándose en la infraestructura validada anteriormente.
+De este modo, dicho contenido puede verificarse posteriormente desde \textit{Espacio de Usuario} con la misma clave secreta compartida.\\
+
+Para ello, fue necesario ampliar las cabeceras necesarias para la compilación del módulo e incorporar la clave simétrica embebida con la que se calcula el \textit{HMAC}, la cual debe estar también disponible para el administrador durante su posterior verificación.\\
+
+\begin{code}[h]
+\begin{lstlisting}[language=C]
+#include <crypto/hash.h>
+#include <linux/base64.h>
+#include <linux/crypto.h>
+
+#include "k_embedded.h"
+\end{lstlisting}
+\caption[Cabeceras adicionales y clave embebida para el mecanismo de autenticación \textit{HMAC-SHA256}.]{Cabeceras adicionales y clave embebida para el mecanismo de autenticación \textit{HMAC-SHA256}.}
+\label{cod:crypto_headers}
+\end{code}
+
+En este punto, \verb|<crypto/hash.h>| y \verb|<linux/crypto.h>| permiten utilizar las funcionalidades de la \textit{Crypto API} del \textit{Kernel} para solicitar un transformador criptográfico síncrono de tipo \verb|shash|, mientras que \verb|<linux/base64.h>| permite codificar el resultado binario del \textit{HMAC} en una representación textual portable en formato \textit{Base64}.
+Por otro lado, la inclusión de \verb|"k_embedded.h"| introduce una clave secreta simétrica binaria generada externamente y embebida en el módulo como un vector constante de \textit{bytes}, de forma que puede emplearse directamente durante el cálculo del \textit{HMAC}.\\
+
+En consecuencia, el proceso de compilación del módulo deja de depender únicamente del fichero principal y pasa a requerir previamente la cabecera que contiene la clave embebida.
+Para ello, se diseñó un script auxiliar \verb|gen_k_embedded.sh|, encargado de generar una clave aleatoria de 64 \textit{bytes}, almacenarla en un fichero binario \verb|key.bin| y transformarla después en la cabecera \verb|k_embedded.h| como un vector constante de \textit{bytes}, pudiendo así importarla en el \textit{LKM}.
+A su vez, el \textit{Makefile} de compilación del \textit{LKM} pasa a declarar \verb|k_embedded.h| como dependencia previa de la regla \verb|all|.\\
+
+\begin{code}[h]
+\begin{lstlisting}[language=bash]
+#!/usr/bin/env zsh
+set -e
+
+KEY_LEN=64
+openssl rand -out key.bin ${KEY_LEN}
+
+xxd -i -n K key.bin | \
+  sed -e 's/^unsigned char/const unsigned char/' \
+      -e 's/^unsigned int/const unsigned int/' > k_embedded.h
+
+echo "OK: generated k_embedded.h with key K (${KEY_LEN} bytes)."
+\end{lstlisting}
+\caption[Script \texttt{gen\_k\_embedded.sh} para generar la cabecera \texttt{k\_embedded.h} con la clave embebida.]{Script \texttt{gen\_k\_embedded.sh} para generar la cabecera \texttt{k\_embedded.h} con la clave embebida.}
+\label{cod:gen_k_embedded}
+\end{code}
+
+Cabe señalar que, para poder utilizar este script, una vez creado, fue necesario asignarle permisos de ejecución externamente mediante \verb|chmod +x gen_k_embedded.sh|, pudiendo ejecutarse posteriormente con \verb|./gen_k_embedded.sh| en el mismo directorio de trabajo.\\
+
+En cuanto a la programación de la lógica de codificación del contenido para obtener el \textit{HMAC} en el \textit{LKM}, se implementó esta funcionalidad para calcular el \textit{HMAC-SHA256} a partir de un bloque de datos tratado como \textit{array} de \textit{bytes}:
+
+\begin{lstlisting}[language=C]
+static int get_hmac_sha256(const u8 *buf, int buf_len, u8 **hmac, int *hmac_len)
+{
+    int rv = 0;
+    struct crypto_shash *tfm;
+
+    tfm = crypto_alloc_shash("hmac(sha256)", 0, 0);
+    if (IS_ERR(tfm))
+        return PTR_ERR(tfm);
+
+    rv = crypto_shash_setkey(tfm, K, K_len);
+    if (rv)
+        goto out_free_tfm;
+
+    *hmac_len = crypto_shash_digestsize(tfm);
+
+    *hmac = kmalloc(*hmac_len, GFP_KERNEL);
+    if (!*hmac) {
+        rv = -ENOMEM;
+        goto out_free_tfm;
+    }
+
+    SHASH_DESC_ON_STACK(desc, tfm);
+    desc->tfm = tfm;
+
+    rv = crypto_shash_digest(desc, buf, buf_len, *hmac);
+
+out_free_tfm:
+    crypto_free_shash(tfm);
+    return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Cálculo del \textit{HMAC-SHA256} para una cadena de \textit{bytes} de datos.]{Cálculo del \textit{HMAC-SHA256} para una cadena de \textit{bytes} de datos.}
+\label{cod:crypto_get_hmac_sha256}
+
+\
+
+\
+
+Esta función encapsula la lógica principal de cálculo del autenticador criptográfico \textit{HMAC-SHA256} sobre un bloque arbitrario de datos representado como un \textit{array} de \textit{bytes} en memoria del \textit{Kernel}.
+Para ello, solicita a la \textit{Crypto API} un transformador síncrono asociado al algoritmo \verb|hmac(sha256)| mediante \verb|crypto_alloc_shash|.
+Después, se le asocia la clave secreta embebida con \verb|crypto_shash_setkey| y se obtiene el tamaño del \textit{digest} con \verb|crypto_shash_digestsize|.
+Posteriormente, se utiliza reserva en memoria dinámica para almacenar el \textit{HMAC} a calcular con la longitud correspondiente (\verb|hmac_len|) mediante \verb|kmalloc|, y adicionalmente, la macro \verb|SHASH_DESC_ON_STACK| construye en la pila de ejecución el descriptor temporal requerido por el subsistema criptográfico (\verb|desc|).
+Tras ello, \verb|crypto_shash_digest| calcula el \textit{HMAC} completo en una única operación sobre el contenido recibido.\\
+
+En este caso se emplea \textit{HMAC-SHA256} porque combina un mecanismo de autenticación basado en clave simétrica secreta compartida con la función resumen \textit{SHA-256}, produciendo un resumen de 256 \textit{bits} de longitud, siendo así un algoritmo suficientemente robusto para verificar la integridad y autenticidad del contenido transferido.\\
+
+Una vez calculado el \textit{HMAC} puro del contenido, se implementó una función auxiliar para convertirlo a formato \textit{Base64} y poder así incluir en el fichero de transferencia de forma legible y portable:
+
+\begin{lstlisting}[language=C]
+static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
+			int *hmac_b64len)
+{
+	int hmac_b64cap = BASE64_CHARS(hmac_len);
+
+	*hmac_b64 = kmalloc(hmac_b64cap, GFP_KERNEL);
+	if (!*hmac_b64)
+		return -ENOMEM;
+
+	*hmac_b64len = base64_encode(hmac, hmac_len, *hmac_b64);
+	if (*hmac_b64len < 0) {
+		kfree(*hmac_b64);
+		return *hmac_b64len;
+	}
+
+	return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Conversión del \textit{HMAC} binario a \textit{Base64}.]{Conversión del \textit{HMAC} binario a \textit{Base64}.}
+\label{cod:crypto_get_hmac_b64}
+
+\
+
+\
+
+Esta función auxiliar facilita la serialización del autenticador criptográfico en el fichero de transferencia, transformando el \textit{HMAC} binario previamente calculado en una representación textual en \textit{Base64}.
+En primer lugar, determina la capacidad máxima necesaria para la cadena codificada mediante la macro \verb|BASE64_CHARS| y reserva memoria dinámica para almacenarla.
+A continuación, la función \verb|base64_encode| realiza la conversión efectiva de dicho \textit{HMAC} puro, devolviendo en \verb|hmac_b64| la cadena resultante y en \verb|hmac_b64len| su longitud final.
+De este modo, el autenticador puede incorporarse al fichero de salida en un formato legible, portable y fácilmente verificable posteriormente desde \textit{Espacio de Usuario}.\\
+
+El empleo de \verb|crypto_alloc_shash|, \verb|crypto_shash_setkey|, \verb|crypto_shash_digestsize|, \verb|crypto_shash_digest| y la macro \verb|SHASH_DESC_ON_STACK| se contrastó su funcionamiento e implementación en la infraestructura de \textit{hash} síncrono de la \textit{Crypto API} del \textit{Kernel}, expuesta en \texttt{include/crypto/hash.h} y desarrollada en el subsistema \texttt{crypto} dentro del código fuente del propio núcleo.
+Por otra parte, la codificación del autenticador en \textit{Base64} se apoyó en \texttt{include/linux/base64.h} y en la implementación correspondiente dentro de \texttt{lib/base64.c}.\\
+
+A nivel de formato de salida, el contenido ya no se escribe de forma aislada en el fichero de transferencia, sino acompañado por una separación explícita entre los datos generados por el \textit{Kernel} y su etiqueta \textit{HMAC} de autenticación en formato \textit{Base64}:
+
+\begin{lstlisting}[language=C]
+static const char sep[] = "\n--KERNEL-PS--\n";
+static const int sep_len = sizeof(sep) - 1;
+
+static const char sep_hmac[] = "\n--HMAC--\n";
+static const int sep_hmac_len = sizeof(sep_hmac) - 1;
+
+static int write_cont_hmac(struct file *f, const char *cont, int cont_len,
+			   	const char *hmac_b64, int hmac_b64len)
+{
+	int w = 0;
+	int total = 0;
+
+	w = write_full(f, sep, sep_len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	w = write_full(f, cont, cont_len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	w = write_full(f, sep_hmac, sep_hmac_len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	w = write_full(f, hmac_b64, hmac_b64len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	return total;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Escritura conjunta del contenido y su \textit{HMAC} en \textit{Base64}.]{Escritura conjunta del contenido y su \textit{HMAC} en \textit{Base64}.}
+\label{cod:crypto_write_cont_hmac}
+
+\
+
+\
+
+Esta función organiza la serialización final del contenido autenticado dentro del fichero de transferencia.
+Para ello, escribe secuencialmente separadores textuales distinguibles, empezando con un separador inicial previo al bloque generado por el \textit{Kernel} (\verb|sep|), el contenido a proteger, el separador \verb|sep_hmac| y, finalmente, el \textit{HMAC} ya codificado en \textit{Base64}, reutilizando la función \verb|write_full| validada en el prototipo anterior.
+De este modo, el fichero resultante queda estructurado de forma determinista, facilitando tanto la separación entre el contenido principal a transferir y el \textit{HMAC} necesario para su posterior validación desde \textit{Espacio de Usuario}.\\
+
+Ya explicado el desarrollo completo de la lógica del mecanismo de autenticación diseñado, se procedió a modificar la función manejadora de escritura para integrar todos los componentes unificados:
+
+\begin{lstlisting}[language=C]
+static int printh(struct file *f)
+{
+	int rv = 0;
+
+	static const char cont[] =
+		"Kernel-Space: Authentic content protected by HMAC-SHA256\n";
+	const int cont_len = sizeof(cont) - 1;
+
+	u8 *hmac = NULL;
+	int hmac_len = 0;
+
+	u8 *hmac_b64 = NULL;
+	int hmac_b64len = 0;
+
+	rv = get_hmac_sha256(cont, cont_len, &hmac, &hmac_len);
+	if (rv < 0)
+		goto out;
+
+	rv = get_hmac_b64(hmac, hmac_len, &hmac_b64, &hmac_b64len);
+	if (rv < 0)
+		goto out_free_hmac;
+
+	rv = write_cont_hmac(f, cont, cont_len, hmac_b64, hmac_b64len);
+	if (rv < 0)
+		goto out_free_hmacs;
+
+	printk(KERN_INFO "printH: file has been written with HMAC\n");
+
+out_free_hmacs:
+	kfree(hmac_b64);
+
+out_free_hmac:
+	kfree(hmac);
+
+out:
+	return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Integración conjunta del mecanismo de autenticación.]{Integración del mecanismo de autenticación.}
+\label{cod:crypto_printh}
+
+\
+
+\
+
+Ahora, la función \verb|printh| pasa a concentrar la lógica principal de integración del mecanismo diseñado en este prototipo.
+En este caso de prueba, se utiliza una cadena de contenido constante \verb|cont|, a la cual se le calcula su \textit{HMAC-SHA256} y se codifica en \textit{Base64}, escribiendo finalmente el conjunto completo en el fichero de transferencia enviado desde \textit{Espacio de Usuario}.\\
+
+\begin{lstlisting}[language=C]
+static ssize_t mywrite(struct file *file, const char __user *ubuf, size_t count,
+		       loff_t *ppos)
+{
+	int fd = 0;
+	int rv = 0;
+	char buf[BUFSIZE];
+
+	if (*ppos > 0 || count > BUFSIZE)
+		return -EFAULT;
+
+	printk(KERN_DEBUG "/proc/fdev: write handler\n");
+
+	if (copy_from_user(buf, ubuf, count))
+		return -EFAULT;
+
+	rv = strlen(buf);
+	*ppos = rv;
+
+	if (kstrtoint(buf, 10, &fd))
+		return -EINVAL;
+
+	if (fd < 0)
+		return -EBADF;
+
+	struct file *f = fget(fd);
+	if (!f)
+		return -EBADF;
+
+	rv = val_metadata(f);
+	if (rv < 0)
+		goto out_put;
+
+	rv = printh(f);
+	if (rv < 0)
+		goto out_put;
+
+	printk(KERN_DEBUG "mywrite: printH OK for fd %d (%d bytes written)\n",
+	       fd, rv);
+
+out_put:
+	fput(f);
+
+	return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Manejador de escritura adaptado al mecanismo de autenticación de contenido.]{Manejador de escritura adaptado al mecanismo de autenticación de contenido.}
+\label{cod:crypto_mywrite}
+
+\
+
+\
+
+Por su parte, \verb|mywrite| mantiene la lógica general del prototipo anterior para recibir y resolver el \textit{FD}, pero sustituye la escritura estática simple por la llamada a \verb|printh|.\\
+
+Una vez incorporado el mecanismo de autenticación al flujo del mecanismo de \textit{File Handoff} en el \textit{LKM}, fue necesario desarrollar una utilidad adicional en \textit{Espacio de Usuario} que permitiese verificar la validez del contenido autenticado generado, destinada a ser utilizada con permisos de administrador.
+Para ello, se implementó el programa \verb|check_hmac.c|, encargado de deserializar el contenido del fichero de transferencia y así separar el contenido principal de la etiqueta \textit{HMAC} en formato \textit{Base64}, pudiendo recalcular de esta forma el autenticador con la misma clave secreta compartida y comparar ambos resultados para asegurar la integridad del contenido.\\
+
+Antes de nada, se añadieron las cabeceras y constantes necesarias para la compilación de este programa, incluyendo la clave embebida compartida entre el \textit{Kernel} y el administrador para el cálculo del \textit{HMAC}:
+
+\begin{lstlisting}[language=C]
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#include <openssl/crypto.h>
+
+#include "./LKM/k_embedded.h"
+
+enum { LEN = 1024 * 40 };
+
+const char sep[] = "--KERNEL-PS--\n";
+const char sep_hmac[] = "--HMAC--\n";
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Cabeceras, constantes y clave simétrica necesarias para la verificación.]{Cabeceras, constantes y clave simétrica necesarias para la verificación.}
+\label{cod:check_hmac}
+
+\
+
+\
+
+En primer lugar, las funciones \verb|read_until_separator|, \verb|read_hmac_line| y \verb|extract_data| se encargan de deserializar el contenido del fichero de transferencia generado mediante el mecanismo de \textit{File Handoff}, separando el contenido principal de la etiqueta \textit{HMAC} almacenada en formato \textit{Base64} mediante la detección de los separadores definidos:
+
+\begin{lstlisting}[language=C]
+int read_until_separator(FILE *f, char **content, int *content_len)
+{
+	char *line = NULL;
+	size_t cap = 0;
+	int len = 0;
+
+	int sep_found = 0;
+	int sep_hmac_found = 0;
+
+	*content = (char *)malloc(LEN);
+	if (!(*content)) {
+		warnx("malloc failed for the content\n");
+		return 1;
+	}
+
+	while ((len = getline(&line, &cap, f)) != -1) {
+
+		if (!sep_found) {
+			if (strcmp(line, sep) == 0) {
+				sep_found = 1;
+			}
+			continue;
+		}
+
+		if (strcmp(line, sep_hmac) == 0) {
+			sep_hmac_found = 1;
+			break;
+		}
+
+		if (*content_len + len > LEN) {
+			free(line);
+			warnx("Content read exceeds 4KB buffer before separator\n");
+			return 1;
+		}
+
+		memcpy(*content + *content_len, line, len);
+		*content_len += len;
+	}
+
+	free(line);
+
+	if (len == -1) {
+		warnx("Lines reading with buffering failed\n");
+		return 1;
+	}
+
+	if (*content_len > 0 && (*content)[*content_len - 1] == '\n') {
+		*content_len -= 1;
+	}
+
+	if (sep_hmac_found == 0) {
+		warnx("Separator not found\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+int read_hmac_line(FILE *f, char **hmac_b64, int *hmac_b64_len)
+{
+	size_t cap = 0;
+
+	*hmac_b64_len = getline(hmac_b64, &cap, f);
+	if (*hmac_b64_len == -1) {
+		warnx("Error reading HMAC\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+int extract_data(FILE *fhandoff, char **content, int *content_len,
+		 char **hmac_b64, int *hmac_b64_len)
+{
+	if (read_until_separator(fhandoff, content, content_len)
+	    || read_hmac_line(fhandoff, hmac_b64, hmac_b64_len)) {
+		return 1;
+	}
+
+	return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Deserialización del contenido del fichero autenticado en \textit{Espacio de Usuario}.]{Deserialización del contenido del fichero autenticado en \textit{Espacio de Usuario}.}
+\label{cod:check_hmac_extract}
+
+\
+
+\
+
+A continuación, \verb|calculate_hmac|, \verb|encode_base64| y \verb|calc_and_encode_hmac| recalculan localmente el autenticador a partir del contenido extraído y de la misma clave secreta utilizada en el módulo, la cual es compartida con el administrador que ejecuta este programa, utilizando funcionalidades de la librería \verb|openssl| para simplificar los cálculos criptográficos.
+
+Concretamente, la función \verb|HMAC| recibe el algoritmo criptográfico correspondiente, la clave y el contenido con las longitudes de ambas variables, pudiendo calcular así el \textit{HMAC} correspondiente al contenido directamente.
+
+Por otro lado, \verb|EVP_ENCODE_LENGTH| y \verb|EVP_EncodeBlock| se emplean principalmente para codificar el \textit{HMAC} previamente recalculado a formato \textit{Base64}.
+
+\begin{lstlisting}[language=C]
+int calculate_hmac(const unsigned char *content, int content_len,
+		   unsigned char *hmac_calc, unsigned int *hmac_calc_len)
+{
+	if (!HMAC(EVP_sha256(), K, K_len, content, content_len, hmac_calc,
+		  hmac_calc_len)) {
+		warnx("HMAC calculation failed\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+int encode_base64(unsigned char *hmac_calc, unsigned int hmac_calc_len,
+		  unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
+{
+	*hmac_b64_calc_len = EVP_ENCODE_LENGTH(hmac_calc_len);
+	*hmac_b64_calc = (unsigned char *)malloc(*hmac_b64_calc_len + 1);
+
+	if (!*hmac_b64_calc) {
+		warnx("malloc failed for HMAC encoded in base 64\n");
+		return 1;
+	}
+
+	*hmac_b64_calc_len =
+	    EVP_EncodeBlock(*hmac_b64_calc, hmac_calc, hmac_calc_len);
+	if (*hmac_b64_calc_len <= 0) {
+		warnx("EVP_EncodeBlock failed or returned zero length");
+		return 1;
+	}
+
+	return 0;
+}
+
+int calc_and_encode_hmac(const char *content, int content_len,
+			 unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
+{
+	unsigned char hmac_calc[EVP_MAX_MD_SIZE];
+	unsigned int hmac_calc_len = 0;
+
+	if (calculate_hmac((const unsigned char *)content, content_len,
+			   hmac_calc, &hmac_calc_len)) {
+		return 1;
+	}
+
+	if (encode_base64(hmac_calc, hmac_calc_len, hmac_b64_calc,
+			  hmac_b64_calc_len)) {
+		return 1;
+	}
+
+	return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Cálculo local del \textit{HMAC} y su codificación en \textit{Base64}.]{Cálculo local del \textit{HMAC} y su codificación en \textit{Base64}.}
+\label{cod:check_hmac_calc}
+
+\
+
+\
+
+Finalmente, \verb|verify_hmac| compara el \textit{HMAC} extraído del fichero con el recalculado directamente en \textit{Base64} mediante \verb|CRYPTO_memcmp|.
+Todo este conjunto de funcionalidades es integrado en un flujo de trabajo coordinado en la propia función \verb|main|, desde la apertura del fichero hasta la validación final del contenido autenticado:
+
+\begin{lstlisting}[language=C]
+int verify_hmac(const char *hmac_b64, int hmac_b64_len,
+		unsigned char *hmac_b64_calc, int hmac_b64_calc_len)
+{
+	if (CRYPTO_memcmp(hmac_b64_calc, hmac_b64, hmac_b64_calc_len)) {
+		warnx("\nHMAC verification failed: Invalid HMAC\n");
+		return 1;
+	}
+
+	printf("\nHMAC verification successful: Valid HMAC\n");
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		errx(EXIT_FAILURE, "Usage: %s <path_file_handoff>\n"
+		     "e.g.: %s ./file_handoff", argv[0], argv[0]);
+	}
+
+	const char *path_fhandoff = argv[1];
+
+	FILE *fhandoff = fopen(path_fhandoff, "r");
+	if (!fhandoff) {
+		warnx("fopen failed\n");
+		goto err_fhandoff;
+	}
+
+	char *content = NULL;
+	int content_len = 0;
+
+	char *hmac_b64 = NULL;
+	int hmac_b64_len = 0;
+
+	if (extract_data(fhandoff, &content, &content_len,
+			 &hmac_b64, &hmac_b64_len)) {
+		goto free_cont;
+	}
+	fclose(fhandoff);
+	fhandoff = NULL;
+
+	printf("Extracted kernel content:\n%s\n", content);
+	printf("Extracted HMAC(Base64):\n%s\n", hmac_b64);
+
+	unsigned char *hmac_b64_calc = NULL;
+	int hmac_b64_calc_len = 0;
+
+	if (calc_and_encode_hmac(content, content_len,
+				 &hmac_b64_calc, &hmac_b64_calc_len)) {
+		goto free_all;
+	}
+
+	free(content);
+	content = NULL;
+
+	printf("Calculated HMAC(Base64): \n%s\n", hmac_b64_calc);
+
+	int ext = verify_hmac(hmac_b64, hmac_b64_len, hmac_b64_calc,
+			      hmac_b64_calc_len);
+
+	free(hmac_b64);
+	free(hmac_b64_calc);
+
+	exit(ext);
+
+free_all:
+	if (hmac_b64_calc) {
+		free(hmac_b64_calc);
+	}
+	if (hmac_b64) {
+		free(hmac_b64);
+	}
+
+free_cont:
+	if (content) {
+		free(content);
+	}
+
+err_fhandoff:
+	if (fhandoff) {
+		fclose(fhandoff);
+	}
+
+	exit(EXIT_FAILURE);
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Comparación del autenticador y flujo principal del verificador.]{Comparación del autenticador y flujo principal del verificador.}
+\label{cod:check_hmac_verify_main}
+
+\
+
+\
+
+Una vez completado el prototipo, se procedió a validar su correcto funcionamiento comprobando que el módulo podía generar correctamente contenido autenticado en \textit{Espacio del Kernel}, escribirlo sobre el fichero recibido mediante el mecanismo de \textit{File Handoff} y verificar posteriormente su integridad desde \textit{Espacio de Usuario} con la misma clave secreta compartida entre el administrador y el \textit{Kernel}:
+
+\begin{lstlisting}[language=bash]
+$ uname -r
+6.12.41-current-bcm2711
+$ cd LKM
+$ chmod +x gen_k_embedded.sh
+$ ./gen_k_embedded.sh
+OK: generated k_embedded.h with key K (64 bytes).
+$ cat k_embedded.h
+const unsigned char K[] = {
+        0x4a, 0xd3, 0x21, 0xda, 0xc3, 0x6c, 0x38, 0x13, 0xb1, 0x70, 0x48, 0xac,
+        0xb2, 0x6b, 0xf7, 0xe4, 0x1b, 0x7d, 0x56, 0xf2, 0xfe, 0x69, 0xb4, 0x59,
+        0x0e, 0x31, 0xd6, 0xa7, 0xf1, 0xee, 0x40, 0x8a, 0x17, 0x97, 0x4e, 0xb0,
+        0x7a, 0x40, 0x39, 0x40, 0x3f, 0x29, 0x27, 0xd8, 0xa9, 0x84, 0xda, 0x01,
+        0x12, 0x70, 0x23, 0xdd, 0x87, 0x02, 0x1b, 0xb9, 0xaf, 0x8c, 0xee, 0xe2,
+        0x90, 0x7c, 0x00, 0x10
+};
+
+const unsigned int K_len = 64;
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/LKM/crypto_fd.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/crypto_fd.mod.o
+  LD [M]  /home/LKM/crypto_fd.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod crypto_fd.ko
+$ cat /proc/fdev
+Waiting for a FD to perform file handoff
+$ dmesg -T | tail
+...
+[Fri Nov 14 18:25:38 2025] /proc/fdev created
+...
+[Fri Nov 14 18:28:52 2025] /proc/fdev: read handler
+[Fri Nov 14 18:28:52 2025] /proc/fdev: 41 bytes sent to userspace
+$ cd ..
+$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+$ gcc -o mk_fhandoff mk_fhandoff.o
+$ gcc -c -Wshadow -Wvla -Wall check_hmac.c
+$ gcc -o check_hmac check_hmac.o -lcrypto
+$ ./mk_fhandoff ./file_handoff /proc/fdev
+File descriptor written in /proc/fdev:
+3
+$ dmesg -T | tail
+...
+[Fri Nov 14 18:31:22 2025] /proc/fdev: write handler
+[Fri Nov 14 18:31:22 2025] printH: file has been written with HMAC
+[Fri Nov 14 18:31:22 2025] mywrite: printH OK for fd 3 (119 bytes written)
+$ cat ./file_handoff
+
+--KERNEL-PS--
+Kernel-Space: Authentic content protected by HMAC-SHA256
+
+--HMAC--
+xUPsVlgNMcm1Uxj2mac0uTD3gdkDTyeNvbXuBZjq6Bw=
+
+$ ./check_hmac ./file_handoff
+Extracted kernel content:
+Kernel-Space: Authentic content protected by HMAC-SHA256
+
+Extracted HMAC(Base64):
+xUPsVlgNMcm1Uxj2mac0uTD3gdkDTyeNvbXuBZjq6Bw=
+Calculated HMAC(Base64):
+xUPsVlgNMcm1Uxj2mac0uTD3gdkDTyeNvbXuBZjq6Bw=
+
+HMAC verification successful: Valid HMAC
+$ cd LKM
+$ rmmod crypto_fd
+$ dmesg -T | tail
+...
+[Fri Nov 14 18:31:47 2025] /proc/fdev removed
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Validación del mecanismo de autenticación mediante \textit{HMAC-SHA256}.]{Validación del mecanismo de autenticación mediante \textit{HMAC-SHA256}.}
+\label{cod:crypto_validation}
+
+\
+
+\
+
+Mediante esta validación se comprobó que el módulo podía generar correctamente contenido autenticado en \textit{Espacio del Kernel}, adjuntarle su etiqueta \textit{HMAC-SHA256} en formato \textit{Base64} y transferir el conjunto completo al fichero real recibido mediante el mecanismo de \textit{File Handoff}.
+Asimismo, el programa \verb|check_hmac.c| permitió verificar desde \textit{Espacio de Usuario} que la etiqueta de autenticación recibida en el fichero coincidía con la recalculada localmente a partir del contenido extraído y de la misma clave secreta compartida, quedando así correctamente validado el funcionamiento del mecanismo de autenticidad del contenido diseñado en este prototipo.\\
+
+\subsection{Sistema de reporte seguro de los procesos en ejecución del sistema}
 \label{sec:proto-report}
+
+
+
 
 \section{Problemas y Errores encontrados}
