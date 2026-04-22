@@ -110,7 +110,7 @@ Con ello queda definida la estructura mínima funcional de un \textit{LKM} y pue
 
 Con permisos de administrador (\textit{root}), se compiló el módulo, se cargó en el \textit{Kernel}, se inspeccionaron las trazas registradas en el log del \textit{Kernel}, se consultaron los metadatos del propio módulo y, finalmente, se descargó verificando también la ejecución de la rutina de salida:
 
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\scriptsize]
 $ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
@@ -293,7 +293,7 @@ Por otro lado, se define una constante de tipo enumerado \verb|BUFSIZE| para fij
 
 Ya creado el fichero virtual \texttt{/proc/fdev} y sus funciones manejadoras de lectura y escritura, se procedió a comprobar el correcto funcionamiento del prototipo asumiendo que se dispone de permisos de administrador (\texttt{root}) sobre el sistema:
 
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\scriptsize]
 $ make
 make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
 make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
@@ -608,7 +608,7 @@ Este programa actúa como intermediario desde \textit{Espacio de Usuario}, crean
 
 Una vez terminado el mecanismo completo de \textit{File Handoff} básico, se procedió a validar su funcionamiento, comprobando que el módulo recibía correctamente el \textit{FD} de un fichero real desde \textit{Espacio de Usuario}, lo resolvía dentro del \textit{Kernel} y escribía sobre dicho fichero la cadena definida en \verb|mywrite|:
 
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\scriptsize]
 $ uname -r
 6.12.41-current-bcm2711
 $ cd LKM
@@ -1246,7 +1246,7 @@ err_fhandoff:
 
 Una vez completado el prototipo, se procedió a validar su correcto funcionamiento comprobando que el módulo podía generar correctamente contenido autenticado en \textit{Espacio del Kernel}, escribirlo sobre el fichero recibido mediante el mecanismo de \textit{File Handoff} y verificar posteriormente su integridad desde \textit{Espacio de Usuario} con la misma clave secreta compartida entre el administrador y el \textit{Kernel}:
 
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\scriptsize]
 $ uname -r
 6.12.41-current-bcm2711
 $ cd LKM
@@ -1332,7 +1332,583 @@ Asimismo, el programa \verb|check_hmac.c| permitió verificar desde \textit{Espa
 \subsection{Sistema de reporte seguro de los procesos en ejecución del sistema}
 \label{sec:proto-report}
 
+Por último, ya validado el mecanismo de autenticación del contenido a transferir mediante \textit{HMAC-SHA256}, el siguiente paso consistió en sustituir la cadena fija de prueba por un contenido real y verdaderamente crítico para el sistema, generado dinámicamente en \textit{Espacio del Kernel}.
+Para ello, se implementó un listado global de todos los procesos en ejecución del sistema, con un formato inspirado en la salida de \texttt{ps}, de forma que dicho contenido pudiese transferirse al fichero de transferencia de manera autenticada y verificarse posteriormente desde \textit{Espacio de Usuario} del mismo modo que el prototipo anterior.
+Este módulo se diseñó en el fichero \verb|crypto_ps.c|.\\
 
+En este punto, toda la infraestructura desarrollada en los prototipos anteriores se reutiliza sin cambios sustanciales, incluyendo el mecanismo de \textit{File Handoff}, la escritura conjunta del contenido y su \textit{HMAC} en \textit{Base64}, así como las utilidades de escritura en el fichero de \texttt{/proc} y verificación en \textit{Espacio de Usuario}.\\
 
+Inicialmente, se tuvo que incorporar nuevas constantes y cabeceras al módulo para su correcto funcionamiento y compilación:
+
+\begin{lstlisting}[language=C]
+#include <linux/cred.h>
+#include <linux/pid.h>
+#include <linux/rcupdate.h>
+#include <linux/security.h>
+#include <linux/sched.h>
+#include <linux/nsproxy.h>
+#include <linux/pid_namespace.h>
+
+enum {
+	MAX_SIZE = 1024 * 40,
+	TIPIC_HMACB64_SIZE = 44,
+	UID_SIZE = 12,
+	UIDNS_SIZE = 14,
+	PID_SIZE = 12,
+	PIDNS_SIZE = 14,
+	GID_SIZE = 11,
+	CMD_SIZE = 50,
+	PS_LINE_SIZE = UID_SIZE + UID_SIZE + UIDNS_SIZE +
+	    PID_SIZE + PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
+};
+
+static const char header[] =
+    "UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND\n";
+static const int header_len = sizeof(header) - 1;
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Cabeceras y constantes necesarias para la generación del listado de procesos global.]{Cabeceras y constantes necesarias para la generación del listado de procesos global.}
+\label{cod:report_headers_consts}
+
+Para poder construir un listado de todos los procesos que se encuentran en ejecución en el sistema y en sus distintos espacios de nombres, fue necesario ampliar nuevamente las cabeceras del módulo.
+Concretamente, \verb|<linux/cred.h>| y \verb|<linux/security.h>| permiten al módulo acceder a las credenciales de cada proceso, \verb|<linux/pid.h>|, \verb|<linux/sched.h>| y \verb|<linux/pid_namespace.h>| aportan las definiciones necesarias para recorrer la lista global de tareas y obtener sus identificadores en los distintos espacios de nombres, mientras que \verb|<linux/rcupdate.h>| proporciona el mecanismo de sincronización \textit{RCU} necesario para realizar este recorrido de forma segura.
+Por otra parte, las constantes auxiliares definidas acotan el tamaño máximo del contenido generado, el tamaño reservado para cada campo serializado y la estructura básica de la tabla de procesos generada con sus metadatos correspondientes.\\
+
+Una vez establecidas las cabeceras y constantes necesarias para estructurar el contenido a transferir, se procedió a incorporar dos funciones auxiliares que permitiesen formatear y construir dinámicamente y de forma segura la tabla completa de procesos dentro de un único \textit{buffer} de salida:
+
+\begin{lstlisting}[language=C]
+static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char)
+{
+	int padding = 0;
+
+	if (curr_len >= buf_len) {
+		padding = 0;
+		curr_len = buf_len;
+
+	} else {
+		padding = buf_len - curr_len;
+
+	}
+
+	if (padding > 0) {
+		memset(buf + curr_len, pad_char, padding);
+		curr_len += padding;
+
+	}
+
+	return buf_len;
+}
+
+static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len)
+{
+	int max_len = MAX_SIZE - *current_len;
+
+	if (max_len < src_len)
+		return -ENOSPC;
+
+	memcpy(dst + *current_len, src, src_len);
+
+	*current_len += src_len;
+
+	return src_len;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Funciones auxiliares para el formateo y la construcción segura del contenido serializado.]{Funciones auxiliares para el formateo y la construcción segura del contenido serializado.}
+\label{cod:report_pad_safe_chunk}
+
+\
+
+\
+
+La función \verb|pad_str_right| permite completar cada campo textual con caracteres de relleno hasta alcanzar una anchura fija, garantizando así una representación tabulada homogénea de los metadatos de cada proceso en la tabla.
+
+Por su parte, \verb|safe_chunk| permite incorporar secuencialmente cada fragmento de información al \textit{buffer} global que contendrá la tabla final, comprobando previamente que exista espacio suficiente antes de realizar la copia.\\
+
+A continuación, se implementó la función principal encargada de recorrer la lista global de tareas del sistema y construir la tabla completa en memoria:
+
+\begin{lstlisting}[language=C]
+static int get_ps(u8 **cont, int *cont_len)
+{
+	struct task_struct *task;
+
+	*cont = (u8 *) kmalloc(MAX_SIZE, GFP_KERNEL);
+	if (!*cont) {
+		printk(KERN_ERR "get_ps: kmalloc failed\n");
+		return -ENOMEM;
+	}
+
+	if (safe_chunk(*cont, cont_len, (char *)header, header_len) < 0)
+		goto out_fail;
+
+	rcu_read_lock();
+
+	for_each_process(task) {
+		if (*cont_len >= MAX_SIZE - PS_LINE_SIZE -
+		    sep_len - sep_hmac_len - TIPIC_HMACB64_SIZE) {
+			printk(KERN_WARNING
+			       "get_ps: Buffer full -> Truncating\n");
+			goto out_fail;
+		}
+
+		if (ps_data(task, *cont, cont_len)) {
+			printk(KERN_ERR
+			       "get_ps: Extracting process data failed\n");
+			goto out_fail;
+		}
+	}
+
+	rcu_read_unlock();
+
+	printk(KERN_INFO
+	       "get_ps: Generated ps-like output of %d bytes.\n", *cont_len);
+
+	return 0;
+
+out_fail:
+	rcu_read_unlock();
+
+	if (*cont)
+		kfree(*cont);
+	*cont = NULL;
+	*cont_len = 0;
+
+	return -ENOSPC;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Construcción del listado global de procesos en memoria del \textit{Kernel}.]{Construcción del listado global de procesos en memoria del \textit{Kernel}.}
+\label{cod:report_get_ps}
+
+Este código actúa como el núcleo principal de generación del contenido a transferir, reservando inicialmente un \textit{buffer} de tamaño máximo fijo donde se almacenará todo el listado completo, incorporando en primer lugar la cabecera definida anteriormente en las constantes.
+
+Posteriormente, recorre la lista global de procesos activos del sistema utilizando la macro \verb|for_each_process| bajo protección de lectura \textit{RCU}, garantizando así un acceso seguro frente a múltiples accesos concurrentes a las estructuras críticas de \verb|task_struct| mientras se extraen sus metadatos.
+Durante este recorrido, se comprueba que siga existiendo espacio disponible suficiente antes de incorporar cada nueva entrada, delegando en \verb|ps_data| la consulta y serialización de los campos correspondientes a cada proceso.
+
+Finalmente, si el recorrido concluye correctamente, devuelve en \verb|cont| el contenido completo generado, el cual será el utilizado en \verb|printh|, y en \verb|cont_len| su longitud total.
+Por otra parte, en caso de fallo, se libera la memoria reservada y se devuelve el código de error correspondiente.\\
+
+\begin{lstlisting}[language=C]
+static int ps_data(struct task_struct *task, u8 *cont, int *cont_len)
+{
+	char kuid_str[UID_SIZE];
+	char luid_str[UID_SIZE];
+	char uidns_str[UIDNS_SIZE];
+	char kpid_str[PID_SIZE];
+	char lpid_str[PID_SIZE];
+	char pidns_str[PIDNS_SIZE];
+	char gid_str[GID_SIZE];
+	char comm_str[CMD_SIZE];
+
+	int kuid_len = get_kuid_str(task_uid(task), kuid_str);
+	if (kuid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, kuid_str, UID_SIZE) < 0)
+		goto out_fail;
+
+	int luid_len = get_luid_str(task, luid_str);
+	if (luid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, luid_str, UID_SIZE) < 0)
+		goto out_fail;
+
+	int uidns_len = get_uidns_str(task, uidns_str);
+	if (uidns_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, uidns_str, UIDNS_SIZE) < 0)
+		goto out_fail;
+
+	int kpid_len = get_kpid_str(task_pid_nr(task), kpid_str);
+	if (kpid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, kpid_str, PID_SIZE) < 0)
+		goto out_fail;
+
+	int lpid_len = get_lpid_str(task, lpid_str);
+	if (lpid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, lpid_str, PID_SIZE) < 0)
+		goto out_fail;
+
+	int pidns_len = get_pidns_str(task, pidns_str);
+	if (pidns_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, pidns_str, PIDNS_SIZE) < 0)
+		goto out_fail;
+
+	int gid_len = get_gid_str(task, gid_str);
+	if (gid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, gid_str, GID_SIZE) < 0)
+		goto out_fail;
+
+	int comm_len = get_command_str(task, comm_str);
+	if (comm_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, comm_str, comm_len) < 0)
+		goto out_fail;
+
+	return 0;
+
+out_fail:
+	return 1;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Serialización de los metadatos de un proceso.]{Serialización de los metadatos de un proceso.}
+\label{cod:report_ps_data}
+
+\
+
+\
+
+La función \verb|ps_data| encapsula la construcción de una única fila de la tabla final correspondiente a la tarea  actualmente recorrida en \verb|for_each_process|, extrayendo y serializando secuencialmente los principales metadatos de cada proceso concreto.\\
+
+Para ello, se optó por encapsular en funciones independientes la extracción de cada metadato por separado:\\\\
+
+A continuación, se implementaron varias funciones auxiliares encargadas de extraer y formatear los distintos identificadores de usuario asociados a cada proceso, distinguiendo entre el identificador global visible desde el \textit{Kernel}, su valor relativo dentro del espacio de nombres del proceso y el identificador del propio espacio de nombres:
+
+\begin{lstlisting}[language=C]
+static int get_kuid_str(kuid_t uid_struct, char *uid_str)
+{
+	int uid_len = 0;
+
+	int uid = from_kuid(&init_user_ns, uid_struct);
+
+	uid_len = snprintf(uid_str, UID_SIZE, "%d", uid);
+
+	pad_str_right(uid_str, uid_len, UID_SIZE, ' ');
+
+	return uid_len;
+}
+
+static int get_luid_str(struct task_struct *task, char *uid_str)
+{
+	int uid_len = 0;
+
+	const struct cred *cred = get_task_cred(task);
+	if (!cred) {
+		printk(KERN_ERR
+		       "get_luid_str: No credentials found for task\n");
+		return -ENOSPC;
+	}
+
+	int uid = from_kuid(cred->user_ns, cred->uid);
+
+	put_cred(cred);
+
+	uid_len = snprintf(uid_str, UID_SIZE, "%d", uid);
+
+	pad_str_right(uid_str, uid_len, UID_SIZE, ' ');
+
+	return uid_len;
+}
+
+static int get_uidns_str(struct task_struct *task, char *uidns_str)
+{
+	const struct cred *cred = get_task_cred(task);
+	if (!cred) {
+		printk(KERN_ERR
+		       "get_uidns_str: No credentials found for task\n");
+		return -ENOSPC;
+	}
+
+	unsigned int uid_ns = cred->user_ns->ns.inum;
+
+	put_cred(cred);
+
+	int uidns_len = snprintf(uidns_str, UIDNS_SIZE, "%u", uid_ns);
+
+	pad_str_right(uidns_str, uidns_len, UIDNS_SIZE, ' ');
+
+	return uidns_len;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Identificadores de usuario de cada proceso.]{Identificadores de usuario de cada proceso.}
+\label{cod:report_uid_fields}
+
+\
+
+\
+
+Estas funciones permiten obtener y formatear los identificadores de usuario (\textit{UIDs}) asociados a cada proceso.
+En concreto, \verb|get_kuid_str| obtiene el UID global visible desde el \textit{Kernel}, \verb|get_luid_str| recupera el UID relativo al espacio de nombres del proceso y \verb|get_uidns_str| identifica el espacio de nombres de usuario al que pertenecen dichas credenciales.\\
+
+\begin{lstlisting}[language=C]
+static int get_kpid_str(int pid, char *pid_str)
+{
+	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+
+	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+
+	return pid_len;
+}
+
+static int get_lpid_str(struct task_struct *task, char *pid_str)
+{
+	struct pid_namespace *ns = task_active_pid_ns(task);
+	if (!ns) {
+		printk(KERN_ERR
+		       "get_lpid_str: No PID namespace found for task\n");
+		return -ENOSPC;
+	}
+
+	int pid = task_pid_nr_ns(task, ns);
+
+	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+
+	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+
+	return pid_len;
+}
+
+static int get_pidns_str(struct task_struct *task, char *pidns_str)
+{
+	struct pid_namespace *pid_ns = task_active_pid_ns(task);
+	if (!pid_ns) {
+		printk(KERN_ERR
+		       "get_pidns_str: No PID namespace found for task\n");
+		return -ENOSPC;
+	}
+
+	int pidns_len = snprintf(pidns_str, PIDNS_SIZE, "%u", pid_ns->ns.inum);
+
+	pad_str_right(pidns_str, pidns_len, PIDNS_SIZE, ' ');
+
+	return pidns_len;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Identificadores de proceso de cada tarea.]{Identificadores de proceso de cada tarea.}
+\label{cod:report_pid_fields}
+
+\
+
+\
+
+En este caso, estas funciones permiten obtener y formatear los identificadores de proceso (\textit{PIDs}) de cada tarea.
+En particular, \verb|get_kpid_str| obtiene el PID global visible desde el \textit{Kernel}, \verb|get_lpid_str| recupera el PID relativo al espacio de nombres de proceso activo y \verb|get_pidns_str| identifica el espacio de nombres de proceso al que pertenece la tarea analizada.\\
+
+\begin{lstlisting}[language=C]
+static int get_gid_str(struct task_struct *task, char *gid_str)
+{
+	int gid_len = 0;
+
+	const struct cred *cred = get_task_cred(task);
+	if (!cred)
+		return -ENOSPC;
+
+	int gid = from_kgid(&init_user_ns, cred->gid);
+	put_cred(cred);
+
+	gid_len = snprintf(gid_str, GID_SIZE, "%d", gid);
+
+	pad_str_right(gid_str, gid_len, GID_SIZE, ' ');
+
+	return gid_len;
+}
+
+static int get_command_str(struct task_struct *task, char *comm_str)
+{
+	int comm_len = 0;
+
+	if (task->mm == NULL) {
+		comm_len = snprintf(comm_str, CMD_SIZE, "[%s]\n", task->comm);
+		goto commd_finished;
+	}
+
+	struct file *exe_file = task->mm->exe_file;
+
+	if (exe_file) {
+		char *path = d_path(&exe_file->f_path, comm_str, CMD_SIZE);
+
+		if (!IS_ERR(path)) {
+			comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", path);
+			goto commd_finished;
+		}
+	}
+
+	comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", task->comm);
+
+commd_finished:
+	if (comm_len >= CMD_SIZE)
+		comm_len = CMD_SIZE - 1;
+
+	return comm_len;
+}
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Identificadores de grupo y nombre del comando asociado a cada proceso.]{Identificadores de grupo y nombre del comando asociado a cada proceso.}
+\label{cod:report_gid_command}
+
+\
+
+\
+
+Finalmente, estas funciones completan la información del proceso con el identificador de grupo y el comando asociado a su ejecución.
+Concretamente, \verb|get_gid_str| obtiene y formatea el identificador de grupo global asociado al proceso y \verb|get_command_str| recupera el comando correspondiente a su ejecución, distinguiendo entre procesos de usuario con ejecutable accesible, hilos del \textit{Kernel} y casos en los que solo puede utilizarse el nombre almacenado en \verb|task->comm|.\\
+
+Una vez integrada la generación dinámica de los metadatos de los procesos activos del sistema en el flujo autenticado de escritura en el fichero de transferencia, se procedió a validar el comportamiento completo del prototipo final incorporando la funcionalidad de los \textit{Dockers} para simular distintos espacios de nombres en el sistema:
+
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\tiny]
+$ uname -r
+6.12.41-current-bcm2711
+$ cd LKM
+$ chmod +x gen_k_embedded.sh
+$ ./gen_k_embedded.sh
+OK: generated k_embedded.h with key K (64 bytes).
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/LKM/crypto_ps.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/crypto_ps.mod.o
+  LD [M]  /home/LKM/crypto_ps.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod crypto_ps.ko
+$ cat /proc/fdev
+LKM ready to receive file descriptors from user.
+$ dmesg -T | tail
+...
+[Thu Nov 27 18:42:11 2025] New proc file created: /proc/fdev
+...
+[Thu Nov 27 18:42:11 2025] /proc/fdev: read handler
+[Thu Nov 27 18:42:11 2025] /proc/fdev myread: read 48 bytes by userspace
+$ cd ..
+$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+$ gcc -o mk_fhandoff mk_fhandoff.o
+$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c
+$ gcc -g -o check_hmac check_hmac.o -lcrypto
+$ cat /etc/docker/daemon.json
+{
+        "userns-remap": "default"
+}
+$ systemctl restart docker
+$ docker run -d --name docker1 debian:stable sleep 10000
+7fd1c45a07c0...
+$ docker run -d --name docker2 debian:stable sleep 10000
+77276c1a7026...
+$ docker run -d --name docker3 debian:stable sleep 10000
+4a4421829e80...
+$ docker ps
+CONTAINER ID   IMAGE           COMMAND         CREATED              STATUS          NAMES
+4a4421829e80   debian:stable   "sleep 10000"   29 seconds ago       Up 28 seconds   docker3
+77276c1a7026   debian:stable   "sleep 10000"   35 seconds ago       Up 34 seconds   docker2
+7fd1c45a07c0   debian:stable   "sleep 10000"   About a minute ago   Up 58 seconds   docker1
+$ ./mk_fhandoff ./file_handoff /proc/fdev
+File descriptor written in /proc/fdev:
+3
+$ dmesg -T | tail
+...
+[Thu Nov 27 18:43:49 2025] /proc/fdev: write handler
+[Thu Nov 27 18:43:49 2025] /proc/fdev write: written 1 bytes from the user
+[Thu Nov 27 18:43:49 2025] get_ps: Generated ps-like output of 21251 bytes.
+[Thu Nov 27 18:43:49 2025] printH: file has been written with HMAC
+[Thu Nov 27 18:43:49 2025] mywrite: printH OK for fd 3 (21320 bytes written)
+$ cat ./file_handoff
+
+--KERNEL-PS--
+UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND
+0           0           4026531837    1           1           4026531836    0          /usr/lib/systemd/systemd
+0           0           4026531837    2           2           4026531836    0          [kthreadd]
+0           0           4026531837    3           3           4026531836    0          [pool_workqueue_]
+...
+113         113         4026531837    1440        1440        4026531836    119        /usr/sbin/chronyd
+113         113         4026531837    1448        1448        4026531836    119        /usr/sbin/chronyd
+0           0           4026531837    1484        1484        4026531836    0          /usr/sbin/gdm3
+0           0           4026531837    1489        1489        4026531836    1000       /usr/libexec/gdm-session-worker
+1000        1000        4026531837    1496        1496        4026531836    1000       /usr/lib/systemd/systemd
+1000        1000        4026531837    1497        1497        4026531836    1000       /usr/lib/systemd/systemd-executor
+...
+0           0           4026531837    8211        8211        4026531836    0          /usr/bin/dockerd
+0           0           4026531837    8212        8212        4026531836    0          [kworker/1:1]
+0           0           4026531837    8239        8239        4026531836    0          [kworker/1:2H]
+0           0           4026531837    8500        8500        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532674    8520        1           4026532678    100000     /usr/bin/sleep
+0           0           4026531837    8532        8532        4026531836    0          [kworker/2:0]
+0           0           4026531837    8596        8596        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532754    8617        1           4026532758    100000     /usr/bin/sleep
+0           0           4026531837    8667        8667        4026531836    0          [kworker/2:2H]
+0           0           4026531837    8678        8678        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532834    8698        1           4026532838    100000     /usr/bin/sleep
+0           0           4026531837    8741        8741        4026531836    0          [kworker/u20:2]
+0           0           4026531837    8935        8935        4026531836    0          [kworker/0:0]
+0           0           4026531837    8947        8947        4026531836    0          [kworker/u16:3]
+0           0           4026531837    8989        8989        4026531836    0          [kworker/3:2]
+0           0           4026531837    9033        9033        4026531836    0          /home/noel/Desktop/TFG/Project/mk_fhandoff
+
+--HMAC--
+ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
+
+$ ./check_hmac ./file_handoff
+Extracted kernel content:
+UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND
+0           0           4026531837    1           1           4026531836    0          /usr/lib/systemd/systemd
+0           0           4026531837    2           2           4026531836    0          [kthreadd]
+0           0           4026531837    3           3           4026531836    0          [pool_workqueue_]
+...
+113         113         4026531837    1440        1440        4026531836    119        /usr/sbin/chronyd
+113         113         4026531837    1448        1448        4026531836    119        /usr/sbin/chronyd
+0           0           4026531837    1484        1484        4026531836    0          /usr/sbin/gdm3
+0           0           4026531837    1489        1489        4026531836    1000       /usr/libexec/gdm-session-worker
+1000        1000        4026531837    1496        1496        4026531836    1000       /usr/lib/systemd/systemd
+1000        1000        4026531837    1497        1497        4026531836    1000       /usr/lib/systemd/systemd-executor
+...
+0           0           4026531837    8211        8211        4026531836    0          /usr/bin/dockerd
+0           0           4026531837    8212        8212        4026531836    0          [kworker/1:1]
+0           0           4026531837    8239        8239        4026531836    0          [kworker/1:2H]
+0           0           4026531837    8500        8500        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532674    8520        1           4026532678    100000     /usr/bin/sleep
+0           0           4026531837    8532        8532        4026531836    0          [kworker/2:0]
+0           0           4026531837    8596        8596        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532754    8617        1           4026532758    100000     /usr/bin/sleep
+0           0           4026531837    8667        8667        4026531836    0          [kworker/2:2H]
+0           0           4026531837    8678        8678        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532834    8698        1           4026532838    100000     /usr/bin/sleep
+0           0           4026531837    8741        8741        4026531836    0          [kworker/u20:2]
+0           0           4026531837    8935        8935        4026531836    0          [kworker/0:0]
+0           0           4026531837    8947        8947        4026531836    0          [kworker/u16:3]
+0           0           4026531837    8989        8989        4026531836    0          [kworker/3:2]
+0           0           4026531837    9033        9033        4026531836    0          /home/noel/Desktop/TFG/Project/mk_fhandoff
+
+Extracted HMAC(Base64):
+ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
+Calculated HMAC(Base64):
+ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
+
+HMAC verification successful: Valid HMAC
+$ cd LKM
+$ rmmod crypto_ps
+$ dmesg -T | tail
+...
+[Thu Nov 27 18:46:06 2025] Proc file deleted: /proc/fdev
+\end{lstlisting}
+\captionsetup{type=code}
+\captionof{code}[Validación del sistema de reporte seguro de metadatos de los procesos activos de manera autenticada mediante \textit{HMAC-SHA256}.]{Validación del sistema de reporte seguro de metadatos de los procesos activos de manera autenticada mediante \textit{HMAC-SHA256}.}
+\label{cod:report_validation}
+
+\
+
+\
+
+Cabe destacar que no se muestran los resultados completos de \verb|cat ./file_handoff| y \verb|./check_hmac ./file_handoff| debido a la gran cantidad de procesos activos en el sistema, lo que genera una tabla de gran extensión.
+Por este motivo, en la validación se presenta únicamente un extracto representativo del contenido transferido y verificado, correspondiéndose el \textit{HMAC} y los tamaños reportados con la salida completa generada durante la ejecución real.\\
+
+Mediante esta validación se comprobó que el módulo podía generar correctamente un listado global de los procesos activos del sistema desde \textit{Espacio del Kernel}.
+Asimismo, se comprobó que en dicho listado también se incluían aquellos procesos que se ejecutan en otros \textit{Namespaces}, como se observó mediante la ejecución de varios contenedores con \textit{Docker}, observándose diferencias respecto a los metadatos del resto de procesos, principalmente en los valores relativos a \verb|UID_LOCAL|, \verb|PID_LOCAL|, \verb|UID_NS| y \verb|PID_NS|.
+
+Por otro lado, al igual que en el anterior prototipo, se valida correctamente desde \textit{Espacio de Usuario} mediante el programa \verb|check_hmac.c| que la etiqueta \textit{HMAC-SHA256} en \textit{Base64} coincide con la recalculada respecto a la tabla completa de procesos, garantizando así un reporte seguro y autenticado de datos críticos del sistema entre las dos regiones del mismo.\\
 
 \section{Problemas y Errores encontrados}
+
+
+\section{Objetivos cumplidos}
