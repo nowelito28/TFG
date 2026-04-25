@@ -32,7 +32,71 @@ En conclusión, el problema del proyecto puede formularse del siguiente modo: \t
 
 \section{Modelo de amenaza}
 
+El presente proyecto aborda específicamente la amenaza de los \textbf{\textit{rootkits} de Espacio de Usuario} en sistemas \textit{Linux}.
+Estas son herramientas de \textit{malware} diseñadas para mantener el control sobre esta región del sistema, pudiendo alterar la salida de herramientas de monitorización críticas mediante técnicas de interceptación y modificación de código~\cite{rootkits}.\\
 
+Su técnica más habitual de intrusión consiste en explotar el mecanismo de enlazado dinámico \texttt{LD\_PRELOAD} para cargar bibliotecas maliciosas e interceptar funciones (\textit{hooking}) de bibliotecas típicamente utilizadas en C (como \texttt{libc}), modificando la salida de comandos críticos como \texttt{ps}, \texttt{ls}, \texttt{top} o \texttt{netstat}.
+Esta capacidad de manipulación permite al atacante occultar:
+
+\begin{itemize}
+    \item \textbf{Procesos maliciosos}: Ocultar la ejecución de herramientas de control remoto o \textit{backdoors}.
+    \item \textbf{Ficheros y conexiones de red}: Enmascarar conexiones sospechosas hacia servidores remotos o ficheros de persistencia.
+    \item \textbf{Accesos a recursos}: Falsear registros de acceso a ficheros o información de permisos.
+    \item \textbf{Actividad de usuarios}: Falsificar información sobre sesiones activas o comandos ejecutados.
+\end{itemize}
+
+En este contexto, el proyecto se centra en diseñar un mecanismo de reporte seguro que permita al administrador obtener información crítica del sistema desde el \textit{Espacio del Kernel}, acompañado de un mecanismo de autenticación criptográfica que permita verificar su integridad y autenticidad posteriormente desde el \textit{Espacio de Usuario}, incluso en escenarios comprometidos por \textit{rootkits} de \textit{Espacio de Usuario}.
+
+\subsection{Contexto de operación y supuestos de seguridad}
+
+El proyecto asume un escenario en el que el \textit{Espacio de Usuario} ha sido comprometido, permitiendo al atacante ejecutar \textit{malware} con capacidades de persistencia y ocultación.
+En este contexto, se plantean los siguientes supuestos:
+
+\begin{itemize}
+    \item \textbf{El \textit{Espacio de Usuario} está bajo control del atacante.} El administrador no puede confiar en la salida de herramientas de monitorización como \texttt{ps}, \texttt{ls} o \texttt{netstat}, ya que pueden haber sido interceptadas y manipuladas por un \textit{rootkit}.
+    \item \textbf{El \textit{Espacio del Kernel} permanece íntegro.} El proyecto asume que no hay compromiso de \textit{rootkits} de \textit{Espacio del Kernel}, manteniendo la integridad del código ejecutado en \textit{Ring 0}.
+    \item \textbf{El administrador es de confianza.} Se asume que la clave simétrica compartida para la autenticación HMAC es conocida únicamente por el administrador de confianza del sistema.
+    \item \textbf{La comunicación es unidireccional desde el \textit{Kernel} a \textit{Espacio de Usuario}.} El \textit{Kernel} no confía en datos recibidos desde \textit{Espacio de Usuario} salvo el identificador del fichero de salida, siendo el vector principal de entrada.
+    \item \textbf{\textit{Hardware} y \textit{Firmware} íntegros.} Se asume que tanto el \textit{Hardware} como el \textit{Firmware} del sistema no han sido comprometidos.
+\end{itemize}
+
+\subsection{Capacidades y limitaciones del atacante}
+
+\textbf{Capacidades del atacante dentro del escenario modelado:}
+
+\begin{itemize}
+    \item Interceptar y modificar la salida de herramientas de usuario mediante \texttt{LD\_PRELOAD} y \textit{hooking} de funciones de bibliotecas como \texttt{libc}.
+    \item Ocultar procesos, ficheros, conexiones de red y actividad maliciosa desde herramientas de monitorización de \textit{Espacio de Usuario}.
+    \item Ejecutar código malicioso con privilegios arbitrarios en \textit{Espacio de Usuario}.
+    \item Manipular información en \texttt{/proc} mediante \textit{bind mounts} y \textit{namespaces}.
+\end{itemize}
+
+\textbf{Limitaciones del atacante dentro del escenario modelado:}
+
+\begin{itemize}
+    \item No puede modificar el \textit{Kernel} ni cargar \textit{LKMs} maliciosos (no accede a \textit{Ring 0}).
+    \item No puede interceptar llamadas al sistema ni modificar la \textit{Tabla de Llamadas del Sistema} (\textit{sys\_call\_table}).
+    \item No puede falsificar el HMAC-SHA256 sin conocer la clave simétrica compartida entre el \textit{Kernel} y el administrador del sistema.
+\end{itemize}
+
+\subsection{Cobertura defensiva}
+
+\textbf{Lo que el sistema protege:}
+
+\begin{itemize}
+    \item \textbf{Ocultación de procesos}: Proporciona visibilidad desde \textit{Kernel}, imposible de manipular desde \textit{Espacio de Usuario}.
+    \item \textbf{Integridad de información}: Mediante autenticación criptográfica HMAC-SHA256, verificable matemáticamente mediante la misma clave con la que se codifica.
+    \item \textbf{Detección de manipulación}: Permite comparar información autenticada del \textit{Kernel} con herramientas comprometidas de \textit{Espacio de Usuario}.
+\end{itemize}
+
+\textbf{Lo que el sistema NO protege:}
+
+\begin{itemize}
+    \item Amenazas de \textit{rootkits} de \textit{Espacio del Kernel} que operen en \textit{Ring 0}.
+    \item Compromisos post-carga del \textit{LKM} mediante modificación de memoria del \textit{Kernel}.
+    \item Exposición o interceptación de la clave simétrica compartida entre el \textit{Kernel} y el administrador.
+    \item Procesos o actividad maliciosa anterior a la carga del \textit{LKM}.
+  \end{itemize}
 
 \section{Objetivos}
 
