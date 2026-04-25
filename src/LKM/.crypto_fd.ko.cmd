@@ -1,1 +1,0 @@
-savedcmd_crypto_fd.ko := ld -r -m elf_x86_64 -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /usr/src/linux-headers-6.17.0-1010-azure/scripts/module.lds -o crypto_fd.ko crypto_fd.o crypto_fd.mod.o .module-common.o
