@@ -13,46 +13,37 @@
   wfLabel/.style={font=\sffamily\fontsize{8}{8.6}\selectfont, text=wftext, align=center},
   wfMain/.style={draw=wfline, line width=1.05pt, ->},
   wfConn/.style={draw=wfline, line width=0.9pt},
-  wfNode/.style={draw=wfline, fill=white, line width=0.9pt, circle, minimum size=0.34cm},
+  wfCore/.style={draw=wfdraw, fill=wffill, line width=0.9pt, circle, minimum size=1.45cm},
   wfBoxA/.style={draw=wfdraw, fill=wffill, rounded corners=0.12cm, line width=0.9pt},
   wfBoxB/.style={draw=wfaccent, fill=wffill, rounded corners=0.12cm, line width=0.9pt}
 ]
 
-  \path[use as bounding box] (0,1.05) rectangle (15.8,5.0);
+  \path[use as bounding box] (0.8,0.35) rectangle (14.6,6.95);
 
-  \node[wfTitle] at (7.55,4.45) {Waterfall schema};
+  \node[wfTitle] at (7.7,7.7) {Spiral schema};
 
-  % Main branch
-  \draw[wfMain] (1.0,2.15) -- (14.8,2.15);
-  \node[wfLabel] at (7.55,1.52) {Main branch (\textit{Main Prototype})};
+  % Symmetric contained spiral
+  \draw[wfMain, samples=220, domain=65:860, smooth, variable=\t]
+    plot ({7.15 + (0.0022 + 0.0072*\t)*cos(\t)},
+          {3.15 + (0.0022 + 0.0050*\t)*sin(\t)});
 
-  % Merge points
-  \foreach \x in {2.1,4.9,7.7,10.5,13.3} {
-    \node[wfNode] at (\x,2.15) {};
-  }
+  \node[wfCore, wfLabel] (core) at (7.15,3.15) {Main\\(\textit{Prototype})};
 
-  % Generic features
-  \draw[wfBoxA] (1.00,3.00) rectangle (3.20,3.78);
-  \node[wfLabel] at (2.10,3.39) {Feature 1};
-  \draw[wfConn] (2.10,3.00) -- (2.10,2.32);
+  \draw[wfBoxA] (8.00,1.80) rectangle (9.60,2.37);
+  \node[wfLabel] at (8.80,2.09) {Feature 1};
 
-  \draw[wfBoxB] (3.80,3.00) rectangle (6.00,3.78);
-  \node[wfLabel] at (4.90,3.39) {Feature 2};
-  \draw[wfConn] (4.90,3.00) -- (4.90,2.32);
+  \draw[wfBoxA] (4.50,4.95) rectangle (6.10,5.52);
+  \node[wfLabel] at (5.30,5.24) {Feature 2};
 
-  \draw[wfBoxA] (6.60,3.00) rectangle (8.80,3.78);
-  \node[wfLabel] at (7.70,3.39) {Feature 3};
-  \draw[wfConn] (7.70,3.00) -- (7.70,2.32);
+  \draw[wfBoxA] (9.80,0.50) rectangle (11.40,1.07);
+  \node[wfLabel] at (10.60,0.79) {Feature 4};
 
-  \draw[wfBoxB] (9.40,3.00) rectangle (11.60,3.78);
-  \node[wfLabel] at (10.50,3.39) {Feature 4};
-  \draw[wfConn] (10.50,3.00) -- (10.50,2.32);
+  \draw[wfBoxA] (2.80,1.50) rectangle (4.40,2.07);
+  \node[wfLabel] at (3.60,1.79) {Feature 3};
 
-  % Dots between generic later additions
-  \node[wfLabel, text=wfline] at (11.90,2.50) {\Large$\cdots$};
+  \draw[wfBoxA] (9.80,6.00) rectangle (11.40,6.57);
+  \node[wfLabel] at (10.60,6.29) {Feature $n$};
 
-  \draw[wfBoxA] (12.20,3.00) rectangle (14.40,3.78);
-  \node[wfLabel] at (13.30,3.39) {Feature $n$};
-  \draw[wfConn] (13.30,3.00) -- (13.30,2.32);
+  \node[wfLabel, text=wfline] at (12.80,3.50) {\Large$\cdots$};
 
 \end{tikzpicture}

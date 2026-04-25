@@ -30,6 +30,10 @@ En conclusión, el problema del proyecto puede formularse del siguiente modo: \t
 
 \newpage
 
+\section{Modelo de amenaza}
+
+
+
 \section{Objetivos}
 
 El objetivo principal del presente proyecto consiste en \textbf{diseñar un mecanismo de reporte seguro para sistemas \textit{Linux} capaz de proporcionar al administrador una visión más fiable de información crítica del sistema, concretamente del estado de sus procesos activos, especialmente en entornos comprometidos por \textit{rootkits} de \textit{Espacio de Usuario}}.
@@ -72,64 +76,59 @@ En este proyecto, se establecen estos criterios:
 \section{Competencias}
 
 La realización de este TFG ha requerido aplicar e integrar competencias adquiridas tanto a lo largo del \textit{Grado en Ingeniería en Tecnologías de la Telecomunicación} como a partir del propio trabajo autónomo de investigación, diseño, implementación y validación del prototipo.
-Concretamente, las competencias más relevantes empleadas y consolidadas durante el proyecto son las siguientes:
+Las competencias más relevantes consolidadas son las siguientes:
 
 \begin{itemize}
-    \item \textbf{Capacidad de resolver problemas con criterio técnico y autonomía.} Este proyecto ha exigido analizar un problema de seguridad complejo, estudiar distintas alternativas de diseño dentro del \textit{Kernel} del sistema y tomar decisiones sobre el mecanismo de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio de Kernel}, la forma de representar la información crítica que debe proporcionarse y la implementación criptográfica de HMAC como mecanismo de autenticación.
+    \item \textbf{Análisis de problemas técnicos complejos y resolución autónoma.} El proyecto requirió analizar un problema de seguridad complejo, estudiar alternativas de diseño en el \textit{Kernel}, y tomar decisiones sobre la comunicación entre espacios de usuario y kernel, la representación de información crítica y la implementación criptográfica de HMAC.
     
-    \item \textbf{Capacidad de comunicar de forma técnica conocimientos, procedimientos y resultados.} Esta competencia se ha aplicado en la redacción de la memoria, en la organización y metodología utilizada para el desarrollo del prototipo, y en la posterior preparación de la presentación del mismo, buscando mostrar el trabajo realizado con un formato técnico, riguroso y comprensible.
+    \item \textbf{Programación de sistemas y programación en kernel de \textit{Linux}.} Mediante aprendizaje autónomo sobre programación de \textit{LKMs}, gestión de procesos y \textit{namespaces}, sistema de ficheros \texttt{/proc} e interacción entre regiones de memoria, se diseñó e implementó en \texttt{C} tanto el módulo del kernel como los programas de usuario necesarios para su validación.
     
-    \item \textbf{Capacidad de aprendizaje autónomo y adaptación a nuevas tecnologías.} Durante el desarrollo del proyecto, se ha requerido profundizar de forma autodidacta en aspectos no triviales de entornos \textit{Linux}, como la programación de \textit{LKMs}, la gestión de procesos y \textit{namespaces}, el funcionamiento de \textit{rootkits} de \textit{Espacio de Usuario}, el sistema de ficheros \texttt{/proc} y la interacción segura entre distintas regiones de memoria del sistema operativo.
+    \item \textbf{Criptografía, seguridad y mecanismos de autenticación.} Se aplicaron conocimientos sobre análisis de malware, gestión de claves criptográficas, HMAC-SHA256, integridad de información y diseño de comunicaciones seguras entre espacios de usuario y kernel.
     
-    \item \textbf{Competencia en programación de sistemas y uso avanzado de entornos \textit{Linux}.} A partir de conocimientos adquiridos en asignaturas como \textit{Programación de Sistemas de Telecomunicación}, \textit{Sistemas Operativos} y \textit{Seguridad en Redes de Ordenadores}, y por otro lado, mediante un aprendizaje autónomo sobre programación en el \textit{Kernel} de \textit{Linux}, se han diseñado e implementado en lenguaje \texttt{C} tanto el \textit{LKM} como los programas de usuario necesarios para probar el prototipo y verificar criptográficamente la información generada.
+    \item \textbf{Diseño, ejecución y análisis de pruebas de validación.} El prototipo fue probado en entorno \textit{Linux} real con procesos y usuarios en distintos \textit{namespaces}, validando comunicación con kernel a través de \texttt{/proc}, generación de información crítica del sistema y verificación de integridad mediante HMAC.
     
-    \item \textbf{Comprensión y utilización de sistemas operativos, procesos y mecanismos internos del sistema.} El trabajo realizado ha implicado aplicar conocimientos propios de la asignatura de \textit{Sistemas Operativos}, complementados con un aprendizaje autónomo sobre el \textit{Kernel} de \textit{Linux}, para poder abordar temas como la gestión de procesos, la gestión de ficheros, el control de permisos, la arquitectura del sistema operativo, el acceso a estructuras internas del \textit{Kernel} y la validación de operaciones sensibles en un entorno privilegiado.
-    
-    \item \textbf{Conocimiento y aplicación de fundamentos de seguridad y autenticación en sistemas telemáticos.} Este TFG ha permitido aplicar conocimientos adquiridos en asignaturas como \textit{Sistemas Telemáticos} y \textit{Seguridad en Redes de Ordenadores}, especialmente en lo relativo al análisis de \textit{malware}, la gestión de claves criptográficas, conceptos de ciberseguridad como la autenticación y la integridad de la información, y el diseño de mecanismos seguros de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio de Kernel}.
-        
-    \item \textbf{Capacidad de diseñar, ejecutar y analizar pruebas de validación.} El prototipo desarrollado no solo se ha implementado, sino que también se ha probado en un entorno \textit{Linux} real mediante escenarios con procesos y usuarios en distintos \textit{namespaces}, asegurando el correcto funcionamiento de la comunicación con el \textit{Kernel} a través de \texttt{/proc}, la generación correcta de la información crítica del sistema y la comprobación, desde \textit{Espacio de Usuario}, del HMAC calculado por el \textit{Kernel}, verificando así la integridad de la información proporcionada.
-    
-    \item \textbf{Comprensión técnica y contextual de la problemática abordada.} El proyecto aborda un problema directamente relacionado con la seguridad de sistemas de información, lo que ha exigido aplicar una perspectiva técnica y coherente con base en la documentación y código fuente oficial de \textit{Linux}, organizaciones representativas del ámbito como la \textit{ENISA} (\textit{European Union Agency for Cybersecurity})~\cite{threat_enisa}, artículos de divulgación técnica de expertos en la materia como \textit{User-space library rootkits revisited: Are user-space detection mechanisms futile?}~\cite{rootkits} y portales técnicos oficiales como el de MITRE ATT\&CK~\cite{mitre_attack}.
+    \item \textbf{Comunicación técnica y documentación.} Se aplicó en la redacción rigurosa de la memoria, organización de la metodología del desarrollo, documentación del prototipo y preparación de la presentación, fundamentando la solución en documentación oficial de \textit{Linux}, \textit{ENISA}~\cite{threat_enisa}, artículos técnicos especializados~\cite{rootkits} y MITRE ATT\&CK~\cite{mitre_attack}.
 \end{itemize}
 
-En conjunto, este proyecto ha servido como una tarea integradora de conceptos del grado, complementada con un aprendizaje técnico autodidacta centrado en la problemática abordada.
+En conjunto, el proyecto constituyó una tarea integradora de conceptos del grado con aprendizaje técnico autodidacta en programación de sistemas y seguridad de información.
  
 \section{Metodología}
 
-La metodología seguida en este proyecto ha sido principalmente de tipo \textbf{\textit{Waterfall}} o secuencial.
+La metodología seguida en este proyecto ha sido principalmente de tipo \textbf{\textit{Spiral}} o en espiral.
 Esta elección se debe a que, aunque la problemática a abordar estaba claramente definida desde el inicio, la solución técnica concreta a la misma no lo estaba.
 Por ello, no resultó adecuado plantear una metodología puramente \textbf{\textit{Agile}} (\textit{Ágil}), ya que durante las primeras fases del proyecto todavía no se conocían con precisión varios aspectos necesarios para poder diseñar una solución adecuada al problema.
-Por esta razón, se optó por una metodología secuencial, la cual permite ir investigando y adquiriendo poco a poco los conocimientos requeridos para desarrollar un prototipo funcional que sirva como solución a la problemática planteada.
+Por esta razón, se optó por una metodología en espiral, la cual permite investigar, diseñar, implementar y validar de forma iterativa y progresiva los conocimientos requeridos para desarrollar un prototipo funcional que sirva como solución a la problemática planteada.\\
 
-De esta manera, el trabajo se ha desarrollado de forma progresiva, apoyando cada etapa sobre los conocimientos adquiridos en la anterior.
 En primer lugar, se estudió a fondo el problema planteado y el marco tecnológico donde se desarrolla el prototipo, así como los fundamentos técnicos necesarios para empezar a diseñar el \textit{LKM}.
-Posteriormente, se diseñó e implementó el prototipo de forma incremental, incorporando sucesivamente los distintos elementos y funcionalidades nuevas que se fueron implementando durante la investigación, lo que permitió construir progresivamente el componente hasta lograr las funcionalidades definidas.
-Finalmente, se validó el sistema de reporte creado en el propio entorno \textit{Linux} de desarrollo, mediante el diseño de dos componentes de \textit{Espacio de Usuario}, que permitieron comprobar su correcto funcionamiento.\\
+Posteriormente, se fueron construyendo varios prototipos incrementales, incorporando en cada vuelta nuevos elementos y funcionalidades sobre la base validada del prototipo previo, lo que permitió construir progresivamente el componente hasta lograr las funcionalidades definidas.
+Finalmente, en cada iteración se realizaron las validaciones necesarias en el propio entorno \textit{Linux} de desarrollo, apoyándose además en dos componentes de \textit{Espacio de Usuario} que permitieron comprobar el correcto funcionamiento del sistema de reporte seguro creado.\\
 
 \begin{figure}[h!]
   \centering
   \scalebox{0.9}{\input{figs/methodology_progression.tex}}
   \figsource{Elaboración propia.}
-  \caption{Esquema de la metodología \textit{Waterfall} empleada en el proyecto.}
+  \caption{Esquema de la metodología tipo \textit{Spiral} (espiral) empleada en el proyecto.}
   \label{fig:methodology_progression}
 \end{figure}
 
-En conclusión, puede considerarse que el proyecto ha seguido una metodología secuencial (\textit{Waterfall}) con refinamiento progresivo sobre lo desarrollado en etapas anteriores, ya que el diseño final del prototipo se fue consolidando a medida que se avanzaba en el estudio técnico, la implementación y la validación.
+En conclusión, puede considerarse que el proyecto ha seguido una metodología en espiral con refinamiento progresivo sobre lo desarrollado en iteraciones anteriores, ya que el diseño final del prototipo se fue consolidando a medida que se avanzaba en el estudio técnico, la implementación y la validación de cada nuevo prototipo.
 
 \section{Plan de trabajo}
 
-La planificación del trabajo seguido en el proyecto ha estado directamente alineada con la metodología secuencial (\textit{Waterfall}) descrita en el apartado anterior, avanzando por etapas sucesivas que dependían de los conocimientos y resultados obtenidos en las etapas previas.
-Durante todo el desarrollo del proyecto se mantuvieron reuniones semanales con el tutor, de una duración media aproximada de entre 30 y 60 minutos, en las que se revisaba el trabajo realizado en la fase en curso, se resolvían dudas y se proponían las correcciones pertinentes para refinar bien cada etapa.
-Una vez completada, se fijaban los objetivos parciales a realizar de la siguiente etapa.\\
+La planificación del trabajo seguido en el proyecto ha estado directamente alineada con la metodología en espiral descrita en el apartado anterior, avanzando mediante iteraciones sucesivas que dependían de los conocimientos y resultados obtenidos en las anteriores.
+Durante todo el desarrollo del proyecto se mantuvieron reuniones semanales con el tutor, de una duración media aproximada de entre 30 y 60 minutos, en las que se revisaba el trabajo realizado en la iteración en curso, se resolvían dudas y se proponían las correcciones pertinentes para refinar cada prototipo.
+Una vez completada una iteración, se fijaban los objetivos parciales a realizar en la siguiente.\\
 
 La primera fase comenzó en julio de 2025 y estuvo centrada en el estudio del entorno de desarrollo (\textit{Linux}), del problema a abordar (\textit{rootkits de Espacio de Usuario}) y de la base técnica necesaria para empezar a plantear una solución práctica viable (programación de \textit{LKMs} y mecanismos criptográficos).\\
 
 Una vez consolidada esta base, en septiembre de 2025 se inició la implementación del componente principal del proyecto.
-Desde ese momento hasta enero de 2026 se fue desarrollando progresivamente el prototipo final del sistema de reporte seguro, incorporando poco a poco las distintas funcionalidades definidas, realizando las validaciones necesarias y refinando el código mediante ajustes, comentarios y correcciones hasta alcanzar una versión funcional.\\
+Desde ese momento hasta enero de 2026 se fue desarrollando progresivamente el prototipo final del sistema de reporte seguro a medida que se profundizaba más en los conocimientos técnicos requeridos, incorporando poco a poco las distintas funcionalidades definidas, realizando las validaciones necesarias y refinando el código mediante ajustes, comentarios y correcciones hasta alcanzar una versión funcional.\\
 
 Una vez el prototipo estuvo finalizado, se empezó con la elaboración de la memoria, lo que requirió continuar investigando en varios de los temas que se desarrollan en la misma, tanto para fundamentar correctamente el problema y la solución propuesta como para documentar con rigor técnico el trabajo realizado.
 Durante el desarrollo de la memoria, se utilizó adicionalmente de forma auxiliar una herramienta de IA generativa, concretamente \textit{Gemini 3 Pro}, para generar algunas imágenes vectoriales esquemáticas e ilustrativas, a partir de los conceptos previamente explicados mediante un \textit{prompt} bien estructurado, así como para detectar y corregir errores de redacción y gramática de dicha memoria.
-Finalmente, el proyecto ha seguido una planificación progresiva y ordenada, con seguimiento semanal y consecución de objetivos parciales hasta completar el resultado final del TFG, incluyendo las validaciones necesarias.
+La memoria fue terminada a finales del mes de mayo del año 2026.\\
+
+En conclusión, el proyecto ha seguido una planificación progresiva y ordenada, con seguimiento semanal y consecución de objetivos parciales hasta completar el resultado final del TFG, incluyendo las validaciones necesarias.
 
 \newpage
 
