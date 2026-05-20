@@ -1,0 +1,1847 @@
+\chapter{Código y validación de los prototipos}
+\label{anexo:codigo-prototipos}
+
+En este anexo se explica en detalle el código empleado en la implementación y validación de los prototipos desarrollados a lo largo del proyecto.
+Para ello, se incluyen los fragmentos de código más relevantes, los scripts auxiliares utilizados durante el desarrollo y las salidas obtenidas en las pruebas de validación realizadas.\\
+
+El código fuente completo del proyecto también se encuentra disponible en el repositorio público \url{https://github.com/nowelito28/TFG}.
+
+\section{Prototipos, Implementaciones y Validaciones}
+
+El desarrollo principal del proyecto se articuló mediante varios prototipos de \textit{LKM} construidos progresivamente y apoyados en las funcionalidades validadas en los anteriores.
+Esta estrategia permitió avanzar desde una primera toma de contacto con la programación en \textit{Espacio del Kernel} hasta la construcción del prototipo final capaz de generar un listado autenticado de los procesos activos del sistema desde dicha región privilegiada.
+
+\subsection{\textit{Hello World}}
+\label{sec:proto-helloworld}
+
+El primer paso del desarrollo consistió en construir un \textit{LKM} básico cuyo objetivo era verificar cómo funciona el flujo básico de trabajo asociado a los \textit{Módulos del Kernel}.\\
+
+Para ello, se diseñó inicialmente el fichero de compilación externa \textit{Makefile} basado en \textit{kbuild}, que delega el proceso de compilación en el sistema de construcción del propio \textit{Kernel} y se reutiliza en la compilación de los prototipos posteriores.
+En este fichero se define la variable \verb|obj-m|, que indica a \textit{kbuild} qué fichero objeto (\texttt{.o}) debe compilarse como módulo cargable (\texttt{.ko}).
+Por otro lado, se declaran dos reglas principales que estructuran el flujo de compilación. La primera, \verb|all|, invoca el sistema de construcción del \textit{Kernel} activo mediante la ruta \verb|/lib/modules/$(shell uname -r)/build|, y especifica la ruta del código fuente del módulo a compilar en el directorio actual con \verb|M=$(shell pwd)|, por lo que para realizar la compilación es necesario situar el \textit{Makefile} en el mismo directorio que el código fuente del módulo y ejecutar la compilación desde ese mismo directorio.
+La regla \verb|clean|, como segunda regla, elimina los ficheros intermedios generados durante la compilación.
+Por último, se declaran dichas reglas como \textit{phony targets} para evitar conflictos con ficheros del mismo nombre.
+De este modo, el módulo puede compilarse de manera externa sin necesidad de modificar ni recompilar el núcleo del sistema.
+
+\begin{lstlisting}[language=make]
+obj-m := module_name.o
+
+all: aux.sh
+	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
+
+clean:
+	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) clean
+
+.PHONY: all clean
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[\textit{Makefile} genérico empleado para compilar \textit{LKM}s.]{\textit{Makefile} genérico empleado para compilar \textit{LKM}s.}
+\label{cod:makefile}
+\vspace{\baselineskip}
+
+En caso de ser necesario proporcionar alguna dependencia previa a la compilación, como un fichero auxiliar, esta puede declararse en la regla \verb|all|, como se muestra en el código anterior con el fichero \texttt{aux.sh}.
+En este prototipo inicial no fue necesario hacer uso de esta característica, por lo que la dependencia mostrada debe entenderse únicamente como un ejemplo general de cómo declararla en caso de que fuera necesario.\\
+
+Una vez definida la herramienta de compilación mediante \textit{Makefile} y \textit{kbuild}, se implementó un módulo simple, \verb|hello_world.c|, con el fin de validar el ciclo de vida básico de un \textit{LKM}: carga del módulo en el \textit{Kernel}, ejecución de funciones controladoras de carga y descarga del módulo, registro de mensajes en el \textit{log} del \textit{Kernel} y posterior descarga del módulo.\\
+
+En primer lugar, se incluyeron las cabeceras necesarias para compilar el módulo y se declararon los metadatos básicos del componente:
+
+\begin{lstlisting}[language=C]
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+
+MODULE_LICENSE("Dual BSD/GPL");
+MODULE_AUTHOR("Noel Rodriguez Perez");
+MODULE_DESCRIPTION("A simple Hello world LKM!");
+MODULE_VERSION("0.1");
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cabeceras y metadatos del módulo \textit{Hello World}.]{Cabeceras y metadatos del módulo \textit{Hello World}.}
+\label{cod:hello_headers}
+\vspace{\baselineskip}
+
+En este fragmento se incorporan las cabeceras necesarias para programar un \textit{LKM} de \textit{Linux} y, por otro lado, se definen varios metadatos descriptivos del componente, visibles posteriormente mediante la herramienta \texttt{modinfo}.
+Entre ellos, la licencia resulta especialmente importante, debido a que condiciona el comportamiento del módulo dentro del \textit{Kernel} y determina si este queda marcado como \textit{tainted} al cargarse, no considerándose completamente limpio a efectos de depuración y soporte.
+En este caso, se elige una licencia dual \textit{BSD/GPL}.
+Por un lado, la compatibilidad con \textit{GPL}, empleada por el propio \textit{Kernel} de \textit{Linux}, evita que el módulo quede marcado como \textit{tainted}.
+Por otro lado, la licencia \textit{BSD}, de carácter permisivo, permite el uso del módulo en entornos privativos sin tener que compartir el código fuente.\\
+
+A continuación, el módulo necesita implementar sus funciones de inicialización y salida:
+
+\begin{lstlisting}[language=C]
+static int __init hello_start(void)
+{
+    printk(KERN_INFO "Loading hello world module...\n");
+    printk(KERN_INFO "Hello world!!\n");
+    return 0;
+}
+
+static void __exit hello_end(void)
+{
+    printk(KERN_INFO "Goodbye Mr.\n");
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}.]{Funciones de inicialización/carga y salida/descarga del módulo \textit{Hello World}.}
+\label{cod:hello_init_exit}
+\vspace{\baselineskip}
+
+La función \verb|hello_start| se ejecuta al cargar el módulo en el \textit{Kernel} con \verb|insmod <module_name>.ko|. En este prototipo, su única finalidad es escribir mensajes en el \textit{buffer} de \textit{logs} del \textit{Kernel} mediante la función \verb|printk|, utilizada como mecanismo habitual de salida de depuración y trazabilidad en \textit{Espacio del Kernel}, pudiendo elegir el nivel de prioridad de los mensajes.
+Dichos mensajes pueden consultarse directamente mediante \verb|dmesg| y, dependiendo de la configuración del sistema de registro, también quedan reflejados en ficheros de \textit{logs} del \textit{Kernel} como \texttt{/var/log/kern.log}.
+Análogamente, la función \verb|hello_end| se ejecuta al descargar el módulo con \verb|rmmod <module_name>|.\\
+El uso de \verb|printk| se verificó en el código fuente del registro de mensajes del \textit{Kernel}, expuesto en \texttt{include/linux/printk.h}, donde se definen la propia función y los distintos niveles de prioridad que pueden asociarse a cada traza, como \verb|KERN_INFO|, \verb|KERN_DEBUG| o \verb|KERN_ERR|.\\
+
+Finalmente, ambos controladores deben asociarse explícitamente al flujo de control del módulo:
+
+\begin{lstlisting}[language=C]
+module_init(hello_start);
+module_exit(hello_end);
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Asociación de los puntos de entrada/carga y salida/descarga del módulo.]{Asociación de los puntos de entrada/carga y salida/descarga del módulo.}
+\label{cod:hello_module_init}
+\vspace{\baselineskip}
+
+Estas macros indican al \textit{Kernel} qué función debe ejecutarse durante la carga del módulo y cuál debe invocarse durante su descarga.
+Con ello queda definida la estructura mínima funcional de un \textit{LKM} y puede procederse a validar su correcto funcionamiento.\\
+
+Con permisos de administrador (\textit{root}), se compiló el módulo, se cargó en el \textit{Kernel}, se inspeccionaron las trazas registradas en el log del \textit{Kernel}, se consultaron los metadatos del propio módulo y, finalmente, se descargó verificando también la ejecución de la rutina de salida:
+
+\begin{lstlisting}[language=bash]
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/LKM/hello_world.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/hello_world.mod.o
+  LD [M]  /home/LKM/hello_world.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod hello_world.ko
+$ dmesg -T | tail
+...
+[Fri Sep  5 19:45:58 2025] Loading hello world module...
+[Fri Sep  5 19:45:58 2025] Hello world!!
+$ modinfo hello_world.ko
+filename:       /home/LKM/hello_world.ko
+version:        0.1
+description:    A simple Hello world LKM!
+author:         Noel Rodriguez Perez
+license:        Dual BSD/GPL
+$ rmmod hello_world
+$ dmesg -T | tail
+...
+[Fri Sep  5 19:46:30 2025] Goodbye Mr.
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.]{Compilación, carga, consulta y descarga del prototipo \textit{Hello World}.}
+\label{cod:hello_validation}
+\vspace{\baselineskip}
+
+Mediante este flujo de trabajo se verificó que el módulo podía compilarse correctamente como un \textit{LKM} externo, cargarse sin errores en el \textit{Kernel} ejecutando su rutina de inicialización, quedando correctamente asociados sus metadatos, ejecutar su rutina de salida al descargarse y registrar adecuadamente los mensajes mediante \verb|printk| durante ambas fases.\\\\
+
+\subsection{Fichero virtual \texttt{/proc/fdev}}
+\label{sec:proto-proc-fdev}
+
+El siguiente paso consistió en dotar al módulo de una interfaz de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, implementado en \verb|proc_fdev.c|.
+Para ello, se recurrió al sistema de ficheros virtual \texttt{/proc} para exponer información del \textit{Kernel} y permitir la interacción controlada con el \textit{LKM} mediante la creación de un fichero virtual propio en este sistema, \texttt{/proc/fdev}.\\
+
+El objetivo principal de esta fase fue comprobar que el módulo podía crear una entrada propia en \texttt{/proc}, asociarle funciones manejadoras (\textit{handlers}) de lectura y escritura, y responder de manera controlada a estas operaciones invocadas desde \textit{Espacio de Usuario}.\\
+
+En primer lugar, fue necesario ampliar el conjunto de cabeceras incluidas en el módulo para poder trabajar con \texttt{/proc} y con las transferencias de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}:
+
+\begin{lstlisting}[language=C]
+#include <linux/proc_fs.h>
+#include <asm/uaccess.h>
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cabeceras adicionales para el prototipo basado en \texttt{/proc}.]{Cabeceras adicionales para el prototipo basado en \texttt{/proc}.}
+\label{cod:proc_headers}
+\vspace{\baselineskip}
+
+Se incorporan \verb|<linux/proc_fs.h>|, necesaria para crear y gestionar entradas dentro del sistema de ficheros virtual \texttt{/proc}, y por otro lado, \verb|<asm/uaccess.h>|, que importa funcionalidades como \verb|copy_to_user| y \verb|copy_from_user|, utilizadas para transferir información de forma controlada y segura entre la memoria del \textit{Kernel} y la memoria de \textit{Espacio de Usuario}.\\
+
+A continuación, fue necesario definir una referencia a la entrada virtual y la tabla de operaciones asociada a dicha entrada en \texttt{/proc}:\\
+
+\begin{lstlisting}[language=C]
+static struct proc_dir_entry *ent;
+
+static struct file_operations myops =
+{
+    .owner = THIS_MODULE,
+    .read = myread,
+    .write = mywrite,
+};
+
+static int simple_init(void)
+{
+    ent = proc_create("fdev", 0660, NULL, &myops);
+    if (!ent)
+        return -ENOMEM;
+    printk(KERN_INFO "/proc/fdev created\n");
+    return 0;
+}
+
+static void simple_cleanup(void)
+{
+    proc_remove(ent);
+    printk(KERN_INFO "/proc/fdev removed\n");
+}
+
+module_init(simple_init);
+module_exit(simple_cleanup);
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}.]{Referencia a la entrada virtual y tabla de operaciones asociadas en \texttt{/proc}.}
+\label{cod:proc_entry_ops}
+\vspace{\baselineskip}
+
+En este fragmento, el puntero \verb|ent| almacena la referencia a la entrada que se crea en \texttt{/proc} al cargar el módulo, permitiendo posteriormente su gestión y eliminación al descargarlo.
+Por otro lado, la estructura \verb|myops| define la tabla de operaciones del fichero virtual a crear, asociando las acciones de lectura y escritura sobre dicho fichero con las funciones manejadoras (\textit{handlers}) \verb|myread| y \verb|mywrite|, respectivamente.
+Además, el campo \verb|.owner = THIS_MODULE| vincula estas operaciones al propio módulo cargado.
+Por último, \verb|simple_init| crea la entrada virtual \texttt{/proc/fdev} mediante \verb|proc_create| durante la carga del módulo, devolviendo \texttt{-ENOMEM} (\textit{no memory error}) si la entrada no puede crearse, mientras que \verb|simple_cleanup| la elimina con \verb|proc_remove| durante su descarga.\\
+
+El empleo de \verb|struct proc_dir_entry|, \verb|proc_create| y \verb|proc_remove| se contrastó en el código fuente del sistema de ficheros \texttt{/proc} del \textit{Kernel}, definido en \texttt{include/linux/proc\_fs.h} y desarrollado en el subsistema \texttt{fs/proc}, mientras que \verb|struct file_operations| se implementa en la interfaz general de operaciones sobre ficheros expuesta en \texttt{include/linux/fs.h}.\\
+
+Un aspecto a resaltar en el desarrollo de los prototipos de \textit{Módulos del Kernel} es la conveniencia de usar \textit{static} para declarar variables y funciones que no se van a utilizar fuera del propio módulo, restringiendo así su visibilidad al código fuente del módulo y favoreciendo una mejor encapsulación del código, por lo que este criterio se mantendrá en el resto del proyecto.\\
+
+Una vez creada la entrada al fichero virtual \texttt{/proc/fdev} y asociada su tabla de operaciones, se implementaron los \textit{handlers} de escritura y lectura de dicho fichero:
+
+\begin{lstlisting}[language=C]
+enum { BUFSIZE = 100 };
+
+static int irq = 20;
+static int mode = 1;
+
+static ssize_t mywrite(struct file *file, const char __user *ubuf,
+		       size_t count, loff_t *ppos)
+{
+    int num, c, i, m;
+    char buf[BUFSIZE];
+
+    if (*ppos > 0 || count >= BUFSIZE)
+        return -EFAULT;
+
+	printk(KERN_DEBUG "/proc/fdev: write handler\n");
+
+	if (copy_from_user(buf, ubuf, count))
+		return -EFAULT;
+
+    num = sscanf(buf, "%d %d", &i, &m);
+    if (num != 2)
+        return -EFAULT;
+
+
+    irq = i;
+    mode = m;
+
+    c = strlen(buf);
+    *ppos = c;
+
+    printk(KERN_DEBUG "/proc/fdev: %d bytes received from userspace\n", c);
+    return c;
+}
+
+static ssize_t myread(struct file *file, char __user *ubuf,
+		      size_t count, loff_t *ppos)
+{
+    char buf[BUFSIZE];
+    int len = 0;
+
+    if (*ppos > 0 || count < BUFSIZE)
+        return 0;
+
+    printk(KERN_DEBUG "/proc/fdev: read handler\n");
+
+    len += sprintf(buf, "irq = %d\n", irq);
+    len += sprintf(buf + len, "mode = %d\n", mode);
+
+    if (copy_to_user(ubuf, buf, len))
+        return -EFAULT;
+
+    *ppos = len;
+
+    printk(KERN_DEBUG "/proc/fdev: %d bytes sent to userspace\n", len);
+    return len;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[\textit{Handlers} con transferencia de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}]{\textit{Handlers} con transferencia de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.}
+\label{cod:proc_rw_handlers}
+\vspace{\baselineskip}
+
+La función manejadora de escritura, \verb|mywrite|, recibe datos desde \textit{Espacio de Usuario} mediante \verb|copy_from_user|, trasladando \verb|count| bytes del \textit{buffer} de memoria de usuario (\verb|ubuf|) a un \textit{buffer} en memoria del \textit{Kernel} (\verb|buf|).
+Análogamente, \verb|myread| devuelve datos hacia \textit{Espacio de Usuario} mediante \verb|copy_to_user|, trasladando \verb|len| bytes del \textit{buffer} en memoria del \textit{Kernel} (\verb|buf|) al \textit{buffer} de memoria de usuario (\verb|ubuf|).
+Además, mediante el puntero de posición del fichero (\verb|*ppos|) se impuso una semántica de acceso de tipo \textit{single-shot}, evitando lecturas o escrituras repetidas sobre la misma apertura del fichero virtual.\\
+
+El empleo de \verb|copy_from_user| y \verb|copy_to_user| se contrastó en la infraestructura \texttt{uaccess} del código fuente del \textit{Kernel}, concretamente en \texttt{include/linux/uaccess.h}, donde ambas funciones se apoyan sobre las primitivas internas \verb|raw_copy_from_user| y \verb|raw_copy_to_user|.\\
+
+En este ejemplo, los valores \verb|irq| y \verb|mode| se emplean como variables enteras de prueba para validar el intercambio de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, permitiendo comprobar su correcta interpretación a partir de los datos recibidos mediante \verb|sscanf|, así como su formateo para la salida mediante \verb|sprintf|, y retornando errores como \texttt{-EFAULT} (\textit{bad address}) cuando no se cumplen dichas restricciones o cuando el formato de entrada no es el esperado.
+Por otro lado, se define una constante de tipo enumerado \verb|BUFSIZE| para fijar de forma simple el tamaño máximo del \textit{buffer} temporal utilizado, en este caso 100 bytes, tanto para la lectura como para la escritura.\\
+
+Ya creado el fichero virtual \texttt{/proc/fdev} y sus funciones manejadoras de lectura y escritura, se procedió a comprobar el correcto funcionamiento del prototipo asumiendo que se dispone de permisos de administrador (\texttt{root}) sobre el sistema:
+
+\begin{lstlisting}[language=bash]
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/LKM/proc_fdev.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/proc_fdev.mod.o
+  LD [M]  /home/LKM/proc_fdev.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod proc_fdev.ko
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:25:58 2025] /proc/fdev created
+$ ls -l /proc/fdev
+-rw-rw---- 1 root root 0 Oct  14 17:25 /proc/fdev
+$ echo "7 3" > /proc/fdev
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:26:10 2025] /proc/fdev: write handler
+[Tue Oct 14 17:26:10 2025] /proc/fdev: 4 bytes received from userspace
+$ cat /proc/fdev
+irq = 7
+mode = 3
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:26:18 2025] /proc/fdev: read handler
+[Tue Oct 14 17:26:18 2025] /proc/fdev: 17 bytes sent to userspace
+$ rmmod proc_fdev
+$ dmesg -T | tail
+...
+[Tue Oct 14 17:26:30 2025] /proc/fdev removed
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Validación básica del prototipo basado en \texttt{/proc/fdev}.]{Validación básica del prototipo basado en \texttt{/proc/fdev}.}
+\label{cod:proc_validation}
+\vspace{\baselineskip}
+
+Mediante esta validación se comprobó que toda la funcionalidad del módulo se ejecutaba correctamente, tanto la creación de la entrada virtual \texttt{/proc/fdev}, como sus operaciones personalizadas de lectura y escritura, asegurando una vía básica de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.\\\\
+
+\subsection{\textit{File Handoff}}
+\label{sec:proto-file-handoff}
+
+Una vez creada una entrada válida en \texttt{/proc} y logrado así el intercambio básico de información entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel} de forma controlada, el siguiente paso consistió en implementar un mecanismo que permitiese al módulo operar sobre un fichero real del sistema de ficheros, materializado en \verb|fd_handoff.c|.
+Para ello, se planteó el traspaso de la referencia de un fichero (\textit{File Descriptor} o \textit{Descriptor de Fichero}) desde \textit{Espacio de Usuario} hacia el \textit{LKM}, utilizando como interfaz de entrada el propio fichero virtual \texttt{/proc/fdev} desarrollado en el prototipo anterior.\\
+
+El objetivo general de este prototipo fue comprobar que el módulo podía recibir desde \textit{Espacio de Usuario} el \textit{FD} de un fichero codificado como cadena de \textit{bytes} y convertirlo a un valor de tipo \textit{int} (entero), resolver internamente dicha referencia para localizar en el \textit{Kernel} el fichero correspondiente y utilizarlo para transferir información desde dicha región privilegiada hacia un fichero del sistema.
+Con ello, el administrador puede decidir en qué fichero se deposita la información solicitada de forma controlada.\\
+
+Para implementar este mecanismo fue necesario ampliar nuevamente las cabeceras incluidas en el módulo:
+
+\begin{lstlisting}[language=C]
+#include <linux/file.h>
+#include <linux/fs.h>
+#include <linux/kstrtox.h>
+#include <linux/security.h>
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cabeceras adicionales para el mecanismo de \textit{File Handoff}.]{Cabeceras adicionales para el mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_headers}
+\vspace{\baselineskip}
+
+La cabecera \verb|<linux/file.h>| permite trabajar con las referencias internas a ficheros del \textit{Kernel}, como la estructura de datos \verb|struct file|, así como resolver un \textit{FD} mediante \verb|fget|.
+Por otro lado, \verb|<linux/fs.h>| aporta definiciones generales del subsistema de ficheros, incluyendo modos y \textit{flags} de apertura.
+También se añade la cabecera \verb|<linux/kstrtox.h>|, que proporciona funciones de conversión seguras, como \verb|kstrtoint|, para transformar una cadena de \textit{bytes} en un entero.
+Finalmente, \verb|<linux/security.h>| permite validar permisos sobre ficheros referenciados mediante mecanismos de control de acceso del \textit{Kernel}, como \verb|file_permission|.\\
+
+En cuanto a la función manejadora de lectura, se simplificó respecto a la del anterior prototipo, limitándose a devolver una cadena de información determinista que indicase al administrador que el módulo se encuentra preparado para recibir un \textit{Descriptor de Fichero} (\textit{FD}) y realizar el \textit{File Handoff}:
+
+\begin{lstlisting}[language=C]
+static ssize_t myread(struct file *file, char __user *ubuf,
+		      size_t count, loff_t *ppos)
+{
+    char buf[] = "Waiting for a FD to perform file handoff\n";
+    int len = strlen(buf);
+
+    if (*ppos > 0 || count < len)
+        return 0;
+    printk(KERN_DEBUG "/proc/fdev: read handler\n");
+
+    if (copy_to_user(ubuf, buf, len))
+        return -EFAULT;
+
+    *ppos = len;
+    printk(KERN_DEBUG "/proc/fdev: %d bytes sent to userspace\n", len);
+    return len;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Función de lectura para el mecanismo de \textit{File Handoff}.]{Función de lectura para el mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_read}
+\vspace{\baselineskip}
+
+Sin embargo, la funcionalidad principal de este prototipo se concentra en la función manejadora de escritura, la cual necesita funciones auxiliares para organizar la lógica de escritura de forma más clara y modular:
+
+\begin{lstlisting}[language=C]
+static int write_full(struct file *f, const char *buf, int len)
+{
+    int w = 0;
+    int off = 0;
+    loff_t *ppos = &f->f_pos;
+
+    while (off < len) {
+        w = kernel_write(f, buf + off, len - off, ppos);
+
+        if (w < 0)
+            return w;
+
+        if (w == 0)
+            return -EIO;
+
+        off += w;
+    }
+    return off;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Función auxiliar de escritura sobre un fichero desde el \textit{LKM}.]{Función auxiliar de escritura sobre un fichero desde el \textit{LKM}.}
+\label{cod:file_handoff_write_full}
+\vspace{\baselineskip}
+
+La función auxiliar \verb|write_full| encapsula la lógica de escritura completa sobre un fichero ya abierto desde \textit{Espacio del Kernel}, garantizando que todo el contenido del \textit{buffer} (\verb|buf|) se escriba mediante llamadas sucesivas a \verb|kernel_write| hasta completar el número total de \textit{bytes} solicitado.
+Además, se eligió operar sobre ficheros abiertos en modo \textit{append}, para poder realizar la escritura a partir del último \textit{byte} disponible del fichero, evitando así problemas de concurrencia asociados al manejo del puntero de escritura (\verb|ppos|). Estas condiciones son verificadas en la función auxiliar \verb|val_metadata|.
+Sin embargo, en caso de que la escritura devuelva un error o no avance, se retorna el código correspondiente, devolviendo \texttt{-EIO} en este último caso.
+
+El uso de \verb|kernel_write| se apoyó en la verificación de su implementación dentro del código fuente del \textit{VFS} del \textit{Kernel}, concretamente en el fichero \texttt{fs/read\_write.c}.\\
+
+\begin{lstlisting}[language=C]
+static int val_metadata(struct file *f)
+{
+    int rv = 0;
+
+    if (!(f->f_mode & FMODE_WRITE) || !(f->f_flags & O_APPEND))
+        return -EBADF;
+
+    rv = file_permission(f, MAY_WRITE | MAY_APPEND);
+    if (rv < 0)
+        return rv;
+
+    return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}.]{Función auxiliar para la validación de permisos de un fichero desde el \textit{LKM}.}
+\label{cod:file_handoff_val_metadata}
+\vspace{\baselineskip}
+
+En este caso, la función auxiliar \verb|val_metadata| encapsula la lógica de validación previa del fichero referenciado desde \textit{Espacio de Usuario}, comprobando que se puede usar de forma segura en modo \textit{append} desde \textit{Espacio del Kernel}.
+En primer lugar, se verifica que haya sido abierto con capacidad de escritura (\verb|FMODE_WRITE|) y con el \textit{flag} \verb|O_APPEND|, evitando accesos incompatibles con la política definida para este prototipo.
+Seguidamente, se comprueban sus permisos efectivos mediante \verb|file_permission|, asegurando que el \textit{Kernel} puede realizar sobre él operaciones de escritura y anexado, mediante los permisos \verb|MAY_WRITE| y \verb|MAY_APPEND|.
+En caso de que alguna de estas restricciones no se cumpla, la función retorna el código de error correspondiente, devolviendo \texttt{-EBADF} (\textit{bad file error}) cuando los metadatos de apertura no son válidos.
+
+En esta parte se tuvo que consultar también el código fuente del \textit{Kernel}. El uso de \verb|file_permission| se apoyó en su definición en el fichero \texttt{include/linux/fs.h}, mientras que la relación entre \verb|O_APPEND| y \verb|MAY_APPEND| se contrastó en el fichero \texttt{fs/open.c}.
+Además, en \texttt{fs/namei.c}, dentro de la función \verb|inode_permission|, se expone explícitamente que toda comprobación con \verb|MAY_APPEND| debe incluir también \verb|MAY_WRITE|.\\
+
+\begin{lstlisting}[language=C]
+static ssize_t mywrite(struct file *file, const char __user *ubuf,
+		       size_t count, loff_t *ppos)
+{
+    int fd = 0;
+    int rv = 0;
+    char buf[BUFSIZE];
+    static const char msg[] = "Kernel-Space: Writing test for file handoff\n";
+    struct file *f = NULL;
+
+    if (*ppos > 0 || count > BUFSIZE)
+        return -EFAULT;
+
+    printk(KERN_DEBUG "/proc/fdev: write handler\n");
+
+    if (copy_from_user(buf, ubuf, count))
+        return -EFAULT;
+
+    rv = strlen(buf);
+    *ppos = rv;
+
+    if (kstrtoint(buf, 10, &fd))
+        return -EINVAL;
+
+    if (fd < 0)
+        return -EBADF;
+
+    f = fget(fd);
+    if (!f)
+        return -EBADF;
+
+    rv = val_metadata(f);
+    if (rv < 0)
+        goto out_put;
+
+    rv = write_full(f, msg, strlen(msg));
+    if (rv < 0)
+        goto out_put;
+
+    printk(KERN_DEBUG "/proc/fdev: %d bytes written to handoff file\n", rv);
+
+out_put:
+    fput(f);
+    return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Función de escritura para el mecanismo de \textit{File Handoff}.]{Función de escritura para el mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_write}
+\vspace{\baselineskip}
+
+Finalmente, la función manejadora \verb|mywrite| concentra la lógica principal del mecanismo de \textit{File Handoff}, recibiendo desde \textit{Espacio de Usuario} el descriptor de fichero codificado como cadena de \textit{bytes} a través de \texttt{/proc/fdev}.
+En primer lugar, al igual que en el anterior prototipo, se comprueba que se cumpla la semántica de acceso de tipo \textit{single-shot} y que no se exceda el tamaño máximo fijado por \verb|BUFSIZE|, realizando posteriormente el traspaso de información a memoria del \textit{Kernel} mediante \verb|copy_from_user|.
+A continuación, la cadena de \textit{bytes} recibida se convierte a un valor entero decimal con \verb|kstrtoint|, obteniendo así el \textit{FD} correspondiente.
+De esta manera, mediante \verb|fget| y el \textit{FD} obtenido, se recupera la referencia al fichero real dentro del \textit{Kernel}, tras lo cual se verifican sus permisos con \verb|val_metadata| para comprobar que se ajustan a la política fijada, y se escribe en él una cadena estática de prueba mediante \verb|write_full|.
+Finalmente, la referencia al fichero se libera con \verb|fput|, devolviendo en cada caso el código de error correspondiente si alguna de las comprobaciones falla, con ayuda del uso de la etiqueta \verb|goto| (\verb|out_put|).\\
+
+El empleo de \verb|kstrtoint|, \verb|fget| y \verb|fput| se contrastó con el código fuente del \textit{Kernel}, localizando \verb|kstrtoint| en el fichero \texttt{lib/kstrtox.c}, mientras que \verb|fget| y \verb|fput| se encuentran dentro de \texttt{fs/file.c} y \texttt{fs/file\_table.c}, variando las líneas en las que se localizan según la versión del núcleo considerada.\\
+
+Para completar este prototipo fue necesario implementar también una utilidad extra en \textit{Espacio de Usuario}, \texttt{mk\_fhandoff.c}:
+
+\begin{lstlisting}[language=C]
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+static int write_full(int fd, const char *buf, int len)
+{
+    int off = 0;
+    int w = 0;
+
+    while (off < len) {
+        w = write(fd, buf + off, len - off);
+
+        if (w < 0) {
+            if (errno == EINTR)
+                continue;
+
+            return -1;
+        }
+
+        off += w;
+    }
+    return off;
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 3) {
+        errx(EXIT_FAILURE, "Usage: %s <common_path> <proc_path>\n"
+            "e.g.: %s ./file_handoff /proc/fdev", argv[0], argv[0]);
+    }
+
+    const char *f_handoff = argv[1];
+    const char *f_proc = argv[2];
+
+    int fd_handoff = open(f_handoff, O_CREAT | O_RDWR | O_APPEND, 0666);
+    if (fd_handoff < 0) {
+        err(EXIT_FAILURE, "Error opening/creating the file %s",
+            f_handoff);
+    }
+
+    int fd_proc = open(f_proc, O_RDWR);
+    if (fd_proc < 0) {
+        err(EXIT_FAILURE, "Error opening %s", f_proc);
+    }
+
+
+    char fd_str[12];
+    snprintf(fd_str, sizeof(fd_str), "%d", fd_handoff);
+
+    if (write_full(fd_proc, fd_str, strlen(fd_str)) <= 0) {
+        close(fd_proc);
+        close(fd_handoff);
+
+        err(EXIT_FAILURE, "Error writing in %s", f_proc);
+    }
+
+    printf("File descriptor written in %s:\n%d\n", f_proc, fd_handoff);	
+
+    close(fd_proc);
+    close(fd_handoff);
+
+    exit(EXIT_SUCCESS);
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}.]{Programa \texttt{mk\_fhandoff.c} de \textit{Espacio de Usuario} para activar el \textit{File Handoff}.}
+\label{cod:mk_fhandoff}
+\vspace{\baselineskip}
+
+Este programa actúa como intermediario desde \textit{Espacio de Usuario}, creando o abriendo el fichero real que actuará como destino a partir del nombre indicado como primer argumento, obteniendo su \textit{FD} y enviándolo al módulo a través de \texttt{/proc/fdev}, cuya ruta se indica como segundo argumento al ejecutar el programa, completando así el mecanismo de \textit{File Handoff}.\\
+
+Una vez terminado el mecanismo completo de \textit{File Handoff} básico, se procedió a validar su funcionamiento, comprobando que el módulo recibía correctamente el \textit{FD} de un fichero real desde \textit{Espacio de Usuario}, lo resolvía dentro del \textit{Kernel} y escribía sobre dicho fichero la cadena definida en \verb|mywrite|:
+
+\begin{lstlisting}[language=bash]
+$ uname -r
+6.12.41-current-bcm2711
+$ cd LKM
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/LKM/fd_handoff.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/fd_handoff.mod.o
+  LD [M]  /home/LKM/fd_handoff.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod fd_handoff.ko
+$ dmesg -T | tail
+...
+[Wed Oct 29 16:25:15 2025] /proc/fdev created
+$ cd ..
+$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+$ gcc -o mk_fhandoff mk_fhandoff.o
+$ cat /proc/fdev
+Waiting for a FD to perform file handoff
+$ dmesg -T | tail
+...
+[Wed Oct 29 16:28:27 2025] /proc/fdev: read handler
+[Wed Oct 29 16:28:27 2025] /proc/fdev: 41 bytes sent to userspace
+$ ./mk_fhandoff ./file_handoff /proc/fdev
+File descriptor written in /proc/fdev:
+3
+$ dmesg -T | tail
+...
+[Wed Oct 29 16:30:11 2025] /proc/fdev: write handler
+[Wed Oct 29 16:30:11 2025] /proc/fdev: 1 bytes written to handoff file
+$ cat ./file_handoff
+Kernel-Space: Writing test for file handoff
+
+$ cd LKM
+$ rmmod fd_handoff
+$ dmesg -T | tail
+...
+[Wed Oct 29 16:32:20 2025] /proc/fdev removed
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Validación del mecanismo de \textit{File Handoff}.]{Validación del mecanismo de \textit{File Handoff}.}
+\label{cod:file_handoff_validation}
+\vspace{\baselineskip}
+
+A través de esta validación, se comprobó que el módulo podía recibir correctamente desde \textit{Espacio de Usuario} el \textit{FD} de un fichero real, resolver su referencia en el \textit{Kernel} y utilizarla como destino efectivo de escritura mediante el mecanismo de \textit{File Handoff}.\\
+
+Como consecuencia, quedó implementado un canal funcional para transferir información generada en \textit{Espacio del Kernel} de forma controlada hacia el fichero indicado por \textit{Espacio de Usuario}, sirviendo como base para la incorporación posterior del contenido crítico autenticado del reporte seguro.\\
+
+\newpage
+
+\subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
+\label{sec:proto-crypto}
+
+Una vez validado el proceso de \textit{File Handoff}, el siguiente paso consistió en incorporar en el módulo \verb|crypto_fd.c| un mecanismo de autenticación criptográfica del contenido generado en \textit{Espacio del Kernel} (\textit{HMAC-SHA256}) e incluir dicha etiqueta \textit{HMAC} en el fichero final de transferencia, con el fin de garantizar su integridad y autenticidad apoyándose en la infraestructura validada anteriormente.
+De este modo, dicho contenido puede verificarse posteriormente desde \textit{Espacio de Usuario} con la misma clave secreta compartida.\\
+
+Para ello, fue necesario ampliar las cabeceras necesarias para la compilación del módulo e incorporar la clave simétrica embebida con la que se calcula el \textit{HMAC}, la cual debe estar también disponible para el administrador durante su posterior verificación.\\
+
+\begin{lstlisting}[language=C]
+#include <crypto/hash.h>
+#include <linux/base64.h>
+#include <linux/crypto.h>
+
+#include "k_embedded.h"
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cabeceras adicionales y clave embebida para el mecanismo de autenticación \textit{HMAC-SHA256}.]{Cabeceras adicionales y clave embebida para el mecanismo de autenticación \textit{HMAC-SHA256}.}
+\label{cod:crypto_headers}
+\vspace{\baselineskip}
+
+En este punto, \verb|<crypto/hash.h>| y \verb|<linux/crypto.h>| permiten utilizar las funcionalidades de la \textit{Crypto API} del \textit{Kernel} para solicitar un transformador criptográfico síncrono de tipo \verb|shash|, mientras que \verb|<linux/base64.h>| permite codificar el resultado binario del \textit{HMAC} en una representación textual portable en formato \textit{Base64}.
+Por otro lado, la inclusión de \verb|"k_embedded.h"| introduce una clave secreta simétrica binaria generada externamente y embebida en el módulo como un vector constante de \textit{bytes}, de forma que puede emplearse directamente durante el cálculo del \textit{HMAC}.\\
+
+En consecuencia, el proceso de compilación del módulo deja de depender únicamente del fichero principal y pasa a requerir previamente la cabecera que contiene la clave embebida.
+Para ello, se diseñó un script auxiliar \verb|gen_k_embedded.sh|, encargado de generar una clave aleatoria de 64 \textit{bytes}, almacenarla en un fichero binario \verb|key.bin| y transformarla después en la cabecera \verb|k_embedded.h| como un vector constante de \textit{bytes}, pudiendo así importarla en el \textit{LKM}.
+A su vez, el \textit{Makefile} de compilación del \textit{LKM} pasa a declarar \verb|k_embedded.h| como dependencia previa de la regla \verb|all|.\\
+
+\begin{lstlisting}[language=bash]
+#!/usr/bin/env zsh
+set -e
+
+KEY_LEN=64
+openssl rand -out key.bin ${KEY_LEN}
+
+xxd -i -n K key.bin | \
+  sed -e 's/^unsigned char/const unsigned char/' \
+      -e 's/^unsigned int/const unsigned int/' > k_embedded.h
+
+echo "OK: generated k_embedded.h with key K (${KEY_LEN} bytes)."
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Script \texttt{gen\_k\_embedded.sh} para generar la cabecera \texttt{k\_embedded.h} con la clave embebida.]{Script \texttt{gen\_k\_embedded.sh} para generar la cabecera \texttt{k\_embedded.h} con la clave embebida.}
+\label{cod:gen_k_embedded}
+\vspace{\baselineskip}
+
+Cabe señalar que, para poder utilizar este script, una vez creado, fue necesario asignarle permisos de ejecución externamente mediante \verb|chmod +x gen_k_embedded.sh|, pudiendo ejecutarse posteriormente con \verb|./gen_k_embedded.sh| en el mismo directorio de trabajo.\\
+
+En cuanto a la programación de la lógica de codificación del contenido para obtener el \textit{HMAC} en el \textit{LKM}, se implementó esta funcionalidad para calcular el \textit{HMAC-SHA256} a partir de un bloque de datos tratado como \textit{array} de \textit{bytes}:
+
+\begin{lstlisting}[language=C]
+static int get_hmac_sha256(const u8 *buf, int buf_len, u8 **hmac, int *hmac_len)
+{
+    int rv = 0;
+    struct crypto_shash *tfm;
+
+    tfm = crypto_alloc_shash("hmac(sha256)", 0, 0);
+    if (IS_ERR(tfm))
+        return PTR_ERR(tfm);
+
+    rv = crypto_shash_setkey(tfm, K, K_len);
+    if (rv)
+        goto out_free_tfm;
+
+
+
+
+
+    *hmac_len = crypto_shash_digestsize(tfm);
+
+    *hmac = kmalloc(*hmac_len, GFP_KERNEL);
+    if (!*hmac) {
+        rv = -ENOMEM;
+        goto out_free_tfm;
+    }
+
+    SHASH_DESC_ON_STACK(desc, tfm);
+    desc->tfm = tfm;
+
+    rv = crypto_shash_digest(desc, buf, buf_len, *hmac);
+
+out_free_tfm:
+    crypto_free_shash(tfm);
+    return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cálculo del \textit{HMAC-SHA256} para una cadena de \textit{bytes} de datos.]{Cálculo del \textit{HMAC-SHA256} para una cadena de \textit{bytes} de datos.}
+\label{cod:crypto_get_hmac_sha256}
+\vspace{\baselineskip}
+
+Esta función encapsula la lógica principal de cálculo del autenticador criptográfico \textit{HMAC-SHA256} sobre un bloque arbitrario de datos representado como un \textit{array} de \textit{bytes} en memoria del \textit{Kernel}.
+Para ello, solicita a la \textit{Crypto API} un transformador síncrono asociado al algoritmo \verb|hmac(sha256)| mediante \verb|crypto_alloc_shash|.
+Después, se le asocia la clave secreta embebida con \verb|crypto_shash_setkey| y se obtiene el tamaño del \textit{digest} con \verb|crypto_shash_digestsize|.
+Posteriormente, se utiliza reserva en memoria dinámica para almacenar el \textit{HMAC} a calcular con la longitud correspondiente (\verb|hmac_len|) mediante \verb|kmalloc|, y adicionalmente, la macro \verb|SHASH_DESC_ON_STACK| construye en la pila de ejecución el descriptor temporal requerido por el subsistema criptográfico (\verb|desc|).
+Tras ello, \verb|crypto_shash_digest| calcula el \textit{HMAC} completo en una única operación sobre el contenido recibido.\\
+
+En este caso se emplea \textit{HMAC-SHA256} porque combina un mecanismo de autenticación basado en clave simétrica secreta compartida con la función resumen \textit{SHA-256}, produciendo un resumen de 256 \textit{bits} de longitud, siendo así un algoritmo suficientemente robusto para verificar la integridad y autenticidad del contenido transferido.\\
+
+Una vez calculado el \textit{HMAC} puro del contenido, se implementó una función auxiliar para convertirlo a formato \textit{Base64} y poder así incluir en el fichero de transferencia de forma legible y portable:
+
+\begin{lstlisting}[language=C]
+static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
+			int *hmac_b64len)
+{
+	int hmac_b64cap = BASE64_CHARS(hmac_len);
+
+	*hmac_b64 = kmalloc(hmac_b64cap, GFP_KERNEL);
+	if (!*hmac_b64)
+		return -ENOMEM;
+
+	*hmac_b64len = base64_encode(hmac, hmac_len, *hmac_b64);
+	if (*hmac_b64len < 0) {
+		kfree(*hmac_b64);
+		return *hmac_b64len;
+	}
+
+	return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Conversión del \textit{HMAC} binario a \textit{Base64}.]{Conversión del \textit{HMAC} binario a \textit{Base64}.}
+\label{cod:crypto_get_hmac_b64}
+\vspace{\baselineskip}
+
+Esta función auxiliar facilita la serialización del autenticador criptográfico en el fichero de transferencia, transformando el \textit{HMAC} binario previamente calculado en una representación textual en \textit{Base64}.
+En primer lugar, determina la capacidad máxima necesaria para la cadena codificada mediante la macro \verb|BASE64_CHARS| y reserva memoria dinámica para almacenarla.
+A continuación, la función \verb|base64_encode| realiza la conversión efectiva de dicho \textit{HMAC} puro, devolviendo en \verb|hmac_b64| la cadena resultante y en \verb|hmac_b64len| su longitud final.
+De este modo, el autenticador puede incorporarse al fichero de salida en un formato legible, portable y fácilmente verificable posteriormente desde \textit{Espacio de Usuario}.\\
+
+El empleo de \verb|crypto_alloc_shash|, \verb|crypto_shash_setkey|, \verb|crypto_shash_digestsize|, \verb|crypto_shash_digest| y la macro \verb|SHASH_DESC_ON_STACK| se contrastó su funcionamiento e implementación en la infraestructura de \textit{hash} síncrono de la \textit{Crypto API} del \textit{Kernel}, expuesta en \texttt{include/crypto/hash.h} y desarrollada en el subsistema \texttt{crypto} dentro del código fuente del propio núcleo.
+Por otra parte, la codificación del autenticador en \textit{Base64} se apoyó en \texttt{include/linux/base64.h} y en la implementación correspondiente dentro de \texttt{lib/base64.c}.\\
+
+A nivel de formato de salida, el contenido ya no se escribe de forma aislada en el fichero de transferencia, sino acompañado por una separación explícita entre los datos generados por el \textit{Kernel} y su etiqueta \textit{HMAC} de autenticación en formato \textit{Base64}:
+
+\begin{lstlisting}[language=C]
+static const char sep[] = "\n--KERNEL-PS--\n";
+static const int sep_len = sizeof(sep) - 1;
+
+static const char sep_hmac[] = "\n--HMAC--\n";
+static const int sep_hmac_len = sizeof(sep_hmac) - 1;
+
+static int write_cont_hmac(struct file *f, const char *cont, int cont_len,
+			   	const char *hmac_b64, int hmac_b64len)
+{
+	int w = 0;
+	int total = 0;
+
+	w = write_full(f, sep, sep_len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	w = write_full(f, cont, cont_len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	w = write_full(f, sep_hmac, sep_hmac_len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	w = write_full(f, hmac_b64, hmac_b64len);
+	if (w < 0)
+		return w;
+	total += w;
+
+	return total;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Escritura conjunta del contenido y su \textit{HMAC} en \textit{Base64}.]{Escritura conjunta del contenido y su \textit{HMAC} en \textit{Base64}.}
+\label{cod:crypto_write_cont_hmac}
+\vspace{\baselineskip}
+
+Esta función organiza la serialización final del contenido autenticado dentro del fichero de transferencia.
+Para ello, escribe secuencialmente separadores textuales distinguibles, empezando con un separador inicial previo al bloque generado por el \textit{Kernel} (\verb|sep|), el contenido a proteger, el separador \verb|sep_hmac| y, finalmente, el \textit{HMAC} ya codificado en \textit{Base64}, reutilizando la función \verb|write_full| validada en el prototipo anterior.
+De este modo, el fichero resultante queda estructurado de forma determinista, facilitando tanto la separación entre el contenido principal a transferir y el \textit{HMAC} necesario para su posterior validación desde \textit{Espacio de Usuario}.\\
+
+Ya explicado el desarrollo completo de la lógica del mecanismo de autenticación diseñado, se procedió a modificar la función manejadora de escritura para integrar todos los componentes unificados:
+
+\begin{lstlisting}[language=C]
+static int printh(struct file *f)
+{
+	int rv = 0;
+
+	static const char cont[] =
+		"Kernel-Space: Authentic content protected by HMAC-SHA256\n";
+	const int cont_len = sizeof(cont) - 1;
+
+	u8 *hmac = NULL;
+	int hmac_len = 0;
+
+	u8 *hmac_b64 = NULL;
+	int hmac_b64len = 0;
+
+	rv = get_hmac_sha256(cont, cont_len, &hmac, &hmac_len);
+	if (rv < 0)
+		goto out;
+
+	rv = get_hmac_b64(hmac, hmac_len, &hmac_b64, &hmac_b64len);
+	if (rv < 0)
+		goto out_free_hmac;
+
+	rv = write_cont_hmac(f, cont, cont_len, hmac_b64, hmac_b64len);
+	if (rv < 0)
+		goto out_free_hmacs;
+
+	printk(KERN_INFO "printH: file has been written with HMAC\n");
+
+out_free_hmacs:
+	kfree(hmac_b64);
+
+out_free_hmac:
+	kfree(hmac);
+
+out:
+	return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Integración conjunta del mecanismo de autenticación.]{Integración del mecanismo de autenticación.}
+\label{cod:crypto_printh}
+\vspace{\baselineskip}
+
+Ahora, la función \verb|printh| pasa a concentrar la lógica principal de integración del mecanismo diseñado en este prototipo.
+En este caso de prueba, se utiliza una cadena de contenido constante \verb|cont|, a la cual se le calcula su \textit{HMAC-SHA256} y se codifica en \textit{Base64}, escribiendo finalmente el conjunto completo en el fichero de transferencia enviado desde \textit{Espacio de Usuario}.\\
+
+\begin{lstlisting}[language=C]
+static ssize_t mywrite(struct file *file, const char __user *ubuf,
+						size_t count, loff_t *ppos)
+{
+	int fd = 0;
+	int rv = 0;
+	char buf[BUFSIZE];
+
+	if (*ppos > 0 || count > BUFSIZE)
+		return -EFAULT;
+	printk(KERN_DEBUG "/proc/fdev: write handler\n");
+
+	if (copy_from_user(buf, ubuf, count))
+		return -EFAULT;
+
+	rv = strlen(buf);
+	*ppos = rv;
+
+	if (kstrtoint(buf, 10, &fd))
+		return -EINVAL;
+
+	if (fd < 0)
+		return -EBADF;
+
+	struct file *f = fget(fd);
+	if (!f)
+		return -EBADF;
+
+	rv = val_metadata(f);
+	if (rv < 0)
+		goto out_put;
+
+	rv = printh(f);
+	if (rv < 0)
+		goto out_put;
+
+	printk(KERN_DEBUG "mywrite: printH OK for fd %d (%d bytes written)\n",
+	       fd, rv);
+
+out_put:
+	fput(f);
+
+	return rv;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Manejador de escritura adaptado al mecanismo de autenticación de contenido.]{Manejador de escritura adaptado al mecanismo de autenticación de contenido.}
+\label{cod:crypto_mywrite}
+\vspace{\baselineskip}
+
+Por su parte, \verb|mywrite| mantiene la lógica general del prototipo anterior para recibir y resolver el \textit{FD}, pero sustituye la escritura estática simple por la llamada a \verb|printh|.\\
+
+Una vez incorporado el mecanismo de autenticación al flujo del mecanismo de \textit{File Handoff} en el \textit{LKM}, fue necesario desarrollar una utilidad adicional en \textit{Espacio de Usuario} que permitiese verificar la validez del contenido autenticado generado, destinada a ser utilizada con permisos de administrador.
+Para ello, se implementó el programa \verb|check_hmac.c|, encargado de deserializar el contenido del fichero de transferencia y así separar el contenido principal de la etiqueta \textit{HMAC} en formato \textit{Base64}, pudiendo recalcular de esta forma el autenticador con la misma clave secreta compartida y comparar ambos resultados para asegurar la integridad del contenido.\\
+
+Antes de nada, se añadieron las cabeceras y constantes necesarias para la compilación de este programa, incluyendo la clave embebida compartida entre el \textit{Kernel} y el administrador para el cálculo del \textit{HMAC}:
+
+\begin{lstlisting}[language=C]
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#include <openssl/crypto.h>
+
+#include "./LKM/k_embedded.h"
+
+enum { LEN = 1024 * 40 };
+
+const char sep[] = "--KERNEL-PS--\n";
+const char sep_hmac[] = "--HMAC--\n";
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cabeceras, constantes y clave simétrica necesarias para la verificación.]{Cabeceras, constantes y clave simétrica necesarias para la verificación.}
+\label{cod:check_hmac}
+\vspace{\baselineskip}
+
+En primer lugar, las funciones \verb|read_until_separator|, \verb|read_hmac_line| y \verb|extract_data| se encargan de deserializar el contenido del fichero de transferencia generado mediante el mecanismo de \textit{File Handoff}, separando el contenido principal de la etiqueta \textit{HMAC} almacenada en formato \textit{Base64} mediante la detección de los separadores definidos:\\
+
+\begin{lstlisting}[language=C]
+int read_until_separator(FILE *f, char **content, int *content_len)
+{
+	char *line = NULL;
+	size_t cap = 0;
+	int len = 0;
+
+	int sep_found = 0;
+	int sep_hmac_found = 0;
+
+	*content = (char *)malloc(LEN);
+	if (!(*content)) {
+		warnx("malloc failed for the content\n");
+		return 1;
+	}
+
+	while ((len = getline(&line, &cap, f)) != -1) {
+
+		if (!sep_found) {
+			if (strcmp(line, sep) == 0) {
+				sep_found = 1;
+			}
+			continue;
+		}
+
+		if (strcmp(line, sep_hmac) == 0) {
+			sep_hmac_found = 1;
+			break;
+		}
+
+		if (*content_len + len > LEN) {
+			free(line);
+			warnx("Content read exceeds 4KB buffer before separator\n");
+			return 1;
+		}
+
+		memcpy(*content + *content_len, line, len);
+		*content_len += len;
+	}
+
+	free(line);
+
+	if (len == -1) {
+		warnx("Lines reading with buffering failed\n");
+		return 1;
+	}
+
+	if (*content_len > 0 && (*content)[*content_len - 1] == '\n') {
+		*content_len -= 1;
+	}
+
+
+	if (sep_hmac_found == 0) {
+		warnx("Separator not found\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+int read_hmac_line(FILE *f, char **hmac_b64, int *hmac_b64_len)
+{
+	size_t cap = 0;
+
+	*hmac_b64_len = getline(hmac_b64, &cap, f);
+	if (*hmac_b64_len == -1) {
+		warnx("Error reading HMAC\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+int extract_data(FILE *fhandoff, char **content, int *content_len,
+		 char **hmac_b64, int *hmac_b64_len)
+{
+	if (read_until_separator(fhandoff, content, content_len)
+	    || read_hmac_line(fhandoff, hmac_b64, hmac_b64_len)) {
+		return 1;
+	}
+
+	return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Deserialización del contenido del fichero autenticado en \textit{Espacio de Usuario}.]{Deserialización del contenido del fichero autenticado en \textit{Espacio de Usuario}.}
+\label{cod:check_hmac_extract}
+\vspace{\baselineskip}
+
+A continuación, \verb|calculate_hmac|, \verb|encode_base64| y \verb|calc_and_encode_hmac| recalculan localmente el autenticador a partir del contenido extraído y de la misma clave secreta utilizada en el módulo, la cual es compartida con el administrador que ejecuta este programa, utilizando funcionalidades de la librería \verb|openssl| para simplificar los cálculos criptográficos.\\
+
+Concretamente, la función \verb|HMAC| recibe el algoritmo criptográfico correspondiente, la clave y el contenido con las longitudes de ambas variables, pudiendo calcular así el \textit{HMAC} correspondiente al contenido directamente.\\
+
+Por otro lado, \verb|EVP_ENCODE_LENGTH| y \verb|EVP_EncodeBlock| se emplean principalmente para codificar el \textit{HMAC} previamente recalculado a formato \textit{Base64}.
+
+\begin{lstlisting}[language=C]
+int calculate_hmac(const unsigned char *content, int content_len,
+		   unsigned char *hmac_calc, unsigned int *hmac_calc_len)
+{
+	if (!HMAC(EVP_sha256(), K, K_len, content, content_len, hmac_calc,
+		  hmac_calc_len)) {
+		warnx("HMAC calculation failed\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+int encode_base64(unsigned char *hmac_calc, unsigned int hmac_calc_len,
+		  unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
+{
+	*hmac_b64_calc_len = EVP_ENCODE_LENGTH(hmac_calc_len);
+	*hmac_b64_calc = (unsigned char *)malloc(*hmac_b64_calc_len + 1);
+
+	if (!*hmac_b64_calc) {
+		warnx("malloc failed for HMAC encoded in base 64\n");
+		return 1;
+	}
+
+	*hmac_b64_calc_len =
+	    EVP_EncodeBlock(*hmac_b64_calc, hmac_calc, hmac_calc_len);
+	if (*hmac_b64_calc_len <= 0) {
+		warnx("EVP_EncodeBlock failed or returned zero length");
+		return 1;
+	}
+
+	return 0;
+}
+
+int calc_and_encode_hmac(const char *content, int content_len,
+			 unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
+{
+	unsigned char hmac_calc[EVP_MAX_MD_SIZE];
+	unsigned int hmac_calc_len = 0;
+
+	if (calculate_hmac((const unsigned char *)content, content_len,
+			   hmac_calc, &hmac_calc_len)) {
+		return 1;
+	}
+
+
+
+
+
+	if (encode_base64(hmac_calc, hmac_calc_len, hmac_b64_calc,
+			  hmac_b64_calc_len)) {
+		return 1;
+	}
+
+	return 0;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cálculo local del \textit{HMAC} y su codificación en \textit{Base64}.]{Cálculo local del \textit{HMAC} y su codificación en \textit{Base64}.}
+\label{cod:check_hmac_calc}
+\vspace{\baselineskip}
+
+Finalmente, \verb|verify_hmac| compara el \textit{HMAC} extraído del fichero con el recalculado directamente en \textit{Base64} mediante \verb|CRYPTO_memcmp|.
+Todo este conjunto de funcionalidades es integrado en un flujo de trabajo coordinado en la propia función \verb|main|, desde la apertura del fichero hasta la validación final del contenido autenticado:
+
+\begin{lstlisting}[language=C]
+int verify_hmac(const char *hmac_b64, int hmac_b64_len,
+		unsigned char *hmac_b64_calc, int hmac_b64_calc_len)
+{
+	if (CRYPTO_memcmp(hmac_b64_calc, hmac_b64, hmac_b64_calc_len)) {
+		warnx("\nHMAC verification failed: Invalid HMAC\n");
+		return 1;
+	}
+
+	printf("\nHMAC verification successful: Valid HMAC\n");
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		errx(EXIT_FAILURE, "Usage: %s <path_file_handoff>\n"
+		     "e.g.: %s ./file_handoff", argv[0], argv[0]);
+	}
+
+	const char *path_fhandoff = argv[1];
+
+	FILE *fhandoff = fopen(path_fhandoff, "r");
+	if (!fhandoff) {
+		warnx("fopen failed\n");
+		goto err_fhandoff;
+	}
+
+	char *content = NULL;
+	int content_len = 0;
+
+	char *hmac_b64 = NULL;
+	int hmac_b64_len = 0;
+
+
+	if (extract_data(fhandoff, &content, &content_len,
+			 &hmac_b64, &hmac_b64_len)) {
+		goto free_cont;
+	}
+	fclose(fhandoff);
+	fhandoff = NULL;
+
+	printf("Extracted kernel content:\n%s\n", content);
+	printf("Extracted HMAC(Base64):\n%s\n", hmac_b64);
+
+	unsigned char *hmac_b64_calc = NULL;
+	int hmac_b64_calc_len = 0;
+
+	if (calc_and_encode_hmac(content, content_len,
+				 &hmac_b64_calc, &hmac_b64_calc_len)) {
+		goto free_all;
+	}
+
+	free(content);
+	content = NULL;
+
+	printf("Calculated HMAC(Base64): \n%s\n", hmac_b64_calc);
+	int ext = verify_hmac(hmac_b64, hmac_b64_len, hmac_b64_calc,
+			      hmac_b64_calc_len);
+
+	free(hmac_b64);
+	free(hmac_b64_calc);
+	exit(ext);
+
+free_all:
+	if (hmac_b64_calc) {
+		free(hmac_b64_calc);
+	}
+	if (hmac_b64) {
+		free(hmac_b64);
+	}
+
+free_cont:
+	if (content) {
+		free(content);
+	}
+
+err_fhandoff:
+	if (fhandoff) {
+		fclose(fhandoff);
+	}
+
+	exit(EXIT_FAILURE);
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Comparación del autenticador y flujo principal del verificador.]{Comparación del autenticador y flujo principal del verificador.}
+\label{cod:check_hmac_verify_main}
+\vspace{\baselineskip}
+
+Una vez completado el prototipo, se procedió a validar su correcto funcionamiento comprobando que el módulo podía generar correctamente contenido autenticado en \textit{Espacio del Kernel}, escribirlo sobre el fichero recibido mediante el mecanismo de \textit{File Handoff} y verificar posteriormente su integridad desde \textit{Espacio de Usuario} con la misma clave secreta compartida entre el administrador y el \textit{Kernel}:
+
+\begin{lstlisting}[language=bash]
+$ uname -r
+6.12.41-current-bcm2711
+$ cd LKM
+$ chmod +x gen_k_embedded.sh
+$ ./gen_k_embedded.sh
+OK: generated k_embedded.h with key K (64 bytes).
+$ cat k_embedded.h
+const unsigned char K[] = {
+        0x4a, 0xd3, 0x21, 0xda, 0xc3, 0x6c, 0x38, 0x13, 0xb1, 0x70, 0x48, 0xac,
+        0xb2, 0x6b, 0xf7, 0xe4, 0x1b, 0x7d, 0x56, 0xf2, 0xfe, 0x69, 0xb4, 0x59,
+        0x0e, 0x31, 0xd6, 0xa7, 0xf1, 0xee, 0x40, 0x8a, 0x17, 0x97, 0x4e, 0xb0,
+        0x7a, 0x40, 0x39, 0x40, 0x3f, 0x29, 0x27, 0xd8, 0xa9, 0x84, 0xda, 0x01,
+        0x12, 0x70, 0x23, 0xdd, 0x87, 0x02, 0x1b, 0xb9, 0xaf, 0x8c, 0xee, 0xe2,
+        0x90, 0x7c, 0x00, 0x10
+};
+
+const unsigned int K_len = 64;
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/LKM/crypto_fd.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/crypto_fd.mod.o
+  LD [M]  /home/LKM/crypto_fd.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod crypto_fd.ko
+$ cat /proc/fdev
+Waiting for a FD to perform file handoff
+$ dmesg -T | tail
+...
+[Fri Nov 14 18:25:38 2025] /proc/fdev created
+...
+[Fri Nov 14 18:28:52 2025] /proc/fdev: read handler
+[Fri Nov 14 18:28:52 2025] /proc/fdev: 41 bytes sent to userspace
+$ cd ..
+$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+$ gcc -o mk_fhandoff mk_fhandoff.o
+$ gcc -c -Wshadow -Wvla -Wall check_hmac.c
+$ gcc -o check_hmac check_hmac.o -lcrypto
+$ ./mk_fhandoff ./file_handoff /proc/fdev
+File descriptor written in /proc/fdev:
+3
+$ dmesg -T | tail
+...
+[Fri Nov 14 18:31:22 2025] /proc/fdev: write handler
+[Fri Nov 14 18:31:22 2025] printH: file has been written with HMAC
+[Fri Nov 14 18:31:22 2025] mywrite: printH OK for fd 3 (119 bytes written)
+$ cat ./file_handoff
+
+--KERNEL-PS--
+Kernel-Space: Authentic content protected by HMAC-SHA256
+
+--HMAC--
+xUPsVlgNMcm1Uxj2mac0uTD3gdkDTyeNvbXuBZjq6Bw=
+
+$ ./check_hmac ./file_handoff
+Extracted kernel content:
+Kernel-Space: Authentic content protected by HMAC-SHA256
+
+Extracted HMAC(Base64):
+xUPsVlgNMcm1Uxj2mac0uTD3gdkDTyeNvbXuBZjq6Bw=
+Calculated HMAC(Base64):
+xUPsVlgNMcm1Uxj2mac0uTD3gdkDTyeNvbXuBZjq6Bw=
+
+HMAC verification successful: Valid HMAC
+$ cd LKM
+$ rmmod crypto_fd
+$ dmesg -T | tail
+...
+[Fri Nov 14 18:31:47 2025] /proc/fdev removed
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Validación del mecanismo de autenticación mediante \textit{HMAC-SHA256}.]{Validación del mecanismo de autenticación mediante \textit{HMAC-SHA256}.}
+\label{cod:crypto_validation}
+\vspace{\baselineskip}
+
+Mediante esta validación se comprobó que el módulo podía generar correctamente contenido autenticado en \textit{Espacio del Kernel}, adjuntarle su etiqueta \textit{HMAC-SHA256} en formato \textit{Base64} y transferir el conjunto completo al fichero real recibido mediante el mecanismo de \textit{File Handoff}.
+Asimismo, el programa \verb|check_hmac.c| permitió verificar desde \textit{Espacio de Usuario} que la etiqueta de autenticación recibida en el fichero coincidía con la recalculada localmente a partir del contenido extraído y de la misma clave secreta compartida, quedando así correctamente validado el funcionamiento del mecanismo de autenticidad del contenido diseñado en este prototipo.\\\\
+
+\subsection{Sistema de reporte seguro de los procesos en ejecución del sistema}
+\label{sec:proto-report}
+
+Por último, ya validado el mecanismo de autenticación del contenido a transferir mediante \textit{HMAC-SHA256}, el siguiente paso consistió en sustituir la cadena fija de prueba por un contenido real y verdaderamente crítico para el sistema, generado dinámicamente en \textit{Espacio del Kernel}.
+Para ello, se implementó un listado global de todos los procesos en ejecución del sistema, con un formato inspirado en la salida de \texttt{ps}, de forma que dicho contenido pudiese transferirse al fichero de transferencia de manera autenticada y verificarse posteriormente desde \textit{Espacio de Usuario} del mismo modo que el prototipo anterior.
+Este módulo se diseñó en el fichero \verb|crypto_ps.c|.\\
+
+En este punto, toda la infraestructura desarrollada en los prototipos anteriores se reutiliza sin cambios sustanciales, incluyendo el mecanismo de \textit{File Handoff}, la escritura conjunta del contenido y su \textit{HMAC} en \textit{Base64}, así como las utilidades de escritura en el fichero de \texttt{/proc} y verificación en \textit{Espacio de Usuario}.\\
+
+Inicialmente, se tuvo que incorporar nuevas constantes y cabeceras al módulo para su correcto funcionamiento y compilación:
+
+\begin{lstlisting}[language=C]
+#include <linux/cred.h>
+#include <linux/pid.h>
+#include <linux/rcupdate.h>
+#include <linux/security.h>
+#include <linux/sched.h>
+#include <linux/nsproxy.h>
+#include <linux/pid_namespace.h>
+
+enum {
+	MAX_SIZE = 1024 * 40,
+	TIPIC_HMACB64_SIZE = 44,
+	UID_SIZE = 12,
+	UIDNS_SIZE = 14,
+	PID_SIZE = 12,
+	PIDNS_SIZE = 14,
+	GID_SIZE = 11,
+	CMD_SIZE = 50,
+	PS_LINE_SIZE = UID_SIZE + UID_SIZE + UIDNS_SIZE +
+	    PID_SIZE + PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
+};
+
+
+
+
+
+static const char header[] =
+    "UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND\n";
+
+static const int header_len = sizeof(header) - 1;
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Cabeceras y constantes necesarias para la generación del listado de procesos global.]{Cabeceras y constantes necesarias para la generación del listado de procesos global.}
+\label{cod:report_headers_consts}
+\vspace{\baselineskip}
+
+Para poder construir un listado de todos los procesos que se encuentran en ejecución en el sistema y en sus distintos espacios de nombres, fue necesario ampliar nuevamente las cabeceras del módulo.
+Concretamente, \verb|<linux/cred.h>| y \verb|<linux/security.h>| permiten al módulo acceder a las credenciales de cada proceso, \verb|<linux/pid.h>|, \verb|<linux/sched.h>| y \verb|<linux/pid_namespace.h>| aportan las definiciones necesarias para recorrer la lista global de tareas y obtener sus identificadores en los distintos espacios de nombres, mientras que \verb|<linux/rcupdate.h>| proporciona el mecanismo de sincronización \textit{RCU} necesario para realizar este recorrido de forma segura.
+Por otra parte, las constantes auxiliares definidas acotan el tamaño máximo del contenido generado, el tamaño reservado para cada campo serializado y la estructura básica de la tabla de procesos generada con sus metadatos correspondientes.\\
+
+Una vez establecidas las cabeceras y constantes necesarias para estructurar el contenido a transferir, se procedió a incorporar dos funciones auxiliares que permitiesen formatear y construir dinámicamente y de forma segura la tabla completa de procesos dentro de un único \textit{buffer} de salida:
+
+\begin{lstlisting}[language=C]
+static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char)
+{
+	int padding = 0;
+
+	if (curr_len >= buf_len) {
+		padding = 0;
+		curr_len = buf_len;
+
+	} else {
+		padding = buf_len - curr_len;
+
+	}
+
+
+
+	
+	if (padding > 0) {
+		memset(buf + curr_len, pad_char, padding);
+		curr_len += padding;
+
+	}
+
+	return buf_len;
+}
+
+static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len)
+{
+	int max_len = MAX_SIZE - *current_len;
+
+	if (max_len < src_len)
+		return -ENOSPC;
+
+	memcpy(dst + *current_len, src, src_len);
+
+	*current_len += src_len;
+
+	return src_len;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Funciones auxiliares para el formateo y la construcción segura del contenido serializado.]{Funciones auxiliares para el formateo y la construcción segura del contenido serializado.}
+\label{cod:report_pad_safe_chunk}
+\vspace{\baselineskip}
+
+La función \verb|pad_str_right| permite completar cada campo textual con caracteres de relleno hasta alcanzar una anchura fija, garantizando así una representación tabulada homogénea de los metadatos de cada proceso en la tabla.\\
+
+Por su parte, \verb|safe_chunk| permite incorporar secuencialmente cada fragmento de información al \textit{buffer} global que contendrá la tabla final, comprobando previamente que exista espacio suficiente antes de realizar la copia.\\
+
+A continuación, se implementó la función principal encargada de recorrer la lista global de tareas del sistema y construir la tabla completa en memoria:
+
+\begin{lstlisting}[language=C]
+static int get_ps(u8 **cont, int *cont_len)
+{
+	struct task_struct *task;
+
+	*cont = (u8 *) kmalloc(MAX_SIZE, GFP_KERNEL);
+	if (!*cont) {
+		printk(KERN_ERR "get_ps: kmalloc failed\n");
+		return -ENOMEM;
+	}
+
+	if (safe_chunk(*cont, cont_len, (char *)header, header_len) < 0)
+		goto out_fail;
+
+	rcu_read_lock();
+
+	for_each_process(task) {
+		if (*cont_len >= MAX_SIZE - PS_LINE_SIZE -
+		    sep_len - sep_hmac_len - TIPIC_HMACB64_SIZE) {
+			printk(KERN_WARNING
+			       "get_ps: Buffer full -> Truncating\n");
+			goto out_fail;
+		}
+
+		if (ps_data(task, *cont, cont_len)) {
+			printk(KERN_ERR
+			       "get_ps: Extracting process data failed\n");
+			goto out_fail;
+		}
+	}
+
+	rcu_read_unlock();
+
+	printk(KERN_INFO
+	       "get_ps: Generated ps-like output of %d bytes.\n", *cont_len);
+
+	return 0;
+
+out_fail:
+	rcu_read_unlock();
+
+	if (*cont)
+		kfree(*cont);
+
+	*cont = NULL;
+	*cont_len = 0;
+
+	return -ENOSPC;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Construcción del listado global de procesos en memoria del \textit{Kernel}.]{Construcción del listado global de procesos en memoria del \textit{Kernel}.}
+\label{cod:report_get_ps}
+\vspace{\baselineskip}
+
+Este código actúa como el núcleo principal de generación del contenido a transferir, reservando inicialmente un \textit{buffer} de tamaño máximo fijo donde se almacenará todo el listado completo, incorporando en primer lugar la cabecera definida anteriormente en las constantes.\\
+
+Posteriormente, recorre la lista global de procesos activos del sistema utilizando la macro \verb|for_each_process| bajo protección de lectura \textit{RCU}, garantizando así un acceso seguro frente a múltiples accesos concurrentes a las estructuras críticas de \verb|task_struct| mientras se extraen sus metadatos.
+Durante este recorrido, se comprueba que siga existiendo espacio disponible suficiente antes de incorporar cada nueva entrada, delegando en \verb|ps_data| la consulta y serialización de los campos correspondientes a cada proceso.\\
+
+Finalmente, si el recorrido concluye correctamente, devuelve en \verb|cont| el contenido completo generado, el cual será el utilizado en \verb|printh|, y en \verb|cont_len| su longitud total.
+Por otra parte, en caso de fallo, se libera la memoria reservada y se devuelve el código de error correspondiente.
+
+\begin{lstlisting}[language=C]
+static int ps_data(struct task_struct *task, u8 *cont, int *cont_len)
+{
+	char kuid_str[UID_SIZE];
+	char luid_str[UID_SIZE];
+	char uidns_str[UIDNS_SIZE];
+	char kpid_str[PID_SIZE];
+	char lpid_str[PID_SIZE];
+	char pidns_str[PIDNS_SIZE];
+	char gid_str[GID_SIZE];
+	char comm_str[CMD_SIZE];
+
+	int kuid_len = get_kuid_str(task_uid(task), kuid_str);
+	if (kuid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, kuid_str, UID_SIZE) < 0)
+		goto out_fail;
+
+	int luid_len = get_luid_str(task, luid_str);
+	if (luid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, luid_str, UID_SIZE) < 0)
+		goto out_fail;
+
+	int uidns_len = get_uidns_str(task, uidns_str);
+	if (uidns_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, uidns_str, UIDNS_SIZE) < 0)
+		goto out_fail;
+
+	int kpid_len = get_kpid_str(task_pid_nr(task), kpid_str);
+	if (kpid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, kpid_str, PID_SIZE) < 0)
+		goto out_fail;
+
+	int lpid_len = get_lpid_str(task, lpid_str);
+	if (lpid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, lpid_str, PID_SIZE) < 0)
+		goto out_fail;
+
+	int pidns_len = get_pidns_str(task, pidns_str);
+	if (pidns_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, pidns_str, PIDNS_SIZE) < 0)
+		goto out_fail;
+
+	int gid_len = get_gid_str(task, gid_str);
+	if (gid_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, gid_str, GID_SIZE) < 0)
+		goto out_fail;
+
+	int comm_len = get_command_str(task, comm_str);
+	if (comm_len <= 0)
+		goto out_fail;
+
+	if (safe_chunk(cont, cont_len, comm_str, comm_len) < 0)
+		goto out_fail;
+
+	return 0;
+
+out_fail:
+	return 1;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Serialización de los metadatos de un proceso.]{Serialización de los metadatos de un proceso.}
+\label{cod:report_ps_data}
+\vspace{\baselineskip}
+
+La función \verb|ps_data| encapsula la construcción de una única fila de la tabla final correspondiente a la tarea  actualmente recorrida en \verb|for_each_process|, extrayendo y serializando secuencialmente los principales metadatos de cada proceso concreto.\\
+
+Para ello, se optó por encapsular en funciones independientes la extracción de cada metadato por separado:\\
+
+A continuación, se implementaron varias funciones auxiliares encargadas de extraer y formatear los distintos identificadores de usuario asociados a cada proceso, distinguiendo entre el identificador global visible desde el \textit{Kernel}, su valor relativo dentro del espacio de nombres del proceso y el identificador del propio espacio de nombres:
+
+\begin{lstlisting}[language=C]
+static int get_kuid_str(kuid_t uid_struct, char *uid_str)
+{
+	int uid_len = 0;
+
+	int uid = from_kuid(&init_user_ns, uid_struct);
+
+	uid_len = snprintf(uid_str, UID_SIZE, "%d", uid);
+
+	pad_str_right(uid_str, uid_len, UID_SIZE, ' ');
+
+	return uid_len;
+}
+
+static int get_luid_str(struct task_struct *task, char *uid_str)
+{
+	int uid_len = 0;
+
+	const struct cred *cred = get_task_cred(task);
+	if (!cred) {
+		printk(KERN_ERR
+		       "get_luid_str: No credentials found for task\n");
+		return -ENOSPC;
+	}
+
+	int uid = from_kuid(cred->user_ns, cred->uid);
+
+	put_cred(cred);
+
+	uid_len = snprintf(uid_str, UID_SIZE, "%d", uid);
+
+	pad_str_right(uid_str, uid_len, UID_SIZE, ' ');
+
+	return uid_len;
+}
+
+static int get_uidns_str(struct task_struct *task, char *uidns_str)
+{
+	const struct cred *cred = get_task_cred(task);
+	if (!cred) {
+		printk(KERN_ERR
+		       "get_uidns_str: No credentials found for task\n");
+		return -ENOSPC;
+	}
+
+	unsigned int uid_ns = cred->user_ns->ns.inum;
+
+	put_cred(cred);
+
+	int uidns_len = snprintf(uidns_str, UIDNS_SIZE, "%u", uid_ns);
+
+	pad_str_right(uidns_str, uidns_len, UIDNS_SIZE, ' ');
+
+	return uidns_len;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Identificadores de usuario de cada proceso.]{Identificadores de usuario de cada proceso.}
+\label{cod:report_uid_fields}
+\vspace{\baselineskip}
+
+Estas funciones permiten obtener y formatear los identificadores de usuario (\textit{UIDs}) asociados a cada proceso.
+En concreto, \verb|get_kuid_str| obtiene el UID global visible desde el \textit{Kernel}, \verb|get_luid_str| recupera el UID relativo al espacio de nombres del proceso y \verb|get_uidns_str| identifica el espacio de nombres de usuario al que pertenecen dichas credenciales.\\
+
+\begin{lstlisting}[language=C]
+static int get_kpid_str(int pid, char *pid_str)
+{
+	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+
+	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+
+	return pid_len;
+}
+
+static int get_lpid_str(struct task_struct *task, char *pid_str)
+{
+	struct pid_namespace *ns = task_active_pid_ns(task);
+	if (!ns) {
+		printk(KERN_ERR
+		       "get_lpid_str: No PID namespace found for task\n");
+		return -ENOSPC;
+	}
+
+	int pid = task_pid_nr_ns(task, ns);
+
+	int pid_len = snprintf(pid_str, PID_SIZE, "%d", pid);
+
+	pad_str_right(pid_str, pid_len, PID_SIZE, ' ');
+
+	return pid_len;
+}
+
+
+static int get_pidns_str(struct task_struct *task, char *pidns_str)
+{
+	struct pid_namespace *pid_ns = task_active_pid_ns(task);
+	if (!pid_ns) {
+		printk(KERN_ERR
+		       "get_pidns_str: No PID namespace found for task\n");
+		return -ENOSPC;
+	}
+
+	int pidns_len = snprintf(pidns_str, PIDNS_SIZE, "%u", pid_ns->ns.inum);
+
+	pad_str_right(pidns_str, pidns_len, PIDNS_SIZE, ' ');
+
+	return pidns_len;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Identificadores de proceso de cada tarea.]{Identificadores de proceso de cada tarea.}
+\label{cod:report_pid_fields}
+\vspace{\baselineskip}
+
+En este caso, estas funciones permiten obtener y formatear los identificadores de proceso (\textit{PIDs}) de cada tarea.
+En particular, \verb|get_kpid_str| obtiene el PID global visible desde el \textit{Kernel}, \verb|get_lpid_str| recupera el PID relativo al espacio de nombres de proceso activo y \verb|get_pidns_str| identifica el espacio de nombres de proceso al que pertenece la tarea analizada.\\
+
+\begin{lstlisting}[language=C]
+static int get_gid_str(struct task_struct *task, char *gid_str)
+{
+	int gid_len = 0;
+
+	const struct cred *cred = get_task_cred(task);
+	if (!cred)
+		return -ENOSPC;
+
+	int gid = from_kgid(&init_user_ns, cred->gid);
+	put_cred(cred);
+
+	gid_len = snprintf(gid_str, GID_SIZE, "%d", gid);
+
+	pad_str_right(gid_str, gid_len, GID_SIZE, ' ');
+
+	return gid_len;
+}
+
+
+
+
+
+
+static int get_command_str(struct task_struct *task, char *comm_str)
+{
+	int comm_len = 0;
+
+	if (task->mm == NULL) {
+		comm_len = snprintf(comm_str, CMD_SIZE, "[%s]\n", task->comm);
+		goto commd_finished;
+	}
+
+	struct file *exe_file = task->mm->exe_file;
+
+	if (exe_file) {
+		char *path = d_path(&exe_file->f_path, comm_str, CMD_SIZE);
+
+		if (!IS_ERR(path)) {
+			comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", path);
+			goto commd_finished;
+		}
+	}
+
+	comm_len = snprintf(comm_str, CMD_SIZE, "%s\n", task->comm);
+
+commd_finished:
+	if (comm_len >= CMD_SIZE)
+		comm_len = CMD_SIZE - 1;
+
+	return comm_len;
+}
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Identificadores de grupo y nombre del comando asociado a cada proceso.]{Identificadores de grupo y nombre del comando asociado a cada proceso.}
+\label{cod:report_gid_command}
+\vspace{\baselineskip}
+
+Finalmente, estas funciones completan la información del proceso con el identificador de grupo y el comando asociado a su ejecución.
+Concretamente, \verb|get_gid_str| obtiene y formatea el identificador de grupo global asociado al proceso y \verb|get_command_str| recupera el comando correspondiente a su ejecución, distinguiendo entre procesos de usuario con ejecutable accesible, hilos del \textit{Kernel} y casos en los que solo puede utilizarse el nombre almacenado en \verb|task->comm|.\\
+
+Una vez integrada la generación dinámica de los metadatos de los procesos activos del sistema en el flujo autenticado de escritura en el fichero de transferencia, se procedió a validar el comportamiento completo del prototipo final incorporando la funcionalidad de los \textit{Dockers} para simular distintos espacios de nombres en el sistema:\\\\\\
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\fontsize{5.6pt}{6.2pt}\selectfont,breaklines=false,columns=fullflexible,keepspaces=true]
+$ uname -r
+6.12.41-current-bcm2711
+$ cd LKM
+$ chmod +x gen_k_embedded.sh
+$ ./gen_k_embedded.sh
+OK: generated k_embedded.h with key K (64 bytes).
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/LKM modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/LKM/crypto_ps.o
+  MODPOST /home/LKM/Module.symvers
+  CC [M]  /home/LKM/crypto_ps.mod.o
+  LD [M]  /home/LKM/crypto_ps.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+$ insmod crypto_ps.ko
+$ cat /proc/fdev
+LKM ready to receive file descriptors from user.
+$ dmesg -T | tail
+...
+[Thu Nov 27 18:42:11 2025] New proc file created: /proc/fdev
+...
+[Thu Nov 27 18:42:11 2025] /proc/fdev: read handler
+[Thu Nov 27 18:42:11 2025] /proc/fdev myread: read 48 bytes by userspace
+$ cd ..
+$ gcc -c -Wshadow -Wvla -Wall mk_fhandoff.c
+$ gcc -o mk_fhandoff mk_fhandoff.o
+$ gcc -g -c -Wshadow -Wvla -Wall check_hmac.c
+$ gcc -g -o check_hmac check_hmac.o -lcrypto
+$ cat /etc/docker/daemon.json
+{
+        "userns-remap": "default"
+}
+$ systemctl restart docker
+$ docker run -d --name docker1 debian:stable sleep 10000
+7fd1c45a07c0...
+$ docker run -d --name docker2 debian:stable sleep 10000
+77276c1a7026...
+$ docker run -d --name docker3 debian:stable sleep 10000
+4a4421829e80...
+$ docker ps
+CONTAINER ID   IMAGE           COMMAND         CREATED              STATUS          NAMES
+4a4421829e80   debian:stable   "sleep 10000"   29 seconds ago       Up 28 seconds   docker3
+77276c1a7026   debian:stable   "sleep 10000"   35 seconds ago       Up 34 seconds   docker2
+7fd1c45a07c0   debian:stable   "sleep 10000"   About a minute ago   Up 58 seconds   docker1
+$ ./mk_fhandoff ./file_handoff /proc/fdev
+File descriptor written in /proc/fdev:
+3
+$ dmesg -T | tail
+...
+[Thu Nov 27 18:43:49 2025] /proc/fdev: write handler
+[Thu Nov 27 18:43:49 2025] /proc/fdev write: written 1 bytes from the user
+[Thu Nov 27 18:43:49 2025] get_ps: Generated ps-like output of 21251 bytes.
+[Thu Nov 27 18:43:49 2025] printH: file has been written with HMAC
+[Thu Nov 27 18:43:49 2025] mywrite: printH OK for fd 3 (21320 bytes written)
+$ cat ./file_handoff
+
+--KERNEL-PS--
+UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND
+0           0           4026531837    1           1           4026531836    0          /usr/lib/systemd/systemd
+0           0           4026531837    2           2           4026531836    0          [kthreadd]
+0           0           4026531837    3           3           4026531836    0          [pool_workqueue_]
+...
+113         113         4026531837    1440        1440        4026531836    119        /usr/sbin/chronyd
+113         113         4026531837    1448        1448        4026531836    119        /usr/sbin/chronyd
+0           0           4026531837    1484        1484        4026531836    0          /usr/sbin/gdm3
+0           0           4026531837    1489        1489        4026531836    1000       /usr/libexec/gdm-session-worker
+1000        1000        4026531837    1496        1496        4026531836    1000       /usr/lib/systemd/systemd
+1000        1000        4026531837    1497        1497        4026531836    1000       /usr/lib/systemd/systemd-executor
+...
+0           0           4026531837    8211        8211        4026531836    0          /usr/bin/dockerd
+0           0           4026531837    8212        8212        4026531836    0          [kworker/1:1]
+0           0           4026531837    8239        8239        4026531836    0          [kworker/1:2H]
+0           0           4026531837    8500        8500        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532674    8520        1           4026532678    100000     /usr/bin/sleep
+0           0           4026531837    8532        8532        4026531836    0          [kworker/2:0]
+0           0           4026531837    8596        8596        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532754    8617        1           4026532758    100000     /usr/bin/sleep
+0           0           4026531837    8667        8667        4026531836    0          [kworker/2:2H]
+0           0           4026531837    8678        8678        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532834    8698        1           4026532838    100000     /usr/bin/sleep
+0           0           4026531837    8741        8741        4026531836    0          [kworker/u20:2]
+0           0           4026531837    8935        8935        4026531836    0          [kworker/0:0]
+0           0           4026531837    8947        8947        4026531836    0          [kworker/u16:3]
+0           0           4026531837    8989        8989        4026531836    0          [kworker/3:2]
+0           0           4026531837    9033        9033        4026531836    0          /home/noel/Desktop/TFG/Project/mk_fhandoff
+
+--HMAC--
+ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
+
+$ ./check_hmac ./file_handoff
+Extracted kernel content:
+UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND
+0           0           4026531837    1           1           4026531836    0          /usr/lib/systemd/systemd
+0           0           4026531837    2           2           4026531836    0          [kthreadd]
+0           0           4026531837    3           3           4026531836    0          [pool_workqueue_]
+...
+113         113         4026531837    1440        1440        4026531836    119        /usr/sbin/chronyd
+113         113         4026531837    1448        1448        4026531836    119        /usr/sbin/chronyd
+0           0           4026531837    1484        1484        4026531836    0          /usr/sbin/gdm3
+0           0           4026531837    1489        1489        4026531836    1000       /usr/libexec/gdm-session-worker
+1000        1000        4026531837    1496        1496        4026531836    1000       /usr/lib/systemd/systemd
+1000        1000        4026531837    1497        1497        4026531836    1000       /usr/lib/systemd/systemd-executor
+...
+0           0           4026531837    8211        8211        4026531836    0          /usr/bin/dockerd
+0           0           4026531837    8212        8212        4026531836    0          [kworker/1:1]
+0           0           4026531837    8239        8239        4026531836    0          [kworker/1:2H]
+0           0           4026531837    8500        8500        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532674    8520        1           4026532678    100000     /usr/bin/sleep
+0           0           4026531837    8532        8532        4026531836    0          [kworker/2:0]
+0           0           4026531837    8596        8596        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532754    8617        1           4026532758    100000     /usr/bin/sleep
+0           0           4026531837    8667        8667        4026531836    0          [kworker/2:2H]
+0           0           4026531837    8678        8678        4026531836    0          /usr/bin/containerd-shim-runc-v2
+100000      0           4026532834    8698        1           4026532838    100000     /usr/bin/sleep
+0           0           4026531837    8741        8741        4026531836    0          [kworker/u20:2]
+0           0           4026531837    8935        8935        4026531836    0          [kworker/0:0]
+0           0           4026531837    8947        8947        4026531836    0          [kworker/u16:3]
+0           0           4026531837    8989        8989        4026531836    0          [kworker/3:2]
+0           0           4026531837    9033        9033        4026531836    0          /home/noel/Desktop/TFG/Project/mk_fhandoff
+
+Extracted HMAC(Base64):
+ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
+Calculated HMAC(Base64):
+ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
+
+HMAC verification successful: Valid HMAC
+$ cd LKM
+$ rmmod crypto_ps
+$ dmesg -T | tail
+...
+[Thu Nov 27 18:46:06 2025] Proc file deleted: /proc/fdev
+\end{lstlisting}
+\captionsetup{type=code,justification=centering,singlelinecheck=false}
+\captionof{code}[Validación del sistema de reporte seguro de metadatos de los procesos activos de manera autenticada mediante \textit{HMAC-SHA256}.]{Validación del sistema de reporte seguro de metadatos de los procesos activos de manera autenticada mediante \textit{HMAC-SHA256}.}
+\label{cod:report_validation}
+\vspace{\baselineskip}
+
+Cabe destacar que no se muestran los resultados completos de \verb|cat ./file_handoff| y \verb|./check_hmac ./file_handoff| debido a la gran cantidad de procesos activos en el sistema, lo que genera una tabla de gran extensión.
+Por este motivo, en la validación se presenta únicamente un extracto representativo del contenido transferido y verificado, correspondiéndose el \textit{HMAC} y los tamaños reportados con la salida completa generada durante la ejecución real.\\
+
+Mediante esta validación se comprobó que el módulo podía generar correctamente un listado global de los procesos activos del sistema desde \textit{Espacio del Kernel}.
+Asimismo, se comprobó que en dicho listado también se incluían aquellos procesos que se ejecutan en otros \textit{Namespaces}, como se observó mediante la ejecución de varios contenedores con \textit{Docker}, observándose diferencias respecto a los metadatos del resto de procesos, principalmente en los valores relativos a \verb|UID_LOCAL|, \verb|PID_LOCAL|, \verb|UID_NS| y \verb|PID_NS|.\\
+
+Por otro lado, al igual que en el anterior prototipo, se valida correctamente desde \textit{Espacio de Usuario} mediante el programa \verb|check_hmac.c| que la etiqueta \textit{HMAC-SHA256} en \textit{Base64} coincide con la recalculada respecto a la tabla completa de procesos, garantizando así un reporte seguro y autenticado de datos críticos del sistema entre las dos regiones del mismo.\\
