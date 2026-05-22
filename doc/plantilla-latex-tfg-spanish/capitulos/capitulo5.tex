@@ -18,6 +18,51 @@ Por otra parte, el código fuente completo del proyecto se encuentra también di
 
 \subsection{\textit{Hello World}}
 
+El primer prototipo desarrollado consistió en un \textit{LKM} mínimo de tipo \textit{Hello World}.
+Se trata de una primera toma de contacto con programación dentro del \textit{Kernel}, validando el flujo básico de trabajo necesario para desarrollar código ejecutado en esta región.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.9}{\input{figs/hello_world_scheme.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Flujo básico de carga, ejecución y descarga de un \textit{LKM}.}
+  \label{fig:hello_world_scheme}
+\end{figure}
+
+Lo primero que se debe entender es que un \textit{LKM} no forma parte necesariamente de la imagen principal del \textit{Kernel} en el arranque, sino que puede compilarse como un objeto independiente con extensión \texttt{.ko} y cargarse en tiempo de ejecución.
+Esto permite extender la funcionalidad del \textit{Kernel} sin recompilarlo por completo.
+Esta es la principal herramienta utilizada en el proyecto, ya que todos los prototipos se construyen como módulos externos y mantienen el mismo ciclo general de compilación, carga, prueba y descarga sin tener que reiniciar el sistema cada vez que se quiera ejecutar.\\
+
+La compilación del módulo se apoya en \textit{kbuild}, el sistema de construcción utilizado por el propio \textit{Kernel} de \textit{Linux}.
+En lugar de compilar el fichero fuente como un programa de usuario convencional, el \textit{Makefile} delega la construcción en el árbol de cabeceras del \textit{Kernel} activo mediante la ruta \texttt{/lib/modules/\$(uname -r)/build}.
+De esta forma, el módulo se compila con la misma versión del \textit{Kernel} que lo va a cargar, en este caso \texttt{6.12.41-current-bcm2711}.
+El detalle del fichero de compilación utilizado se recoge en el Código~\ref{cod:makefile} del Apéndice~\ref{anexo:codigo-prototipos}.\\
+
+Desde el punto de vista estructural, el módulo necesita incluir las cabeceras que exponen las primitivas básicas de desarrollo en \textit{Espacio del Kernel}.
+Entre ellas se encuentran las necesarias para declarar módulos (\textit{LKMs}), utilizar funciones del núcleo y registrar las rutinas de inicialización y salida.
+Además, el prototipo define metadatos mediante macros como la licencia, el autor, la descripción y la versión.
+Estos metadatos no son puramente informativos, ya que la licencia indicada afecta a cómo el \textit{Kernel} considera el módulo cargado.
+Concretamente, declarar una licencia compatible con \textit{GPL} evita que el núcleo marque el módulo como \textit{tainted} por incompatibilidad de licencia, lo cual advierte que el \textit{Kernel} ha sido modificado o ejecuta componentes que pueden dificultar el diagnóstico de errores.
+La declaración concreta de cabeceras y metadatos se muestra en el Código~\ref{cod:hello_headers} del anexo.\\
+
+El comportamiento del módulo se organiza principalmente mediante dos puntos de entrada.
+El primero es la función de inicialización (asociada a la macro \texttt{module\_init()}), ejecutada automáticamente al cargar el módulo mediante \texttt{insmod}.
+Y el segundo es la función de salida (asociada a la macro \texttt{module\_exit()}), ejecutada cuando el módulo se descarga del \textit{Kernel} mediante \texttt{rmmod}.
+Estos puntos representan el ciclo de vida mínimo de un \textit{LKM}: reservar o inicializar recursos al entrar en el \textit{Kernel} (\textit{carga}), y liberar o finalizar el trabajo al salir (\textit{descarga}).
+En este primer prototipo todavía no se reserva memoria ni se crean interfaces de comunicación, el objetivo es únicamente demostrar cómo funcionan ambas fases del módulo y su flujo de ejecución.
+Esta lógica se detalla en los Códigos~\ref{cod:hello_init_exit} y~\ref{cod:hello_module_init}.\\
+
+Para validar que el código se ejecuta realmente dentro del \textit{Kernel}, se utiliza \texttt{printk}.
+Esta función es el mecanismo habitual para registrar mensajes/trazas desde \textit{Espacio del Kernel}, de forma análoga a cómo un programa de usuario podría escribir por la salida estándar, pero integrado en el sistema de registros del núcleo.
+Cada mensaje puede incluir un nivel de prioridad dependiendo de la traza a escribir y su función, como \texttt{KERN\_INFO}, utilizada para trazas meramente informativas, o \texttt{KERN\_ERR}, para registrar errores.
+Posteriormente, dichas trazas pueden consultarse desde \textit{Espacio de Usuario} mediante herramientas como \texttt{dmesg} o el fichero de \textit{logs} del \textit{Kernel} \texttt{/var/log/kern.log}, accesible desde \textit{Espacio de Usuario}.
+Estos métodos de validación son importantes porque permiten confirmar simultáneamente estos aspectos: que el módulo se carga o descarga, que el \textit{Kernel} ejecuta sus rutinas de inicialización y salida correctamente, y si fuera necesario, ver trazas de depuración de la lógica implementada en dicho módulo.\\
+
+Finalmente, una vez programado el \textit{LKM}, se procede a validar su funcionamiento, empezando por su compilación, carga en el \textit{Kernel}, comprobar los mensajes generados (\textit{logs}), consultar sus metadatos con \texttt{modinfo} y descargarlo verificando la ejecución de la rutina de salida.
+El procedimiento completo de comandos y salidas se encuentra recogido en el Código~\ref{cod:hello_validation}.\\
+
+Con ello, se desarrolló y validó la base técnica sobre la que se construyen los siguientes prototipos.\\\\
+
 \subsection{Fichero virtual \texttt{/proc/fdev}}
 
 \subsection{\textit{File Handoff}}
