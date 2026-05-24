@@ -23,7 +23,7 @@ Se trata de una primera toma de contacto con programación dentro del \textit{Ke
 
 \begin{figure}[h!]
   \centering
-  \scalebox{0.9}{\input{figs/hello_world_scheme.tex}}
+  \scalebox{1}{\input{figs/hello_world_scheme.tex}}
   \figsource{Elaboración propia.}
   \caption{Flujo básico de carga, ejecución y descarga de un \textit{LKM}.}
   \label{fig:hello_world_scheme}
@@ -64,6 +64,53 @@ El procedimiento completo de comandos y salidas se encuentra recogido en el Cód
 Con ello, se desarrolló y validó la base técnica sobre la que se construyen los siguientes prototipos.\\\\
 
 \subsection{Fichero virtual \texttt{/proc/fdev}}
+
+Una vez validado el ciclo de vida básico de un \textit{LKM}, el siguiente prototipo incorporó una interfaz de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.
+El objetivo de esta etapa fue exponer un punto de interacción controlado que permitiese enviar datos al módulo y dar pie a una gestión personalizada de los mismos dentro del \textit{Kernel}.
+Para ello se utilizó el sistema de ficheros virtual \texttt{/proc} como interfaz de entrada al \textit{LKM}, mediante el fichero \texttt{/proc/fdev}.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{1}{\input{figs/proc_fdev_scheme.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Comunicación básica entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel} mediante un fichero virtual en \texttt{/proc}.}
+  \label{fig:proc_fdev_scheme}
+\end{figure}
+
+El sistema de ficheros \texttt{/proc} no almacena ficheros persistentes en disco, sino que presenta una vista virtual de información y mecanismos expuestos por el \textit{Kernel} en memoria (\textit{RAM}).
+Desde \textit{Espacio de Usuario}, una entrada de \texttt{/proc} se manipula como un fichero ordinario mediante operaciones como apertura, lectura y escritura.
+Sin embargo, internamente dichas operaciones no acceden a un contenido físico, sino que son atendidas por funciones del \textit{Kernel} (\textit{syscalls}) asociadas a esa entrada.
+Esta característica lo convierte en un mecanismo adecuado para establecer una vía de comunicación entre una región y otra.\\
+
+En primer lugar, para poder crear y gestionar este fichero virtual fue necesario ampliar las cabeceras del módulo con soporte para dos aspectos principales: la creación de entradas en el sistema de ficheros virtual \texttt{/proc} y la transferencia controlada de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.
+El primer grupo permite registrar el fichero virtual y asociarle operaciones propias, mientras que el segundo proporciona primitivas específicas para copiar información entre ambas regiones de memoria sin desreferenciar directamente punteros procedentes de \textit{Espacio de Usuario}.
+Esta separación es importante, ya que el \textit{Kernel} y los procesos de usuario trabajan en contextos de memoria distintos, por lo que el acceso directo a direcciones de usuario desde el \textit{Kernel} debe realizarse de forma correcta, evitando accesos inseguros o corruptos.
+El conjunto concreto de cabeceras incorporadas en este prototipo se recoge en el Código~\ref{cod:proc_headers} del Apéndice~\ref{anexo:codigo-prototipos}.\\
+
+En este prototipo se crea una entrada específica dentro de \texttt{/proc} mediante el fichero \texttt{/proc/fdev}, la cual se registra durante la carga del módulo mediante la función de inicialización.
+Conceptualmente, el módulo solicita al subsistema \texttt{/proc} que cree un nuevo nodo visible desde \textit{Espacio de Usuario} y que asocie a dicho nodo una tabla de operaciones.
+Esta tabla actúa como el contrato entre las operaciones de fichero invocadas desde \textit{Espacio de Usuario} y las funciones internas del módulo.
+Así, una lectura sobre \texttt{/proc/fdev} se redirige al \textit{handler} de lectura, mientras que una escritura sobre esa misma ruta se redirige al \textit{handler} de escritura.
+Al descargar el módulo, la rutina de salida elimina la entrada para no dejar referencias inválidas dentro de \texttt{/proc}.
+La referencia a la entrada virtual, su tabla de operaciones y el registro mediante \texttt{proc\_create} se detallan en el Código~\ref{cod:proc_entry_ops}.\\
+
+En relación con lo anterior, se puede considerar que el núcleo de este prototipo se encuentra en los \textit{handlers} de lectura y escritura.
+El \textit{handler} de escritura recibe los bytes proporcionados desde \textit{Espacio de Usuario}, los copia a un \textit{buffer} temporal en memoria del \textit{Kernel} y los interpreta como valores de prueba.
+En sentido contrario, el \textit{handler} de lectura construye una respuesta dentro del \textit{Kernel} y la devuelve al \textit{buffer} de usuario.
+Para realizar estas transferencias se emplean funciones específicas como \texttt{copy\_from\_user} y \texttt{copy\_to\_user}, que además permiten detectar fallos de acceso y devolver errores en lugar de provocar accesos inseguros.
+La implementación concreta de estos manejadores se encuentra en el Código~\ref{cod:proc_rw_handlers}.\\
+
+Otro aspecto relevante de esta implementación es el uso del puntero de posición del fichero.
+Aunque \texttt{/proc/fdev} no representa un fichero persistente, las operaciones de lectura y escritura reciben igualmente una posición asociada a la apertura.
+El prototipo utiliza dicha posición para imponer una semántica sencilla de una única operación efectiva por apertura (\textit{single-shot}), evitando que se realicen varias lecturas consecutivas o que una escritura se procese varias veces dentro del mismo flujo.
+Esta decisión simplifica la validación y hace que el comportamiento observado desde herramientas como \texttt{cat} sea controlado y predecible.\\
+
+Para finalizar este prototipo, se realizó un proceso de validación que consistió en compilar el módulo, cargarlo, comprobar la creación de \texttt{/proc/fdev}, escribir valores desde \textit{Espacio de Usuario}, leerlos de nuevo, revisar las trazas generadas en el registro del \textit{Kernel} y descargar el \textit{LKM}.
+Con ello se comprobó que la entrada virtual se creaba y eliminaba correctamente, que las operaciones de lectura y escritura eran redirigidas a los \textit{handlers} del módulo correspondientes, y que la transferencia de información entre ambas regiones funcionaba de forma controlada.
+El procedimiento completo de comandos y salidas se recoge en el Código~\ref{cod:proc_validation}.\\
+
+En conclusión, este prototipo establece la primera interfaz funcional entre el administrador y el \textit{Módulo del Kernel}.
+A partir de este punto, los siguientes prototipos reutilizan \texttt{/proc/fdev} como canal de entrada para transferir información desde \textit{Espacio de Usuario} hacia el \textit{LKM}, ampliando progresivamente la lógica ejecutada dentro del módulo.\\
 
 \subsection{\textit{File Handoff}}
 
