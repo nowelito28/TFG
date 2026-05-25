@@ -16,6 +16,7 @@ El objetivo no es reproducir aquí el código fuente, sino justificar el diseño
 La implementación en detalle, los códigos y scripts utilizados junto con las salidas de validación generadas se recogen en el Apéndice~\ref{anexo:codigo-prototipos}.
 Por otra parte, el código fuente completo del proyecto se encuentra también disponible en el repositorio público de \textit{GitHub} \url{https://github.com/nowelito28/TFG}.\\
 
+
 \subsection{\textit{Hello World}}
 
 El primer prototipo desarrollado consistió en un \textit{LKM} mínimo de tipo \textit{Hello World}.
@@ -62,6 +63,7 @@ Finalmente, una vez programado el \textit{LKM}, se procede a validar su funciona
 El procedimiento completo de comandos y salidas se encuentra recogido en el Código~\ref{cod:hello_validation}.\\
 
 Con ello, se desarrolló y validó la base técnica sobre la que se construyen los siguientes prototipos.\\\\
+
 
 \subsection{Fichero virtual \texttt{/proc/fdev}}
 
@@ -110,9 +112,64 @@ Con ello se comprobó que la entrada virtual se creaba y eliminaba correctamente
 El procedimiento completo de comandos y salidas se recoge en el Código~\ref{cod:proc_validation}.\\
 
 En conclusión, este prototipo establece la primera interfaz funcional entre el administrador y el \textit{Módulo del Kernel}.
-A partir de este punto, los siguientes prototipos reutilizan \texttt{/proc/fdev} como canal de entrada para transferir información desde \textit{Espacio de Usuario} hacia el \textit{LKM}, ampliando progresivamente la lógica ejecutada dentro del módulo.\\
+A partir de este punto, los siguientes prototipos reutilizan \texttt{/proc/fdev} como canal de entrada para transferir información desde \textit{Espacio de Usuario} hacia el \textit{LKM}, ampliando progresivamente la lógica ejecutada dentro del módulo.\\\\
+
 
 \subsection{\textit{File Handoff}}
+
+Una vez establecida la comunicación básica mediante el fichero virtual \texttt{/proc/fdev}, el siguiente prototipo incorporó un mecanismo de \textit{File Handoff}.
+El objetivo de esta etapa fue permitir que el \textit{LKM} no se limitase a recibir datos simples desde \textit{Espacio de Usuario}, sino que pudiera resolver la referencia a un fichero real abierto por el administrador y utilizarlo como vía de comunicación hacia \textit{Espacio de Usuario}.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.95}{\input{figs/file_handoff_scheme.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Transferencia de un \textit{File Descriptor} de un fichero real al \textit{LKM} para establecer una vía de comunicación desde \textit{Espacio del Kernel} hacia \textit{Espacio de Usuario}.}
+  \label{fig:file_handoff_scheme}
+\end{figure}
+
+El concepto clave de este prototipo es que el usuario administrador no entrega al módulo el fichero completo, sino un \textit{File Descriptor} (\textit{FD}) que lo referencia.
+Un \textit{FD} es un identificador entero de un fichero asociado a la tabla de ficheros abiertos del proceso que lo posee.
+Por tanto, cuando un proceso en \textit{Espacio de Usuario} abre un fichero, el sistema le devuelve un entero que sirve como referencia local a una estructura interna del \textit{Kernel} que representa dicho fichero.
+El mecanismo de \textit{File Handoff} consiste en enviar ese identificador al módulo a través de \texttt{/proc/fdev}, para que el \textit{Kernel} pueda resolverlo y operar sobre el fichero referenciado.\\
+
+Para soportar este mecanismo fue necesario ampliar las cabeceras del módulo con funcionalidades relacionadas con el subsistema de ficheros, la resolución de descriptores, la conversión segura de cadenas a enteros y la validación de permisos.
+Este conjunto de dependencias permite pasar de una comunicación basada en texto a una interacción con objetos reales del \textit{VFS} del \textit{Kernel}.
+Las cabeceras concretas incorporadas en este prototipo se recogen en el Código~\ref{cod:file_handoff_headers} del Apéndice~\ref{anexo:codigo-prototipos}.\\
+
+En este prototipo, la función de lectura mantiene un papel auxiliar.
+En lugar de devolver valores de prueba como en el prototipo anterior, informa al administrador de que el módulo se encuentra preparado para recibir un \textit{FD} y ejecutar el mecanismo de \textit{File Handoff}.
+De esta manera, la lectura de \texttt{/proc/fdev} funciona como una comprobación sencilla del estado del \textit{LKM}, mientras que la lógica principal queda concentrada en la operación de escritura.
+La implementación concreta de esta función se muestra en el Código~\ref{cod:file_handoff_read}.\\
+
+Por otro lado, la escritura sobre \texttt{/proc/fdev} es el punto de entrada principal del prototipo.
+El administrador abre o crea el fichero destino en modo escritura y anexado (modo \textit{append}) desde \textit{Espacio de Usuario}, obtiene su \textit{FD}, lo convierte a texto y lo escribe en \texttt{/proc/fdev}.
+Desde el punto de vista del \textit{LKM}, esa cadena de texto escrita se recibe como una secuencia de \textit{bytes}, la cual se copia a memoria del \textit{Kernel}, se interpreta como un entero y se comprueba si el \textit{FD} extraído es válido.
+El programa auxiliar encargado de abrir el fichero destino y enviar el \textit{FD} al módulo se recoge en el Código~\ref{cod:mk_fhandoff}.\\
+
+Una vez recibido el descriptor, el módulo utiliza una primitiva del \textit{Kernel} para transformar el entero en una referencia interna de tipo \texttt{struct file}.
+Este paso es importante porque el \textit{FD} por sí solo no permite escribir directamente sobre el fichero; primero se debe resolver mediante la tabla de ficheros abiertos del proceso que invoca la operación.
+Si la resolución tiene éxito, el \textit{LKM} obtiene una referencia válida al objeto \texttt{struct file} del fichero y debe liberarla posteriormente cuando deje de utilizarla.
+Esta lógica principal de recepción del descriptor, conversión, resolución y liberación se detalla en el Código~\ref{cod:file_handoff_write}.\\
+
+Antes de escribir desde \textit{Espacio del Kernel}, el prototipo comprueba que el fichero cumple la política definida.
+En concreto, se exige que el fichero haya sido abierto con capacidad de escritura y en modo \textit{append}.
+Esta decisión evita sobrescrituras accidentales y problemas con el control del puntero de escritura, haciendo así que la información generada por el módulo se añada siempre al final del fichero destino.
+Además, se comprueban los permisos efectivos sobre el fichero para verificar que la operación de escritura y anexado está autorizada.
+La función auxiliar encargada de estas comprobaciones se referencia en el Código~\ref{cod:file_handoff_val_metadata}.\\
+
+La escritura efectiva sobre el fichero no se realiza con las funciones habituales de \textit{Espacio de Usuario}, sino mediante la funcionalidad de escritura disponible dentro del \textit{Kernel} que utilice datos en memoria en esta misma región (\verb|kernel_write|).
+Para ello se implementa una función auxiliar que escribe todo el contenido previsto, repitiendo la operación si solo se escribe una parte de los \textit{bytes} solicitados (\verb|write_full|).
+Este diseño evita asumir que una llamada de escritura completa siempre termina transfiriendo todos los datos de golpe y permite devolver errores si la escritura falla o no avanza.
+La función auxiliar de escritura completa se encuentra en el Código~\ref{cod:file_handoff_write_full}.\\
+
+Finalmente, la validación del prototipo consistió en compilar y cargar el módulo, comprobar que \texttt{/proc/fdev} quedaba disponible, crear el fichero destino mediante la utilidad de usuario, enviar su \textit{FD} al módulo y verificar que el contenido de prueba era escrito desde \textit{Espacio del Kernel} correctamente.
+También se revisaron las trazas del \textit{Kernel} y se descargó el módulo al finalizar la prueba.
+El procedimiento completo se recoge en el Código~\ref{cod:file_handoff_validation}.\\
+
+En conclusión, este prototipo amplía la interfaz creada en la etapa anterior permitiendo que el administrador indique dinámicamente la referencia al fichero donde se depositará la información generada por el \textit{LKM}.
+A partir de este punto, los siguientes prototipos reutilizan este mecanismo como canal principal de salida para escribir contenido generado en \textit{Espacio del Kernel}, añadiendo posteriormente autenticación criptográfica y el reporte final de procesos del sistema.\\
+
 
 \subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
 
