@@ -7,6 +7,7 @@
 \definecolor{srgraydraw}{RGB}{141,118,100}
 \definecolor{srhwfill}{RGB}{245,233,221}
 \definecolor{srtext}{RGB}{34,38,45}
+\definecolor{srred}{RGB}{190,95,62}
 
 \begin{tikzpicture}[
   x=1cm,
@@ -42,6 +43,7 @@
 
   \draw[softbox] (5.85,5.25) rectangle (12.15,5.90);
   \node[title] at (9.00,5.58) {User Space};
+  \node[text=srred] at (11.60,5.58) {\fontsize{10}{10}\selectfont \faSkullCrossbones};
 
   \draw[softbox] (5.85,3.10) rectangle (12.15,5.00);
   \node[title] at (9.00,4.62) {Kernel Space};
