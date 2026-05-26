@@ -168,10 +168,95 @@ También se revisaron las trazas del \textit{Kernel} y se descargó el módulo a
 El procedimiento completo se recoge en el Código~\ref{cod:file_handoff_validation}.\\
 
 En conclusión, este prototipo amplía la interfaz creada en la etapa anterior permitiendo que el administrador indique dinámicamente la referencia al fichero donde se depositará la información generada por el \textit{LKM}.
-A partir de este punto, los siguientes prototipos reutilizan este mecanismo como canal principal de salida para escribir contenido generado en \textit{Espacio del Kernel}, añadiendo posteriormente autenticación criptográfica y el reporte final de procesos del sistema.\\
+A partir de este punto, los siguientes prototipos reutilizan este mecanismo como canal principal de salida para escribir contenido generado en \textit{Espacio del Kernel}, añadiendo posteriormente autenticación criptográfica y el reporte final de procesos del sistema.\\\\
 
 
 \subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
+
+Una vez validado el mecanismo de \textit{File Handoff}, el siguiente prototipo incorporó autenticación criptográfica sobre el contenido generado en \textit{Espacio del Kernel} y escrito en el fichero referenciado en \textit{Espacio de Usuario} mediante un \textit{HMAC-SHA256}.
+El objetivo de esta etapa fue que el fichero escrito por el \textit{LKM} no contuviese únicamente datos, sino también una etiqueta de autenticación que permitiese comprobar posteriormente si dicho contenido había sido autenticado con la clave secreta esperada y si no había sido modificado tras su escritura.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.95}{\input{figs/crypto_hmac_scheme.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Incorporación de un mecanismo de autenticación \textit{HMAC-SHA256} al sistema de \textit{File Handoff}.}
+  \label{fig:crypto_hmac_scheme}
+\end{figure}
+
+\newpage
+
+Se empleó una etiqueta criptográfica \textit{HMAC-SHA256} como mecanismo de autenticación de mensajes, basado en una clave simétrica secreta (\(K\)) y en la función resumen \textit{SHA-256} cuyo tamaño de bloque es de 512 \textit{bits}.
+Es importante destacar que este mecanismo no cifra el contenido, por lo que los datos escritos en el fichero siguen siendo legibles.
+Su finalidad es generar un valor de autenticación dependiente simultáneamente del contenido y de la clave secreta \(K\), por lo que, para un único contenido, solo es posible calcular una única etiqueta \textit{HMAC-SHA256} para una clave simétrica \(K\) dada.
+Así, cualquier modificación del contenido, o cualquier intento de generar una etiqueta sin conocer dicha clave, provocaría que la verificación posterior no coincidiese, asegurando de esta manera la integridad del contenido a transferir.\\
+
+Para que este mecanismo tenga sentido, cabe destacar que la clave \(K\) debe ser secreta y compartida únicamente entre el \textit{LKM} en \textit{Espacio del Kernel} y la utilidad de verificación del contenido por parte del administrador del sistema en \textit{Espacio de Usuario}.
+Como se explicó en el modelo de amenaza del Apartado~\ref{sec:modelo-amenaza}, en el entorno en el que se envuelve el sistema de reporte seguro propuesto se asume que el atacante no tiene acceso a esta clave simétrica (\(K\)), por lo que no puede generar etiquetas válidas para contenidos falsificados ni modificar el contenido sin invalidar la etiqueta.
+En caso contrario, este mecanismo no aportaría integridad alguna al contenido a transferir.\\
+
+Desde el punto de vista criptográfico, \textit{HMAC} no consiste simplemente en calcular \textit{SHA-256} sobre la concatenación de la clave y el mensaje.
+Antes de procesar los datos, la clave se adapta al tamaño de bloque de la función \textit{hash}, que en el caso del algoritmo \textit{SHA-256} es de 512 \textit{bits}, es decir, 64 \textit{bytes}.
+Si la clave fuese más larga que ese tamaño, primero se calcularía \textit{SHA-256(K)}, obteniendo una salida de 32 \textit{bytes} (256 \textit{bits}), y después se completarían los bytes restantes con ceros por la derecha hasta alcanzar los 64 \textit{bytes}.
+Por el contrario, si fuese más corta, se conservaría su valor y se añadirían bytes \texttt{0x00} al final hasta completar el bloque de 64 \textit{bytes}.
+En este proyecto se genera una clave simétrica \(K\) con tamaño óptimo de 64 \textit{bytes}, por lo que encaja directamente con el tamaño de bloque usado por \textit{SHA-256} sin necesitar reducción ni relleno.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.95}{\input{figs/hmac_sha256_blocks_scheme.tex}}
+  \figsource{Elaboración propia.}
+  \caption{Esquema del cálculo del \textit{HMAC-SHA256} del contenido por bloques con clave simétrica (\(K\)).}
+  \label{fig:hmac_sha256_blocks_scheme}
+\end{figure}
+
+A partir de esa clave normalizada \(K'\) de tamaño 64 \textit{bytes}, se construye el \textit{HMAC} a partir de dos variantes mediante operaciones XOR (suma bit a bit sin acarreo) con dos constantes de relleno: \textit{ipad}, con valor de \texttt{0x36} en cada \textit{byte}, utilizada en la fase interna; y \textit{opad}, con valor de \texttt{0x5c} en cada \textit{byte}, utilizada en la fase externa.
+Ambas constantes tienen una longitud de 64 \textit{bytes} (512 \textit{bits}), ya que el algoritmo \textit{SHA-256} trabaja con bloques de este tamaño.
+El contenido (\(M\)) se procesa como una secuencia de bloques de entrada para aplicar el algoritmo \textit{SHA-256}, representados en la figura como \(M_1\), \(M_2\), \(\ldots\), \(M_n\), cada uno de 512 \textit{bits} de tamaño máximo.
+En la primera fase, se calcula un resumen interno aplicando \textit{SHA-256} sobre la concatenación de \(K' \oplus \mathrm{ipad}\) y dichos bloques del mensaje.
+El resultado de esta fase es un resumen intermedio \(H_i\) de 256 \textit{bits} de longitud.
+En la segunda fase, se aplica de nuevo \textit{SHA-256}, pero esta vez sobre \(K' \oplus \mathrm{opad}\) concatenado con \(H_i\).
+Esta doble aplicación de la función resumen evita que el autenticador sea una simple suma de clave y mensaje, y produce finalmente una etiqueta \textit{HMAC-SHA256} binaria de 256 \textit{bits}, es decir, 32 \textit{bytes}.\\
+
+Una vez ya calculada la etiqueta \textit{HMAC-SHA256} binaria, el prototipo la codifica en \textit{Base64} para escribirla posteriormente en el fichero de transferencia.
+Esta codificación agrupa los datos binarios de entrada en bloques de 3 \textit{bytes} (24 \textit{bits}), donde a su vez se dividen en 4 grupos de 6 \textit{bits}, pudiendo así representar dicha información codificando cada bloque de 6 \textit{bits} en un carácter de los 64 del alfabeto \textit{ASCII} limitado (A-Z, a-z, 0-9, +, /).
+Por ello, los 32 \textit{bytes} de la etiqueta \textit{HMAC-SHA256} se transforman en 44 caracteres \textit{Base64}, incluyendo el carácter de relleno final (\textit{=}) cuando se aplica \textit{padding} a los grupos incompletos, como en este caso para el tamaño de 32 \textit{bytes}, ya que no forma un número entero de grupos de 3 \textit{bytes}.
+Esta conversión no modifica la seguridad criptográfica del mecanismo, sino únicamente su representación para poder almacenarlo y procesarlo como texto.\\
+
+Para integrar este mecanismo en el \textit{LKM} fue necesario incorporar soporte de la \textit{Crypto API} del \textit{Kernel}, la codificación en \textit{Base64} y la clave simétrica embebida.
+La clave no fue escrita manualmente en el código, sino que se generó mediante un script auxiliar que crea un valor aleatorio de 64 \textit{bytes} y lo transforma en una cabecera C importable al módulo (\texttt{.h}).
+De esta forma, tanto el \textit{Kernel} como el administrador pueden operar con la misma clave secreta durante la prueba.
+Las cabeceras añadidas y el proceso de generación de la clave se recogen en los Códigos~\ref{cod:crypto_headers} y~\ref{cod:gen_k_embedded} del Apéndice~\ref{anexo:codigo-prototipos}.\\
+
+El cálculo de la etiqueta \textit{HMAC} se delega en la \textit{Crypto API} del \textit{Kernel} mediante un transformador síncrono de tipo \texttt{shash} asociado al algoritmo \texttt{hmac(sha256)}.
+Conceptualmente, el módulo solicita dicho transformador, le asocia la clave simétrica \(K\), reserva memoria para el resultado y ejecuta el cálculo sobre el bloque de datos recibido.
+Aunque la llamada de alto nivel abstrae las operaciones internas de \textit{HMAC}, el mecanismo subyacente es el descrito anteriormente: dos aplicaciones de \textit{SHA-256} combinando el contenido con las constantes interna (\textit{ipad}) y externa (\textit{opad}) de la clave.
+La implementación concreta del cálculo se muestra en el Código~\ref{cod:crypto_get_hmac_sha256}.\\
+
+Una vez calculado el \textit{HMAC} binario de 32 \textit{bytes}, el prototipo lo convierte a \textit{Base64} siguiendo el proceso anteriormente explicado.
+Se pasa de una etiqueta binaria de 32 \textit{bytes} a una cadena de 44 caracteres \textit{Base64}: diez grupos completos generan 40 caracteres y los dos bytes restantes generan cuatro caracteres adicionales con relleno.
+Al tratarse de un fichero generado para ser revisado y validado desde \textit{Espacio de Usuario}, codificar la etiqueta a \textit{Base64} evita escribir bytes binarios directamente y facilita su extracción posterior por parte del programa de comprobación.
+La función auxiliar encargada de esta conversión se recoge en el Código~\ref{cod:crypto_get_hmac_b64}.\\
+
+El formato final escrito en el fichero de \textit{handoff} se organiza mediante separadores textuales.
+En primer lugar se escribe un marcador que identifica el inicio del contenido generado por el \textit{Kernel}, después se añade el contenido protegido, posteriormente se escribe un separador específico para la etiqueta, y finalmente, se incorpora el \textit{HMAC} codificado en \textit{Base64}.
+Esta estructura hace que el fichero sea determinista y permite que la utilidad de verificación pueda separar sin ambigüedad la información útil transferida de su autenticador.
+La lógica de escritura conjunta del contenido y su etiqueta \textit{HMAC} se detalla en el Código~\ref{cod:crypto_write_cont_hmac}.\\
+
+En este prototipo, la función principal de integración genera todavía un contenido fijo de prueba, calcula su \textit{HMAC-SHA256}, lo codifica en \textit{Base64} y escribe el conjunto completo en el fichero real recibido a través del mecanismo de \textit{File Handoff}.
+Por tanto, la lógica de recepción del \textit{FD}, resolución mediante el objeto \texttt{struct file} y validación del fichero se mantiene igual respecto al prototipo anterior, pero la escritura en dicho fichero desde el \textit{Kernel} se sustituye por una escritura autenticada.
+Esta integración se muestra en los Códigos~\ref{cod:crypto_printh} y~\ref{cod:crypto_mywrite}.\\
+
+Para cerrar el ciclo de validación fue necesario implementar también una utilidad adicional en \textit{Espacio de Usuario}, con la cual el administrador pudiese validar la integridad y autenticidad del contenido transferido.
+Esta herramienta abre el fichero de transferencia, localiza los separadores, extrae por un lado el contenido o \textit{payload} y por otro la etiqueta \textit{HMAC} en \textit{Base64}, recalcula localmente dicha etiqueta de autenticación con \textit{OpenSSL} usando la misma clave \(K\) con respecto al contenido extraído, vuelve a codificar el resultado y compara ambas etiquetas.
+La comparación se realiza con una primitiva criptográfica específica, evitando una comparación ordinaria de cadenas y así reducir la exposición a ataques de temporización.
+Las partes principales de esta utilidad se recogen en los Códigos~\ref{cod:check_hmac},~\ref{cod:check_hmac_extract},~\ref{cod:check_hmac_calc} y~\ref{cod:check_hmac_verify_main}.\\
+
+Finalmente, la validación práctica confirmó que el módulo podía generar un contenido autenticado en \textit{Espacio del Kernel}, escribirlo en el fichero recibido desde \textit{Espacio de Usuario} y verificar posteriormente que la etiqueta recibida coincidía con la recalculada por la utilidad de usuario.
+El procedimiento completo de compilación, ejecución y verificación se recoge en el Código~\ref{cod:crypto_validation}.\\
+
+Esta implementación se utilizará como mecanismo de autenticidad e integridad en la solución final del proyecto, proporcionando una herramienta robusta a prueba de ataques de \textit{rootkits} de \textit{Espacio de Usuario} siguiendo el \textit{Modelo de amenaza} definido.
+A partir de este punto, el siguiente y último paso consistió en sustituir el contenido fijo de prueba por información crítica real del sistema, generada dinámicamente en \textit{Espacio del Kernel} y protegida mediante el mismo esquema \textit{HMAC-SHA256}.\\\\
+
 
 \subsection{Sistema de reporte seguro de los procesos en ejecución del sistema}
 
