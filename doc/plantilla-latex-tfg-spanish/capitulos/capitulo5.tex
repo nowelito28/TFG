@@ -261,7 +261,7 @@ A partir de este punto, el siguiente y último paso consistió en sustituir el c
 \subsection{Sistema de reporte seguro de los procesos en ejecución del sistema}
 
 Una vez diseñado el canal de \textit{File Handoff} y el mecanismo de autenticación mediante \textit{HMAC-SHA256}, el prototipo final sustituyó el contenido fijo de prueba por información crítica real del sistema generada dinámicamente en \textit{Espacio del Kernel}.
-El objetivo de esta etapa fue construir un reporte de todos los procesos activos del sistema, y finalmente, transferirlo autenticadamente mediante los mecanismos diseñados en los prototipos anteriores.
+El objetivo de esta etapa fue construir un reporte de todos los procesos activos del sistema y transferirlo de forma autenticada mediante los mecanismos diseñados en los prototipos anteriores.
 
 \begin{figure}[h!]
   \centering
@@ -272,26 +272,26 @@ El objetivo de esta etapa fue construir un reporte de todos los procesos activos
 \end{figure}
 
 Este prototipo unifica todas las capacidades desarrolladas en las etapas anteriores, añadiendo funcionalidades para la generación de reportes de procesos activos como contenido a transferir de manera autenticada.
-La comunicación entre el administrador y el módulo se sigue realizando mediante el fichero virtual \texttt{/proc/fdev}, el administrador continúa entregando un \textit{FD} de un fichero real, el \textit{LKM} resuelve dicho descriptor como un objeto \texttt{struct file}, y finalmente, la escritura final mantiene la estructura formada por contenido, separador textual y etiqueta \textit{HMAC-SHA256} codificada en \textit{Base64}.
+La comunicación entre el administrador y el módulo se sigue realizando mediante el fichero virtual \texttt{/proc/fdev}. El administrador continúa entregando un \textit{FD} de un fichero real, el \textit{LKM} resuelve dicho descriptor como un objeto \texttt{struct file}, y la escritura final mantiene la estructura formada por contenido, separador textual y etiqueta \textit{HMAC-SHA256} codificada en \textit{Base64}.
 La diferencia principal respecto al prototipo anterior es que el contenido protegido deja de ser una cadena fija y pasa a ser una tabla generada a partir de las estructuras internas del \textit{Kernel} con la información principal de todos los procesos activos en el sistema.\\
 
 Para construir este reporte fue necesario ampliar las dependencias del módulo con cabeceras relacionadas con credenciales, procesos, identificadores, espacios de nombres y sincronización.
-Estas cabeceras permiten acceder a las credenciales de cada tarea en ejecución, recorrer la lista global de procesos, obtener identificadores globales y locales respecto a los espacios de nombres activos y proteger el recorrido mediante el mecanismo \textit{RCU}, y así evitar condiciones de carrera en la \textit{CPU}.
+Estas cabeceras permiten acceder a las credenciales de cada tarea en ejecución, recorrer la lista global de procesos, obtener identificadores globales y locales respecto a los espacios de nombres activos y proteger el recorrido mediante el mecanismo \textit{RCU}, evitando condiciones de carrera sobre las estructuras compartidas del \textit{Kernel}.
 Además, se definieron constantes para acotar el tamaño máximo del reporte y así simplificar la implementación, y por otra parte, se reservan anchuras fijas para cada campo y se construye una cabecera bien espaciada con los metadatos que se desean mostrar de cada proceso para una mejor legibilidad.
 Las cabeceras, constantes y estructura inicial de la tabla se recogen en el Código~\ref{cod:report_headers_consts} del Apéndice~\ref{anexo:codigo-prototipos}.\\
 
 El formato elegido para el reporte está inspirado en la salida de herramientas como \texttt{ps aux}, pero con campos adaptados al objetivo del proyecto.
-Cada fila representa un proceso en ejecución e incluye el identificador de usuario \textit{UID} global visible desde el \textit{Kernel} y el relativo al espacio de nombres del proceso, el identificador del \textit{namespace} de usuario respectivamente, el identificador de proceso \textit{PID} global y relativo a su \textit{namespace} con el identificador del \textit{namespace} de procesos, el identificador de grupo \textit{GID} y el nombre del comando asociado.
+Cada fila representa un proceso en ejecución e incluye el identificador de usuario \textit{UID} global visible desde el \textit{Kernel} y el local relativo al espacio de nombres del proceso, el identificador del \textit{namespace} de usuario, el identificador de proceso \textit{PID} global y relativo a su \textit{namespace} con el identificador del \textit{namespace} de procesos, el identificador de grupo \textit{GID} y el nombre del comando asociado.
 Esta combinación permite comparar la visión global del sistema vista desde el propio \textit{Kernel} con la visión local que pueden tener procesos ejecutados dentro de contenedores o espacios de nombres diferenciados.\\
 
-Antes de recorrer los procesos, el módulo incorpora funciones auxiliares para construir el contenido de forma ordenada y controlada, pudiendo además mejorara su posterior interpretabilidad.
-Por un lado, una rellena cada campo con espacios hasta alcanzar una anchura fija, de manera que las columnas del reporte queden totalmente alineadas.
-Y por otr lado, hay otra función auxiliar que copia cada fragmento en el \textit{buffer} global con un padding adicional si lo requiere, pero únicamente si existe espacio disponible, evitando desbordamientos (\textit{overflows}) al ir concatenando filas.
+Antes de recorrer los procesos, el módulo incorpora funciones auxiliares para construir el contenido de forma ordenada y controlada, pudiendo además mejorar su posterior interpretabilidad.
+Por un lado, una de ellas rellena cada campo con espacios hasta alcanzar una anchura fija, de manera que las columnas del reporte queden totalmente alineadas.
+Y por otro lado, hay otra función auxiliar que copia cada fragmento en el \textit{buffer} global con un padding adicional si lo requiere, pero únicamente si existe espacio disponible, evitando desbordamientos (\textit{overflows}) al ir concatenando filas.
 Estas operaciones de formateo y copia de datos segura se detallan en el Código~\ref{cod:report_pad_safe_chunk}.\\
 
 La función central de este prototipo final es la encargada de generar el contenido completo del reporte.
-En primer lugar, se reserva memoria en \textit{Espacio del Kernel} para un \textit{buffer} de tamaño máximo fijo, añade la cabecera de la tabla y entra en una sección protegida mediante \textit{RCU} con cierres para evitar condiciones de carrera (\verb|rcu_read_lock|/\verb|rcu_read_unlock|).
-Dentro de esta sección recorre la lista global de tareas del sistema mediante \texttt{for\_each\_process}, comprobando antes de cada inserción que el \textit{buffer} dispone todavía de espacio suficiente para la nueva fila más los separadores y la etiqueta \textit{HMAC-SHA256}.
+En primer lugar, se reserva memoria en \textit{Espacio del Kernel} para un \textit{buffer} de tamaño máximo fijo, se añade la cabecera de la tabla y se entra en una sección de lectura protegida mediante \textit{RCU} delimitada por \verb|rcu_read_lock| y \verb|rcu_read_unlock|.
+Dentro de esta sección, se recorre la lista global de tareas del sistema mediante \texttt{for\_each\_process}, comprobando antes de cada inserción que el \textit{buffer} dispone todavía de espacio suficiente para la nueva fila más los separadores y la etiqueta \textit{HMAC-SHA256}.
 Para cada proceso, delega en una función auxiliar la extracción y serialización de sus metadatos.
 La construcción general del listado en memoria se muestra en el Código~\ref{cod:report_get_ps}.\\
 
@@ -300,7 +300,7 @@ La protección de lectura no detiene el sistema ni bloquea globalmente la creaci
 De esta forma, el módulo puede obtener una instantánea práctica del estado de los procesos sin depender de herramientas de \textit{Espacio de Usuario}, que son precisamente las que se consideran potencialmente manipulables dentro del modelo de amenaza.\\
 
 La serialización de cada fila se encapsula en una función específica que recibe la tarea actual y añade sus campos al \textit{buffer} global del reporte.
-Esta función no calcula directamente todos los valores, sino que coordina llamadas auxiliares especializadas para obtener cada metadato, formatearlo a una cadena portable y añadirlo de forma secuencial.
+Esta función no calcula directamente todos los valores, sino que coordina llamadas auxiliares especializadas para obtener cada metadato, formatearlo como una cadena textual portable y añadirlo de forma secuencial.
 Si alguna extracción falla o si no existe espacio suficiente en el \textit{buffer}, se aborta la generación para evitar producir un reporte inconsistente.
 La lógica de serialización de una fila completa se referencia en el Código~\ref{cod:report_ps_data}.\\
 
@@ -310,19 +310,19 @@ El \textit{UID} local, en cambio, se obtiene a partir del \textit{namespace} aso
 Además, se incluye el identificador interno del \textit{namespace} de usuario, lo que permite distinguir procesos que pueden compartir valores locales pero pertenecer a espacios de nombres distintos.
 Estas funciones se muestran en el Código~\ref{cod:report_uid_fields}.\\
 
-De forma análoga, los identificadores de proceso (\textit{PIDs}) se separan en \textit{PID} global y \textit{PID} local respecto a cada identificador de \textit{namespace} asociado a cada proceso.
+De forma análoga, los identificadores de proceso (\textit{PIDs}) se separan en \textit{PID} global y \textit{PID} local respecto al \textit{namespace} asociado a cada tarea.
 El \textit{PID} global corresponde al identificador visible desde el \textit{Kernel}, mientras que el \textit{PID} local se obtiene respecto al espacio de nombres en el que trabaja dicha tarea.
-Esta distinción es especialmente útil en entornos con contenedores, donde un proceso puede aparecer con \textit{PID} local 1 dentro del contenedor, aunque tenga otro PID distinto desde la perspectiva global del sistema.
+Esta distinción es especialmente útil en entornos con contenedores, donde un proceso puede aparecer con \textit{PID} local 1 dentro del contenedor, aunque tenga otro \textit{PID} distinto desde la perspectiva global del sistema.
 La obtención de estos campos se recoge en el Código~\ref{cod:report_pid_fields}.\\
 
 El reporte se completa con el identificador de grupo (\textit{GID}) y el comando asociado a cada proceso.
 Para el \textit{GID} se parte de las credenciales del proceso y se obtiene su valor global respecto al espacio de nombres inicial del sistema.
-Mientras que para obtener el nombre del comando asociado a cada proceso, el módulo distingue entre procesos de usuario con ejecutable asociado, hilos del \textit{Kernel} (recogidos entre corchetes \textit{[]}) y casos en los que solo está disponible el nombre almacenado en \texttt{task->comm}.
-Cuando existe un ejecutable asociado, se intenta resolver su ruta mediante las estructuras internas del fichero ejecutable, pero si no es posible, se utiliza el nombre corto del proceso registrado, relacionándose con el último caso expuesto.
+Y como último tipo de metadato, se obtiene el nombre del comando asociado a cada proceso, distinguiendo entre procesos de usuario con ejecutable asociado, hilos del \textit{Kernel} (recogidos entre corchetes \textit{[]}) y casos en los que solo está disponible el nombre almacenado en \texttt{task->comm}.
+Cuando existe un ejecutable asociado, se intenta resolver su ruta mediante las estructuras internas del fichero ejecutable, pero si no es posible, se utiliza el nombre corto del proceso registrado en la propia tarea (\texttt{task->comm}).
 Estas funciones se referencian en el Código~\ref{cod:report_gid_command}.\\
 
 Una vez construido el contenido crítico real del reporte, el flujo vuelve a coincidir con el prototipo anterior.
-El módulo calcula el \textit{HMAC-SHA256} sobre la tabla completa de procesos registrada, codifica la etiqueta en \textit{Base64} y escribe en el fichero de transferencia el marcador de inicio, la tabla de procesos como información crítica a transferir, el separador de la etiqueta y el \textit{HMAC} final.
+El módulo calcula el \textit{HMAC-SHA256} sobre la tabla completa de procesos generada, codifica la etiqueta en \textit{Base64} y escribe en el fichero de transferencia el marcador de inicio, la tabla de procesos como información crítica a transferir, el separador de la etiqueta y el \textit{HMAC} final.
 De esta forma, la autenticación no protege únicamente una cadena de prueba, sino el listado completo de procesos en ejecución del sistema generado con sus metadatos más relevantes desde \textit{Espacio del Kernel}.
 La escritura conjunta del contenido y su autenticador se apoya en la lógica descrita anteriormente en el Código~\ref{cod:crypto_write_cont_hmac}.\\
 
@@ -340,7 +340,7 @@ UID_KERNEL UID_LOCAL UID_NS     PID_KERNEL PID_LOCAL PID_NS     GID    COMMAND
 0          0         4026531837 1484       1484      4026531836 0      /usr/sbin/gdm3
 0          0         4026531837 1489       1489      4026531836 1000   /usr/libexec/gdm-session-worker
 1000       1000      4026531837 1496       1496      4026531836 1000   /usr/lib/systemd/systemd
-1000       1000      4026531837 1497       1497      4026531836 1000   /usr/lib/systemd/systemdexecutor
+1000       1000      4026531837 1497       1497      4026531836 1000   /usr/lib/systemd/systemd-exe
 ...
 0          0         4026531837 8211       8211      4026531836 0      /usr/bin/dockerd
 0          0         4026531837 8212       8212      4026531836 0      [kworker/1:1]
@@ -368,10 +368,10 @@ ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
 \vspace{\baselineskip}
 
 La validación de este prototipo final se realizó compilando y cargando el módulo, generando de nuevo la clave embebida, habilitando el fichero de salida mediante la utilidad de \textit{File Handoff} y verificando el resultado con el programa de comprobación de \textit{HMAC} de \textit{Espacio de Usuario}.
-Además, se ejecutaron varios contenedores \textit{Docker} para forzar la presencia de procesos en distintos espacios de nombres y comprobar que el reporte reflejaba diferencias en campos como \texttt{UID\_LOCAL}, \texttt{PID\_LOCAL}, \texttt{UID\_NS} y \texttt{PID\_NS}, y también, respecto sus identificadores globales.
+Además, se ejecutaron varios contenedores \textit{Docker} para forzar la presencia de procesos en distintos espacios de nombres y comprobar que el reporte reflejaba diferencias en campos como \texttt{UID\_LOCAL}, \texttt{PID\_LOCAL}, \texttt{UID\_NS} y \texttt{PID\_NS}, y también, respecto a sus identificadores globales.
 El procedimiento completo de validación, incluyendo la generación del fichero, la presencia de procesos de contenedores y la verificación criptográfica, se recoge en el Código~\ref{cod:report_validation}.\\
 
-Finalmente, se pudo concluir con los resultados obtenidos que el \textit{LKM} era capaz de generar desde \textit{Espacio del Kernel} una tabla global de procesos activos del sistema, incluir metadatos relevantes de usuarios, procesos, grupos y espacios de nombres, transferir dicha información a un fichero de transferencia indicado por el administrador y adjuntar una etiqueta \textit{HMAC-SHA256} verificable posteriormente desde \textit{Espacio de Usuario}.
+Finalmente, a partir de los resultados obtenidos, se pudo concluir que el \textit{LKM} era capaz de generar desde \textit{Espacio del Kernel} una tabla global de procesos activos del sistema, incluir metadatos relevantes de usuarios, procesos, grupos y espacios de nombres, transferir dicha información a un fichero de transferencia indicado por el administrador y adjuntar una etiqueta \textit{HMAC-SHA256} verificable posteriormente desde \textit{Espacio de Usuario}.
 Con ello queda completado el prototipo final del sistema de reporte seguro, integrando en una única solución la comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, la generación de información crítica desde una región privilegiada y la autenticación criptográfica del contenido transferido para asegurar su integridad frente a \textit{rootkits} de \textit{Espacio de Usuario}.\\\\
 
 
