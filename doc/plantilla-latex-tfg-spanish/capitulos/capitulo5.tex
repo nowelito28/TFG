@@ -317,7 +317,7 @@ La obtención de estos campos se recoge en el Código~\ref{cod:report_pid_fields
 
 El reporte se completa con el identificador de grupo (\textit{GID}) y el comando asociado a cada proceso.
 Para el \textit{GID} se parte de las credenciales del proceso y se obtiene su valor global respecto al espacio de nombres inicial del sistema.
-Y como último tipo de metadato, se obtiene el nombre del comando asociado a cada proceso, distinguiendo entre procesos de usuario con ejecutable asociado, hilos del \textit{Kernel} (recogidos entre corchetes \textit{[]}) y casos en los que solo está disponible el nombre almacenado en \texttt{task->comm}.
+Y como último tipo de metadato, se obtiene el nombre del comando asociado a cada proceso, distinguiendo entre procesos de usuario con ejecutable asociado, hilos del \textit{Kernel} (recogidos entre corchetes \texttt{[]}) y casos en los que solo está disponible el nombre almacenado en \texttt{task->comm}.
 Cuando existe un ejecutable asociado, se intenta resolver su ruta mediante las estructuras internas del fichero ejecutable, pero si no es posible, se utiliza el nombre corto del proceso registrado en la propia tarea (\texttt{task->comm}).
 Estas funciones se referencian en el Código~\ref{cod:report_gid_command}.\\
 
@@ -376,6 +376,86 @@ Con ello queda completado el prototipo final del sistema de reporte seguro, inte
 
 
 \section{Problemas y Errores encontrados}
+\label{sec:problemas-errores}
+
+Durante el desarrollo del proyecto no solo fue necesario implementar progresivamente los prototipos descritos, sino también profundizar en matices realmente complejos y corregir decisiones iniciales que, aunque podían funcionar en pruebas sencillas, no eran adecuadas para una solución ejecutada dentro del \textit{Kernel}.
+La principal dificultad estuvo en que cada mecanismo debía respetar las reglas propias del núcleo del sistema: el acceso a ficheros no podía tratarse como una escritura convencional de \textit{Espacio de Usuario}, el cálculo criptográfico debía apoyarse en la infraestructura interna del \textit{Kernel} y el recorrido de procesos debía realizarse teniendo en cuenta problemas de concurrencia del sistema.
+Por ello, las decisiones finales no se limitaron a conseguir una salida correcta, sino que buscaron reducir riesgos de concurrencia, evitar accesos inseguros, procurar seguir una metodología compatible con las funcionalidades del \textit{Kernel} y mantener una estructura verificable desde \textit{Espacio de Usuario} de forma sencilla y práctica.\\
+
+A continuación, se describen los tres problemas más relevantes encontrados durante el desarrollo del proyecto y la solución adoptada en cada caso.\\
+
+\subsection{Escritura sobre el fichero de transferencia en modo \textit{append}}
+
+Uno de los primeros problemas importantes apareció al diseñar el mecanismo de \textit{File Handoff}.
+El objetivo era que el administrador abriese un fichero real en \textit{Espacio de Usuario}, enviase su \textit{FD} al \textit{LKM} y que el módulo escribiese en dicho fichero desde \textit{Espacio del Kernel}.
+Inicialmente, esta operación podía parecer equivalente a una escritura ordinaria sobre un fichero abierto, pero al analizar el flujo real de escritura del \textit{Kernel} se comprobó que el manejo del puntero de posición del fichero (\verb|f_pos|) era un punto realmente delicado a tener en cuenta.\\
+
+En una escritura normal, la posición del puntero de escritura del fichero determina dónde se insertan los nuevos bytes.
+Si el módulo escribiese directamente usando el puntero asociado al objeto \texttt{struct file}, tendría que asumir la responsabilidad de controlar correctamente dicha posición, especialmente si el fichero pudiera ser utilizado por más de una ruta de ejecución.
+Esto habría añadido complejidad adicional al prototipo, ya que sería necesario razonar sobre actualizaciones parciales del puntero, implementación de mecanismos de bloqueo sobre el puntero, posibles escrituras intermedias, escrituras incompletas y sobrescrituras accidentales del contenido previo.
+Además, como el contenido final se escribe en varias partes (marcador inicial, contenido, separador y etiqueta \textit{HMAC}), una gestión incorrecta de la posición podría producir un fichero mal formateado con una difícil verificación posterior.\\
+
+La solución adoptada fue exigir que el fichero recibido estuviese abierto con capacidad de escritura y en modo \textit{append}.
+De esta forma, la política del prototipo queda restringida a añadir el reporte al final del fichero de transferencia, evitando depender de una posición arbitraria proporcionada por el estado previo del descriptor y de su correcta gestión y modificación.
+Esta decisión se implementó en la validación de metadatos del fichero, comprobando tanto \verb|FMODE_WRITE| como el \textit{flag} \verb|O_APPEND|, y verificando además los permisos efectivos mediante \verb|file_permission| con \verb|MAY_WRITE| y \verb|MAY_APPEND| dentro del \textit{LKM}.
+El código asociado a esta lógica de validación se encuentra en el Código~\ref{cod:file_handoff_val_metadata}.\\
+
+Por otra parte, se implementó la función auxiliar \verb|write_full|, ya que una llamada de escritura no garantiza necesariamente que todos los bytes solicitados se escriban en una única operación.
+Por ello, la función repite internamente las llamadas a \verb|kernel_write| hasta completar la adición total del contenido solicitado o detectar un error.
+Con esta solución, el módulo mantiene una semántica de escritura más controlada, solo acepta ficheros compatibles con la política definida de escritura en modo \textit{append}, escribiendo de esta manera siempre al final del fichero y tratando correctamente posibles escrituras parciales.
+El diseño final de esta parte se recoge en el Código~\ref{cod:file_handoff_write_full}.\\\\
+
+
+\subsection{Integración del mecanismo \textit{HMAC-SHA256} entre \textit{Kernel} y \textit{User Space}}
+
+Otro punto especialmente delicado fue la incorporación del mecanismo criptográfico de autenticación en el \textit{LKM}.
+Las primeras pruebas permitieron validar el concepto desde \textit{Espacio de Usuario}, generando una clave simétrica y calculando un \textit{HMAC-SHA256} mediante \textit{OpenSSL}.\\
+
+Sin embargo, trasladar esa idea al \textit{Módulo del Kernel} no consistía en reutilizar directamente las mismas funcionalidades de usuario, ya que dentro del \textit{Kernel} no se dispone de las bibliotecas ni del mismo modelo de memoria.
+Fue necesario apoyarse en la \textit{Crypto API} del \textit{Kernel}, concretamente en la interfaz de \textit{hash} síncrono (\texttt{shash}) asociada al algoritmo \texttt{hmac(sha256)}.
+El cálculo exigía solicitar primero el transformador criptográfico con \verb|crypto_alloc_shash|, asociarle la clave mediante \verb|crypto_shash_setkey|, obtener el tamaño real del resumen con \verb|crypto_shash_digestsize| y reservar memoria para la etiqueta resultante mediante \verb|kmalloc|.
+Después, se debía construir el descriptor temporal requerido por la \textit{API} con \verb|SHASH_DESC_ON_STACK|, ejecutar el resumen con \verb|crypto_shash_digest| y controlar en cada paso los errores y la liberación de recursos, sabiendo que la salida de todo este proceso es binaria.
+Esto hizo que el mecanismo fuese mucho más complejo en comparación a la facilidad de cálculo mediante \textit{OpenSSL} en \textit{Espacio de Usuario}.\\
+
+Otro obstáculo importante encontrado en esta parte del proyecto fue coordinar correctamente tres aspectos: la clave compartida, el cálculo del autenticador en \textit{Espacio del Kernel} y la verificación posterior desde \textit{Espacio de Usuario}.\\
+
+Durante el desarrollo se pasó de pruebas iniciales con claves creadas manualmente a una clave embebida generada previamente mediante un script auxiliar de manera aleatoria.
+Este cambio permitió que el \textit{LKM} y la utilidad de verificación del administrador en \textit{Espacio de Usuario} trabajasen con la misma clave \(K\) de forma práctica.
+La generación de la cabecera con la clave embebida se recoge en el Código~\ref{cod:gen_k_embedded}.\\
+
+Por otro lado, fue necesario tratar correctamente la representación del \textit{HMAC}.
+El resultado de \textit{HMAC-SHA256} es una etiqueta binaria de 32 \textit{bytes}, no una cadena de texto directamente legible.
+Escribir esos bytes sin codificación complicaría la inspección manual del fichero y su verificación.
+Por ello, el módulo convierte la etiqueta binaria a \textit{Base64} antes de escribirla en el fichero de transferencia, generando una representación textual estable que puede ser leída, separada y recalculada por la utilidad de usuario de forma sencilla y muy práctica.
+Esta decisión obligó a cuidar la estructura del fichero, separando explícitamente el contenido protegido de la etiqueta mediante marcadores textuales, para que la verificación se realizase exactamente sobre los mismos bytes que habían sido autenticados por el \textit{Kernel}.\\
+
+Finalmente, la utilidad de comprobación en \textit{Espacio de Usuario} tuvo que reproducir el mismo proceso de forma coherente: extraer el contenido entre separadores, recalcular el \textit{HMAC-SHA256} con la misma clave, codificarlo en \textit{Base64} y compararlo con el valor escrito por el módulo.
+Además, la comparación se realiza mediante una primitiva criptográfica específica, evitando una comparación ordinaria de cadenas y reduciendo así posibles fugas de información por diferencias de tiempo en la comparación.
+Con ello se consiguió cerrar el ciclo completo de autenticación: generación dentro del \textit{Kernel}, transferencia textual estructurada y verificación externa del contenido.
+La implementación de este mecanismo se detalla en los Códigos~\ref{cod:crypto_get_hmac_sha256},~\ref{cod:crypto_get_hmac_b64},~\ref{cod:crypto_write_cont_hmac} y~\ref{cod:check_hmac_verify_main}.\\\\
+
+
+\subsection{Recorrido seguro de la lista de procesos mediante \textit{RCU}}
+
+El último problema relevante durante el desarrollo del proyecto apareció al sustituir el contenido fijo de prueba por información real del sistema.
+El prototipo final debía recorrer la lista global de tareas del \textit{Kernel} y extraer los metadatos más relevantes de cada proceso, como identificadores de usuario, de proceso, de grupo, espacios de nombres y el nombre del comando asociado.
+Esta operación no puede plantearse como un recorrido estático sobre una estructura inmutable, ya que la lista de procesos cambia continuamente mientras el sistema está en ejecución: pueden crearse nuevas tareas, finalizar procesos o modificarse estructuras internas relacionadas con ellos.\\
+
+Una primera aproximación sin una protección específica habría expuesto al módulo a condiciones de carrera durante el recorrido.
+Por ejemplo, mientras se consulta una entrada del listado, el proceso correspondiente podría finalizar o cambiar su estado, dejando referencias inconsistentes o potencialmente inválidas.
+En código ejecutado dentro del \textit{Kernel}, al tratarse de una región privilegiada del sistema, este tipo de errores es especialmente crítico, ya que no se limita a producir una salida incorrecta, sino que puede provocar lecturas incoherentes, accesos a memoria no válidos o fallos del propio módulo.
+Por este motivo, recorrer estructuras internas como la lista de procesos exige respetar los mecanismos de sincronización previstos por el \textit{Kernel}.\\
+
+La solución adoptada fue proteger el recorrido mediante una sección de lectura \textit{RCU} (\textit{Read-Copy-Update}), delimitada por \verb|rcu_read_lock| y \verb|rcu_read_unlock|.
+\textit{RCU} permite que el módulo recorra referencias compartidas de forma segura sin bloquear globalmente la creación o finalización de procesos.
+Esto encaja con el objetivo del proyecto, ya que no se necesita congelar por completo el sistema, sino obtener una instantánea práctica y coherente de los procesos activos desde una región privilegiada.
+La macro \verb|for_each_process| se ejecuta dentro de esta sección protegida, y cada tarea se serializa inmediatamente en el \textit{buffer} del reporte mediante funciones auxiliares.\\
+
+Esta solución no convierte el reporte en una fotografía transaccional perfecta del sistema, ya que el sistema operativo continúa ejecutándose y su estado puede cambiar durante la generación del listado.
+No obstante, sí evita recorrer la lista de procesos sin protección y reduce el riesgo de acceder a referencias inestables mientras se construye el reporte.
+Además, en los puntos donde se consultan credenciales de las tareas, el módulo utiliza referencias controladas mediante las primitivas correspondientes, como \verb|get_task_cred| y \verb|put_cred|, para no depender de estructuras cuya vida útil no esté protegida.
+La construcción del listado bajo protección \textit{RCU} se muestra en el Código~\ref{cod:report_get_ps}.\\\\
 
 
 \section{Objetivos cumplidos}
+
