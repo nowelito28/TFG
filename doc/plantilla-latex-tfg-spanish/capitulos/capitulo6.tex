@@ -1,8 +1,117 @@
 \chapter{Conclusiones}
-\label{cap:capitulo7}
+\label{cap:capitulo6}
 
-\section{Impacto social y medioambiental}
-tiempo, recursos, resultados ciencias sociales
+\begin{flushright}
+\begin{minipage}[]{10cm}
+\emph{\guillemotleft You can't trust code that you did not totally create yourself.\guillemotright}\\
+\end{minipage}\\
+
+Ken Thompson \textit{(Reflections on Trusting Trust, 1984)}~\cite{thompson_trusting_trust}.
+\end{flushright}
+
+\vspace{1cm}
+
+Tras haber presentado la problemática abordada, el marco tecnológico necesario, el modelo de amenaza, los objetivos definidos y el desarrollo progresivo de la solución, este último capítulo recoge una valoración final del proyecto realizado.\\
+
+El propósito no es repetir de nuevo la implementación, sino interpretar el resultado obtenido desde una perspectiva más amplia, considerando su impacto, las competencias aplicadas durante el trabajo, las limitaciones que permanecen abiertas y las posibles líneas de evolución.\\
+
+El prototipo desarrollado demuestra que es posible construir un mecanismo de reporte seguro para sistemas \textit{Linux} capaz de generar desde \textit{Espacio del Kernel} información crítica, concretamente un listado de los procesos activos del sistema, transferirla de manera accesible para el administrador mediante un fichero de transferencia y autenticarla mediante una etiqueta \textit{HMAC-SHA256} verificable posteriormente en \textit{Espacio de Usuario}.
+Esta solución no elimina por completo los riesgos asociados a un sistema comprometido, pero sí aporta una vía práctica para reducir la dependencia exclusiva de herramientas de \textit{Espacio de Usuario} cuando estas pueden estar manipuladas por un \textit{rootkit} que opera en esta región.
+Por ello, las conclusiones del proyecto deben entenderse tanto desde el resultado técnico alcanzado como desde las implicaciones de seguridad, responsabilidad y sostenibilidad asociadas a este tipo de mecanismos.\\\\
+
+
+\section{Cumplimiento de objetivos}
+
+Una vez descrito el diseño progresivo de la solución adoptada, sus validaciones y los principales problemas encontrados durante el desarrollo, resulta necesario contrastar el resultado final con los objetivos definidos en el Capítulo~\ref{cap:capitulo4}.
+Este cierre permite comprobar si el prototipo implementado responde realmente a la problemática inicial y si proporciona al administrador una fuente de información crítica fiable cuando el \textit{Espacio de Usuario} puede encontrarse comprometido por un \textit{rootkit}.\\
+
+El resultado final del proyecto consiste en un \textit{Módulo del Kernel} capaz de generar desde \textit{Espacio del Kernel} un listado estructurado de los procesos presentes en el sistema, incluyendo metadatos relevantes de usuarios, procesos, grupos, espacios de nombres y nombre del comando asociado.
+Dicho contenido se transfiere a un fichero de transferencia indicado por el administrador mediante un mecanismo de \textit{File Handoff}, y se acompaña de una etiqueta \textit{HMAC-SHA256} calculada con una clave simétrica compartida, permitiendo su verificación posterior desde \textit{Espacio de Usuario} para comprobar la autenticidad del contenido.\\
+
+Por tanto, el prototipo final cumple el objetivo general planteado, ya que desplaza la generación de la información crítica a una región de mayor privilegio y añade un mecanismo criptográfico para detectar modificaciones posteriores del reporte.\\\\
+
+
+\subsection{Cumplimiento de los objetivos funcionales}
+
+Respecto a los objetivos funcionales definidos en el Apartado~\ref{sec:ofunc}, se puede considerar que la solución desarrollada cumple las capacidades principales previstas inicialmente.\\
+
+\begin{itemize}
+    \item \textbf{Obtención de información crítica desde \textit{Espacio del Kernel}.} Este objetivo se cumple mediante el \textit{LKM} final, que recorre la lista de tareas del \textit{Kernel} y construye el reporte directamente desde una región privilegiada, sin depender de herramientas de monitorización de \textit{Espacio de Usuario}. Esta decisión responde a la premisa principal del modelo de amenaza, donde dichas herramientas de usuario podrían estar manipuladas.
+    
+    \item \textbf{Construcción de una vista global y estructurada de procesos.} El reporte generado incluye los campos definidos en los objetivos: \texttt{UID\_KERNEL}, \texttt{UID\_LOCAL}, \texttt{UID\_NS}, \texttt{PID\_KERNEL}, \texttt{PID\_LOCAL}, \texttt{PID\_NS}, \texttt{GID} y \texttt{COMMAND}. Con ello se obtiene una visión más completa que una simple lista de procesos, ya que también se reflejan diferencias entre identificadores globales y locales, especialmente relevantes en entornos con \textit{namespaces}.
+    
+    \item \textbf{Transferencia controlada hacia un canal accesible desde \textit{Espacio de Usuario}.} Este objetivo se cumple mediante la entrada virtual \texttt{/proc/fdev} y la utilidad de usuario encargada de crear el fichero de transferencia y enviar su \textit{File Descriptor} al \textit{Kernel}. A partir de esa referencia, el módulo consigue resolverla y así puede escribir el reporte directamente en el fichero seleccionado por el administrador, manteniendo controladas las validaciones sobre descriptor, permisos y modo de apertura.
+    
+    \item \textbf{Autenticación criptográfica del contenido generado.} El contenido del reporte se autentica mediante \textit{HMAC-SHA256}, calculado dentro del \textit{Kernel} con la \textit{Crypto API} y una clave simétrica \(K\) embebida previamente. De este modo, la etiqueta generada queda asociada al contenido exacto producido por el módulo.
+    
+    \item \textbf{Verificación posterior desde \textit{Espacio de Usuario}.} Este objetivo se cumple mediante la utilidad de comprobación desarrollada en \texttt{C}, que extrae el contenido protegido, recalcula el \textit{HMAC-SHA256} con la misma clave, codifica el resultado en \textit{Base64} y lo compara con la etiqueta escrita por el \textit{Kernel}. La validación confirma que el administrador puede comprobar posteriormente la integridad y autenticidad del reporte recibido.
+    
+    \item \textbf{Facilitar la detección de ocultación o manipulación.} El sistema no implementa un motor automático de detección de \textit{rootkits}, pero sí cumple con el objetivo de proporcionar una fuente autenticada de información generada desde el \textit{Kernel} que puede compararse con la salida de herramientas de \textit{Espacio de Usuario}. Por tanto, facilita la detección de inconsistencias cuando un \textit{rootkit} manipule la visión ofrecida por comandos convencionales como \texttt{ps}, dejando la decisión final de análisis en manos del administrador.
+    
+    \item \textbf{Validación del prototipo.} El prototipo se validó en un entorno \textit{Linux} real sobre la versión de \textit{Kernel} utilizada durante el proyecto, compilando y cargando el módulo, generando la clave embebida, creando el fichero de transferencia, ejecutando procesos en contenedores \textit{Docker} y verificando criptográficamente el reporte resultante. Las pruebas muestran que el sistema genera el listado esperado y que la etiqueta \textit{HMAC} puede comprobarse correctamente desde \textit{Espacio de Usuario}.
+\end{itemize}
+
+\
+
+\subsection{Cumplimiento de los objetivos no funcionales}
+
+Los objetivos no funcionales del Apartado~\ref{sec:onf} también quedan cubiertos por las decisiones de diseño adoptadas durante el desarrollo.\\
+
+\begin{itemize}
+    \item \textbf{Integridad y autenticidad verificables.} Se cumple mediante el uso de \textit{HMAC-SHA256} y la verificación posterior con la misma clave simétrica, bajo la premisa de que tanto el \textit{Kernel} como el administrador tengan la misma clave simétrica \(K\) y que nadie más tenga acceso a ella. La codificación de la etiqueta en \textit{Base64} facilita además su almacenamiento textual y su comprobación en el fichero de transferencia.
+    
+    \item \textbf{Robustez en la comunicación entre espacios.} El módulo valida la entrada recibida desde \textit{Espacio de Usuario}, limita el tamaño de escritura sobre la entrada \texttt{/proc}, transforma el descriptor recibido de forma controlada mediante \verb|fget| y comprueba que el fichero de destino sea escribible y esté abierto en modo \textit{append}. Además, el uso de funciones auxiliares como \verb|write_full| y \verb|safe_chunk| reduce riesgos de escrituras parciales y desbordamientos del \textit{buffer} de reporte.
+    
+    \item \textbf{Seguridad frente al modelo de amenaza definido.} La solución diseñada minimiza la confianza depositada en herramientas de usuario, ya que el contenido sensible se genera dentro del \textit{Kernel}. No obstante, esta garantía se mantiene dentro de los supuestos del modelo de amenaza: el \textit{Kernel}, el \textit{Hardware}, el \textit{Firmware} y la clave compartida deben permanecer íntegros. Por ello, el sistema no pretende proteger frente a \textit{rootkits} de \textit{Espacio del Kernel} ni frente a escenarios en los que la clave simétrica haya sido expuesta.
+    
+    \item \textbf{Modularidad y bajo impacto en el \textit{Kernel}.} El mecanismo se implementa como \textit{LKM}, por lo que puede cargarse y descargarse sin modificar permanentemente el código fuente del núcleo del sistema operativo. Esta decisión facilita el despliegue controlado del prototipo y encaja con el carácter experimental del proyecto, aunque no convierte todavía el mecanismo en una herramienta de producción completa con gestión avanzada de claves, integración con alertas o endurecimiento frente a cargas concurrentes más complejas.
+    
+    \item \textbf{Compatibilidad con mecanismos estándar de \textit{Linux}.} La implementación se apoya en interfaces propias del ecosistema \textit{Linux}, como \texttt{/proc}, \verb|proc_create|, \verb|kernel_write|, \verb|fget|, \textit{RCU}, la \textit{Crypto API} del \textit{Kernel} y herramientas convencionales de compilación en \texttt{C}.
+    
+    \item \textbf{Reproducibilidad del prototipo.} El proyecto proporciona el código fuente del \textit{LKM}, las utilidades de usuario, el script de generación de la clave embebida y las secuencias de validación recogidas en el anexo y en el repositorio de \textit{GitHub}: \url{https://github.com/nowelito28/TFG}, lo que permite repetir y utilizar bajo licencia el flujo de compilación, carga, ejecución, verificación y descarga del módulo diseñado, siempre que se utilicen entornos \textit{Linux} compatibles.
+    
+    \item \textbf{Formato de salida legible y ordenado.} El fichero de transferencia contiene separadores explícitos, una tabla alineada de procesos y una etiqueta \textit{HMAC} final en \textit{Base64}. Esta estructura facilita la inspección manual, la extracción automática del contenido protegido y la comparación con otras fuentes de información del sistema.
+\end{itemize}
+
+\
+
+Por todo ello, puede concluirse que el proyecto realizado alcanza los objetivos fijados y materializa una solución funcional, verificable y coherente con el problema planteado.
+No obstante, el resultado obtenido no debe entenderse como una solución definitiva o completa, sino como un prototipo que demuestra la viabilidad de la aproximación propuesta y que abre la puerta a futuras mejoras, ampliaciones y validaciones en escenarios más complejos o realistas.\\\\
+
+
+\section{Impacto social, económico, temporal, medioambiental y ético}
+
+El impacto social principal causado por el proyecto se sitúa en el ámbito de la ciberseguridad y la confianza en la información crítica de un sistema.
+En escenarios donde un atacante ha conseguido comprometer el \textit{Espacio de Usuario}, las herramientas habituales de administración pueden dejar de ofrecer una visión fiable del estado real de la máquina.
+El mecanismo desarrollado contribuye a mitigar este problema proporcionando al administrador una fuente alternativa y autenticada de información sobre los procesos activos, generada desde una región de mayor privilegio y verificable mediante una clave simétrica compartida.\\
+
+Desde esta perspectiva, el proyecto puede tener un impacto positivo en tareas de análisis, respuesta ante incidentes y auditoría técnica.
+Disponer de un reporte autenticado permite contrastar la información ofrecida por herramientas convencionales como \texttt{ps} con una visión detallada obtenida desde el \textit{Kernel}, facilitando la identificación de indicios de ocultación o manipulación.
+Este tipo de mecanismos resulta especialmente relevante en sistemas donde la continuidad del servicio, la trazabilidad de la actividad y la confianza en los datos sensibles de monitorización son aspectos críticos.\\
+
+No obstante, debe tenerse en cuenta que el mecanismo propuesto está orientado a un perfil técnico.
+Su utilización requiere comprender conceptos de administración de sistemas \textit{Linux}, programación en lenguaje \texttt{C}, funcionamiento básico del \textit{Kernel} y verificación criptográfica mediante \textit{HMAC}, además de conocimientos generales en ciberseguridad.
+Por tanto, no se plantea como una herramienta destinada a usuarios finales sin conocimientos técnicos, sino como un apoyo para administradores, analistas o perfiles con formación en sistemas, programación y ciberseguridad.\\
+
+En cuanto al impacto económico, la solución se ha construido utilizando mecanismos estándar del ecosistema \textit{Linux}, lenguaje \texttt{C}, interfaces del propio \textit{Kernel} y herramientas de usuario sencillas.
+Esto reduce la necesidad de depender de soluciones cerradas o de infraestructura adicional para su validación, además de favorecer su reproducibilidad en entornos compatibles.
+Sin embargo, su posible uso fuera del contexto académico requeriría un esfuerzo adicional de mantenimiento, revisión de seguridad, adaptación a distintas versiones del \textit{Kernel} y una gestión de claves mucho más robusta, por lo que no debe considerarse directamente una herramienta de producción.
+Este proyecto, sin ampliaciones adicionales, tendría un coste relativamente bajo, debido a que el trabajo se realiza en un entorno libre (\textit{Linux}) con herramientas de uso gratuito, por lo que prácticamente el único coste sería el del propio sistema o máquina en el que se trabaje.
+En cambio, si se aplicasen las mejoras mencionadas anteriormente, para un entorno de producción real, el coste aumentaría al requerir infraestructura y funcionalidad adicional, integración con herramientas externas, posiblemente licenciadas, más robustas y tareas de mantenimiento orientadas a cubrir todos los aspectos necesarios para su despliegue operativo.\\
+
+Desde el punto de vista temporal, el prototipo puede reducir el tiempo necesario para obtener una primera evidencia técnica fiable sobre los procesos activos de un sistema comprometido, ya que genera un reporte autenticado bajo demanda sin depender únicamente de herramientas de \textit{Espacio de Usuario}.
+No obstante, su configuración, carga, verificación y análisis posterior siguen requiriendo intervención de un perfil técnico, por lo que el ahorro temporal se produce principalmente en escenarios de diagnóstico o respuesta ante incidentes, no en un uso automatizado por usuarios no especializados.\\
+
+El impacto medioambiental directo del proyecto es reducido, ya que el desarrollo se ha limitado a un prototipo software ejecutado en un entorno local (\textit{on-premise}) de pruebas.
+La validación se realizó sobre un sistema \textit{Linux} real, utilizando únicamente los recursos necesarios para compilar, cargar y descargar el módulo, generar procesos de prueba y verificar el reporte resultante.
+Además, el diseño del prototipo evita una monitorización continua o intensiva del sistema.
+El reporte se genera bajo demanda cuando el administrador solicita la transferencia mediante el mecanismo de \textit{File Handoff}, por lo que el sistema no necesita estar activo continuamente para funcionar, consumiendo así poca energía.
+Esto cambiaría, por ejemplo, si se modificase para monitorizar el sistema de forma continua o si se desplegase en la nube, ya que aumentaría el consumo energético del sistema y la necesidad de recursos operativos, como servidores o infraestructura de soporte.\\
+
+Por último, desde el punto de vista de la responsabilidad ética y profesional, el proyecto exige tratar con especial cuidado el equilibrio entre seguridad defensiva y su potencial uso indebido.
+El desarrollo de mecanismos próximos al \textit{Kernel} implica operar en una zona crítica del sistema, donde errores de implementación pueden afectar a la estabilidad de la máquina y donde una mala gestión de permisos o claves puede reducir la protección esperada, además de poder aumentar el riesgo de vulnerabilidades.
+Por ello, el diseño se ha planteado bajo un modelo de amenaza explícito, con validaciones sobre la entrada recibida desde \textit{Espacio de Usuario}, comprobaciones sobre el fichero de destino, uso de mecanismos estándar del \textit{Kernel} y una delimitación clara de lo que el prototipo protege y de lo que queda fuera de su alcance.\\\\
+
 
 \section{Competencias adquiridas y utilizadas}
 
@@ -11,7 +120,7 @@ que mejorar con mas tiempo, recursos, etc
 
 \begin{flushright}
 \begin{minipage}[]{10cm}
-\emph{Quizás algún fragmento de libro inspirador...}\\
+\emph{Quizás algún fragmento inspirador...}\\
 \end{minipage}\\
 
 Autor, \textit{Título}\\
