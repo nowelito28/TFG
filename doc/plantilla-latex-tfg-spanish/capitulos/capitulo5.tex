@@ -456,6 +456,10 @@ No obstante, sí evita recorrer la lista de procesos sin protección y reduce el
 Además, en los puntos donde se consultan credenciales de las tareas, el módulo utiliza referencias controladas mediante las primitivas correspondientes, como \verb|get_task_cred| y \verb|put_cred|, para no depender de estructuras cuya vida útil no esté protegida.
 La construcción del listado bajo protección \textit{RCU} se muestra en el Código~\ref{cod:report_get_ps}.\\\\
 
+\newpage
+
+\
+
 \vfill
 
 La solución final desarrollada no elimina por completo el riesgo asociado a un sistema comprometido, pero sí proporciona un mecanismo práctico para elevar la confianza en una fuente concreta de información crítica, reduciendo la dependencia exclusiva de herramientas de \textit{Espacio de Usuario} cuando estas pueden haber sido alteradas por un \textit{rootkit}.
