@@ -37,7 +37,7 @@ El presente proyecto aborda específicamente la amenaza de los \textbf{\textit{r
 Estas son herramientas de \textit{malware} diseñadas para mantener el control sobre esta región del sistema, pudiendo alterar la salida de herramientas de monitorización críticas mediante técnicas de interceptación y modificación de código~\cite{rootkits}.\\
 
 Su técnica más habitual de intrusión consiste en explotar el mecanismo de enlazado dinámico \texttt{LD\_PRELOAD} para cargar bibliotecas maliciosas e interceptar funciones (\textit{hooking}) de bibliotecas típicamente utilizadas en C (como \texttt{libc}), modificando la salida de comandos críticos como \texttt{ps}, \texttt{ls}, \texttt{top} o \texttt{netstat}.
-Esta capacidad de manipulación permite al atacante occultar:
+Esta capacidad de manipulación permite al atacante ocultar:
 
 \begin{itemize}
     \item \textbf{Procesos maliciosos}: Ocultar la ejecución de herramientas de control remoto o \textit{backdoors}.

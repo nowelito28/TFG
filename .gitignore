@@ -22,6 +22,7 @@
 *.toc
 *.locode
 *.lomyequation
+*.tex.new
 
 # Intermediate PDFs
 *tmp.pdf
