@@ -115,30 +115,37 @@ Por ello, el diseño se ha planteado bajo un modelo de amenaza explícito, con v
 
 \section{Competencias adquiridas y utilizadas}
 
+La realización de este \textit{Trabajo de Fin de Grado} ha permitido integrar distintas competencias propias del \textit{Grado en Ingeniería en Tecnologías de la Telecomunicación}, especialmente aquellas relacionadas con sistemas operativos, programación de bajo nivel, seguridad informática, análisis técnico y documentación de soluciones de ingeniería.
+Aunque estas competencias ya fueron presentadas en el Capítulo~\ref{cap:capitulo4} como parte del planteamiento del trabajo, en este punto se recoge una valoración final de cómo han sido aplicadas y reforzadas durante el desarrollo del proyecto.\\
+
+De forma concreta, las competencias más relevantes aplicadas y adquiridas durante el desarrollo del proyecto son las siguientes:
+
+\begin{itemize}
+    \item \textbf{Análisis de sistemas \textit{Linux} y fundamentos de sistemas operativos.} El proyecto ha requerido comprender la separación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, el papel de los procesos, los identificadores de usuario, proceso y grupo, los \textit{namespaces}, el sistema de ficheros virtual \texttt{/proc} y los mecanismos de carga y descarga de módulos en una región privilegiada del sistema.
+    
+    \item \textbf{Programación de sistemas en lenguaje \texttt{C}.} El desarrollo del \textit{LKM} exigió trabajar con estructuras y funciones propias del \textit{Kernel}, gestionar memoria con especial cuidado, validar datos procedentes de \textit{Espacio de Usuario}, tratar descriptores de fichero mediante mecanismos internos del núcleo y escribir de forma controlada sobre un fichero seleccionado por el administrador.
+    
+    \item \textbf{Desarrollo en \textit{Espacio del Kernel}.} Se adquirieron competencias específicas en programación de \textit{Módulos del Kernel}, creación de entradas en \texttt{/proc}, comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, escritura desde el \textit{Kernel} hacia ficheros de usuario y uso tanto de mecanismos de sincronización y lectura segura (\textit{RCU}) como de \textit{APIs} específicas del código fuente del \textit{Kernel}, como \textit{Crypto API} para el manejo y cálculo de \textit{HMAC}.
+    Cabe destacar que para el correcto uso de estas funcionalidades, hubo que realizar previamente un análisis técnico del código fuente del \textit{Kernel} para determinar qué mecanismos debían utilizarse y cómo aplicarlos en cada caso.
+    
+    \item \textbf{Ciberseguridad y análisis de amenazas.} El trabajo permitió aplicar principalmente conocimientos sobre \textit{rootkits} de \textit{Espacio de Usuario}, manipulación de herramientas de monitorización, definición de un modelo de amenaza y diseño de una solución defensiva ajustada a unos supuestos de seguridad concretos.
+    
+    \item \textbf{Criptografía aplicada e integridad de información.} La solución incorpora autenticación criptográfica mediante \textit{HMAC-SHA256}, calculada en el \textit{Kernel} y verificada después desde \textit{Espacio de Usuario}. Esto permitió reforzar la comprensión práctica de conceptos como integridad, autenticidad, clave simétrica, codificación en \textit{Base64} y límites de una protección basada en clave simétrica compartida.
+    
+    \item \textbf{Diseño incremental, validación y resolución de errores.} La construcción por prototipos permitió validar primero conceptos básicos, como la carga de un módulo o la comunicación mediante un fichero virtual en \texttt{/proc}, antes de incorporar mecanismos más delicados como el traspaso de \textit{File Descriptors}, el cálculo de \textit{HMAC} y la generación del reporte de procesos en ejecución.
+    
+    \item \textbf{Comunicación técnica y documentación.} La memoria recoge el contexto del problema, la justificación del modelo de amenaza, el diseño progresivo de la solución, los problemas encontrados, las validaciones realizadas y las limitaciones de cada prototipo hasta la solución final, demostrando la capacidad de documentar y presentar una solución técnica de forma coherente y verificable.
+\end{itemize}
+
+\
+
+Estas competencias no se han aplicado de forma aislada, sino de manera integrada durante todo el desarrollo del proyecto.
+El resultado final no solo materializa una implementación funcional, sino que también refleja un proceso de aprendizaje técnico autónomo, razonamiento de ingeniería, validación experimental y documentación ajustada al alcance de un proyecto final de ingeniería.\\\\
+
+
 \section{Trabajo futuro}
-que mejorar con mas tiempo, recursos, etc
 
-\begin{flushright}
-\begin{minipage}[]{10cm}
-\emph{Quizás algún fragmento inspirador...}\\
-\end{minipage}\\
 
-Autor, \textit{Título}\\
-\end{flushright}
-
-\vspace{1cm}
-
-Escribe aquí un párrafo explicando brevemente lo que vas a contar en este capítulo, que básicamente será una recapitulación de los problemas que has abordado, las soluciones que has prouesto, así como los experimentos llevados a cabo para validarlos. Y con esto, cierras la memoria.
-
-\section{Conclusiones}
-
-Enumera los objetivos y cómo los has cumplido.\\
-
-Enumera también los requisitos implícitos en la consecución de esos objetivos, y cómo se han satisfecho.\\
-
-No olvides dedicar un par de párrafos para hacer un balance global de qué has conseguido, y por qué es un avance respecto a lo que tenías inicialmente. Haz mención expresa de alguna limitación o peculiaridad de tu sistema y por qué es así. Y también, qué has aprendido desarrollando este trabajo.\\
-
-Por último, añade otro par de párrafos de líneas futuras; esto es, cómo se puede continuar tu trabajo para abarcar una solución más amplia, o qué otras ramas de la investigación podrían seguirse partiendo de este trabajo, o cómo se podría mejorar para conseguir una aplicación real de este desarrollo (si es que no se ha llegado a conseguir).
 
 \section{Corrector ortográfico}
 
