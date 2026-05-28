@@ -145,6 +145,50 @@ El resultado final no solo materializa una implementación funcional, sino que t
 
 \section{Trabajo futuro}
 
+Aunque el prototipo desarrollado cumple los objetivos definidos y demuestra la viabilidad del mecanismo propuesto, todavía existen distintas líneas de trabajo que permitirían evolucionarlo hacia una solución más completa, robusta y cercana a un entorno operativo real.
+Estas mejoras estarían orientadas tanto a ampliar la información crítica protegida y a dar la posibilidad de seleccionar la información sensible a solicitar del sistema como a fortalecer el despliegue, la gestión de claves y la integración con infraestructuras de monitorización.\\
+
+Una primera línea de evolución consistiría en mejorar la gestión de la clave simétrica compartida \(K\), uno de los aspectos más críticos.
+En el prototipo actual, la clave se genera previamente y se embebe en el módulo y en la utilidad a nivel de usuario para poder validar el funcionamiento del mecanismo \textit{HMAC-SHA256} y así permitir su uso por parte del administrador durante la verificación.
+Sin embargo, una solución más realista debería evitar que la clave quedase incorporada de forma estática en el código o en el binario del \textit{LKM}.
+Para ello, podrían estudiarse mecanismos de provisión segura de claves, integración con almacenes protegidos, rotación periódica, uso de módulos de seguridad hardware (\textit{HSM}) o apoyo en tecnologías como \textit{TPM}, de forma que la autenticación ya no dependiese de una clave fija sin protección de acceso.\\
+
+Otra línea importante sería adaptar el sistema a despliegues más amplios, tanto \textit{on-premise} como en entornos distribuidos o de nube.
+El mecanismo podría evolucionar para que varios nodos generasen reportes autenticados de forma independiente y los enviasen a un componente central de verificación, permitiendo construir una visión agregada del estado de una infraestructura operativa.
+En este escenario sería necesario definir protocolos de envío, identificación de nodos, políticas de confianza, almacenamiento seguro de reportes y mecanismos de correlación temporal, especialmente si se desea aplicar el sistema en arquitecturas con contenedores, máquinas virtuales o múltiples servidores \textit{Linux} en red.\\
+
+También sería posible ampliar el tipo de información crítica obtenida desde \textit{Espacio del Kernel} y permitir que esta se solicitase de forma dinámica y selectiva.
+En este trabajo se ha tomado como caso principal el listado de procesos activos, pero la misma aproximación podría extenderse para que el administrador solicitase en cada ejecución distintos tipos de información, como conexiones de red, módulos cargados, ficheros abiertos, información de usuarios, cambios en tablas internas o eventos de creación y finalización de procesos.
+Estas ampliaciones permitirían construir un mecanismo de reporte más completo y flexible, aunque requerirían definir una interfaz de solicitud más expresiva y estudiar cuidadosamente el coste de recolección, la estabilidad del sistema y la cantidad de información transferida.\\
+
+De cara a una aplicación práctica, también sería conveniente mejorar la automatización de la verificación.
+Actualmente, el administrador ejecuta la utilidad de comprobación sobre el fichero de transferencia generado desde \textit{Espacio de Usuario}.
+Una evolución natural sería integrar esta verificación en una herramienta de análisis que comparase automáticamente el reporte autenticado del \textit{Kernel} con la salida de herramientas convencionales de \textit{Espacio de Usuario}, señalando discrepancias relevantes y generando alertas cuando se detectasen posibles indicios de ocultación o manipulación.\\
+
+Por último, sería necesario endurecer el prototipo desde el punto de vista operativo.
+Esto incluiría ampliar las pruebas en distintas versiones del \textit{Kernel}, revisar el comportamiento bajo cargas concurrentes, mejorar la gestión de errores, incorporar controles de acceso más estrictos sobre la interfaz \texttt{/proc}, auditar el código con herramientas específicas y documentar procedimientos seguros de instalación, carga y descarga del módulo.
+Estas líneas permitirían avanzar desde un prototipo funcional hacia una herramienta más madura, manteniendo siempre el modelo de amenaza definido y las limitaciones inherentes a confiar en la integridad del \textit{Kernel}.\\\\
+
+En conclusión, estas ideas no agotan todas las posibles evoluciones del proyecto, sino que representan algunas implementaciones futuras especialmente relevantes para aumentar su seguridad, flexibilidad y aplicabilidad en escenarios reales.
+A partir del prototipo desarrollado, podrían explorarse nuevas mejoras técnicas y operativas que no se recogen en este apartado, pudiendo así ampliar las capacidades y prestaciones del sistema diseñado de cara a un funcionamiento más robusto y a una posible puesta en producción.
+
+\newpage
+
+\
+
+\vfill
+
+
+Para concluir este proyecto, desde una perspectiva personal, me gustaría finalizar remarcando que este \textit{Trabajo de Fin de Grado} ha supuesto un recorrido intenso de aprendizaje, investigación profunda y diseño, implementación y validación exigentes, en el que se ha partido de un problema realmente complejo de abordar hasta construir una solución funcional y coherente con los objetivos planteados.\\
+
+Más allá del resultado técnico obtenido, este periodo de desarrollo ha permitido consolidar conocimientos y adquirir nuevas habilidades mientras se disfrutaba del proceso, pudiendo trabajar sobre un tema que verdaderamente me genera un gran interés.
+Por ello, quiero expresar de nuevo mi agradecimiento a mi tutor por su orientación y acompañamiento durante todo el proceso, a todas las personas cercanas que me han apoyado a lo largo no solo de este proyecto, sino de toda la carrera, y, finalmente, a quienes han dedicado parte de su tiempo a la lectura de esta memoria.\\
+
+Espero que haya resultado de gran interés y pueda aportar algún valor, ya sea como conocimiento o como punto de partida o apoyo para futuros proyectos.\\
+
+Muchas gracias por todo.
+
+\newpage
 
 
 \section{Corrector ortográfico}
@@ -154,3 +198,5 @@ Una vez tengas todo, no olvides pasar el corrector ortográfico de \LaTeX a todo
 \begin{verbatim}
 aspell --lang=es --mode=tex check capitulo1.tex
 \end{verbatim}
+
+\newpage
