@@ -7,16 +7,16 @@ Esto es debido a la presencia de amenazas y agentes externos que trabajan con el
 
 En este ámbito, una de las amenazas más críticas para los sistemas de información actualmente son los \textit{rootkits}, software malicioso diseñado para ocultar y manipular recursos o actividad del sistema, como procesos, ficheros o conexiones de red.
 Estas amenazas pueden operar tanto en \textit{Espacio de Usuario} como en \textit{Espacio del Kernel}, comprometiendo la información que recibe tanto el administrador como el usuario, impidiendo disponer de una visión verídica del estado real del sistema.
-En consecuencia, esto provoca una falta de integridad en las tareas de monitorización y control del mismo, pudiendo llegar a confiar en fuentes de información potencialmente comprometidas.\\
+Esto provoca una falta de integridad en las tareas de monitorización y control del mismo, pudiendo llegar a confiar en fuentes de información potencialmente comprometidas.\\
 
 Para abordar esta problemática, en este proyecto se ha diseñado e implementado un \textit{Módulo del Kernel} (\textit{LKM}, \textit{Loadable Kernel Module}) en un sistema \textit{Linux} con el objetivo de proporcionar una fuente autenticada de información crítica del sistema frente a posibles manipulaciones.
-Esta solución introduce un mecanismo de autenticación criptográfica basado en HMAC (\textit{Hash-based Message Authentication Code}) del contenido proporcionado por el \textit{kernel},
-mediante una clave simétrica secreta que solo es conocida por el administrador, garantizando la integridad de la información ofrecida.\\
+Esta solución introduce un mecanismo de autenticación criptográfica basado en HMAC (\textit{Hash-based Message Authentication Code}) del contenido proporcionado por el \textit{Kernel}, mediante una clave simétrica secreta compartida únicamente entre el administrador y el módulo.
+Este planteamiento se apoya en una cadena de confianza en la que se asume que el \textit{Kernel} y el \textit{LKM} no han sido modificados, por ejemplo mediante mecanismos de firmado del \textit{Kernel} y del módulo, reforzando así la integridad de la información ofrecida.\\
 
-Los experimentos realizados aproximan un entorno real de operación donde la información sensible es solicitada desde el \textit{espacio de usuario} hacia el \textit{espacio del kernel}.
+Los experimentos realizados aproximan un entorno real de operación donde la información sensible es solicitada desde el \textit{Espacio de Usuario} hacia el \textit{Espacio del Kernel}.
 Con este fin, se define el contenido sensible del sistema a autenticar mediante un listado de todos los procesos en ejecución y sus respectivos metadatos, generado en el propio \textit{Módulo del Kernel}, sirviendo como ejemplo de información crítica que puede ser manipulada por un \textit{rootkit}.
 Sobre este contenido, se calcula el HMAC con la respectiva clave secreta y se adjunta a la información proporcionada al usuario, de forma que este pueda verificar su integridad y autenticidad.\\
 
-Para validar esta propuesta, se han desarrollado componentes de usuario que prueban la funcionalidad. Un primer componente genera un fichero cuyo descriptor es transferido al \textit{kernel} para que este lo referencie, estableciendo así el canal de comunicaciones seguras con el núcleo del sistema.
-Por otro lado, la integridad de los datos reportados se confirma mediante un segundo componente de verificación que analiza la información escrita por el \textit{kernel}, calculando localmente el HMAC del contenido con la misma clave secreta y
+Para validar esta propuesta, se han desarrollado componentes de usuario que prueban la funcionalidad. Un primer componente genera un fichero cuyo descriptor es transferido al \textit{Kernel} para que este lo referencie, estableciendo así el canal de comunicaciones seguras con el núcleo del sistema.
+Por otro lado, la integridad de los datos reportados se confirma mediante un segundo componente de verificación que analiza la información escrita por el \textit{Kernel}, calculando localmente el HMAC del contenido con la misma clave secreta y
 contrastándolo posteriormente con el recibido para asegurar que coinciden y que el contenido es verídico.\\

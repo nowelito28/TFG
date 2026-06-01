@@ -12,16 +12,16 @@ Bruce Schneier \textit{(A Plea for Simplicity, 1999)}~\cite{schneier}.
 
 \vspace{1cm}
 
-Hoy en día, la seguridad de los sistemas es un aspecto fundamental a tener en cuenta, cobrando cada vez más importancia a medida que alojamos mayor cantidad de información sensible en ellos y se convierten en sistemas mucho más complejos. Por lo tanto, podrían quedar expuestos a un gran número de amenazas si no se protegen debidamente.
-Como advierte el ensayo mostrado al inicio del capítulo, la inherente complejidad de estas infraestructuras facilita la proliferación de \textit{malware} diseñado para operar e infiltrarse desde la más estricta invisibilidad.\\
+Hoy en día, la seguridad de los sistemas informáticos es un aspecto fundamental a tener en cuenta, cobrando cada vez más importancia a medida que alojamos mayor cantidad de información sensible en ellos y se convierten en sistemas mucho más complejos. Por lo tanto, podrían quedar expuestos a un gran número de amenazas si no se protegen debidamente.
+Como advierte el ensayo citado al inicio del capítulo, la inherente complejidad de estas infraestructuras facilita la proliferación de \textit{malware} diseñado para operar e infiltrarse desde la más estricta invisibilidad.\\
 
-Un sistema operativo moderno no es una estructura o proceso simple, sino un entrelazado conjunto de capas o niveles concéntricos de abstracción que actúan respecto a un sistema de hardware. Se puede describir como un sistema realmente complejo, con una gran cantidad de componentes y funcionalidades. En consecuencia, esta complejidad hace que sea difícil de proteger y monitorizar, requiriendo de un gran conocimiento sobre el mismo para saber cómo actuar ante posibles ataques.\\
+Un sistema operativo moderno no es una estructura o proceso simple, sino un entrelazado conjunto de capas o niveles concéntricos de abstracción que actúan respecto a un sistema de hardware. Se puede describir como un sistema realmente complejo, con una gran cantidad de componentes y funcionalidades. Esta complejidad hace que sea difícil de proteger y monitorizar, requiriendo de un gran conocimiento sobre el mismo para saber cómo actuar ante posibles ataques.\\
 
 A su vez, por parte del atacante, se requiere de un gran conocimiento técnico para diseñar un ataque efectivo, pero también de una gran creatividad y habilidad para encontrar vulnerabilidades y las formas de explotarlas sin ser detectado, dependiendo de su finalidad.\\
 
 Esto hace de la ciberseguridad una disciplina realmente amplia y compleja, donde atacantes y defensores se encuentran en una constante carrera por encontrar nuevas formas de comprometer o proteger los sistemas.\\
 
-Este proyecto se centra en el ámbito de la seguridad de los sistemas operativos \textit{Linux}, concretamente en el diseño de un mecanismo que permita ofrecer información crítica del sistema de forma autenticada y verificable frente a posibles manipulaciones.\\
+Este proyecto se centra en el ámbito de la seguridad de los sistemas operativos \textit{Linux}, concretamente en el diseño de un mecanismo defensivo que permita ofrecer información crítica del sistema de forma autenticada y verificable frente a posibles manipulaciones.\\
 
 Para comprender en detalle el escenario descrito y contextualizar la temática del proyecto, a continuación se establecerán conceptos básicos sobre la ciberseguridad y sus principales finalidades, especialmente sobre la amenaza principal en la que se centra el proyecto, los \textit{rootkits}.
 
@@ -35,7 +35,8 @@ Para comprender en detalle el escenario descrito y contextualizar la temática d
 En el ámbito de los sistemas de información, la ciberseguridad comprende el conjunto de arquitecturas, tecnologías y prácticas diseñadas para proteger los sistemas, datos y redes frente a ataques que puedan comprometer su integridad, confidencialidad o disponibilidad, ya sean intencionados o no.
 No obstante, técnicamente debe entenderse como un equilibrio entre el valor de los activos a proteger, el riesgo asociado a su compromiso y el coste de las medidas necesarias para garantizar una protección proporcional.\\
 
-Desde este punto de vista, proteger un sistema no consiste en maximizar indefinidamente las defensas, sino en aplicar mecanismos proporcionales al impacto real de un posible ataque.
+Desde este punto de vista, proteger un sistema no consiste en maximizar indefinidamente las defensas, sino en aplicar mecanismos proporcionales al impacto real de un posible ataque.\\
+
 El principal flujo de estas amenazas se materializa mediante \textbf{\textit{software} malicioso} (\textbf{\textit{malware}}), concepto que engloba cualquier código diseñado para infiltrarse en un sistema, dañarlo o robar datos sin el consentimiento de su propietario~\cite{malware_nist}.\\
 
 \newpage
@@ -58,7 +59,7 @@ Estas amenazas pueden operar tanto en el \textit{Espacio de Usuario} como en el 
 Más adelante se profundizará con mayor detalle en su funcionamiento.\\
 
 Sin embargo, para que este \textit{malware} logre infiltrarse en la infraestructura del sistema, los atacantes necesitan métodos de acceso y mecanismos de persistencia.
-A su vez, precisan de un correcto análisis, identificación y explotación de las vulnerabilidades del sistema a través de las cuales poder infiltrarse.\\
+A su vez, precisan de un correcto análisis, identificación y explotación de las vulnerabilidades del sistema a través de las cuales poder infiltrarse~\cite{mitre_attack}.\\
 
 \
 
@@ -69,29 +70,39 @@ A su vez, precisan de un correcto análisis, identificación y explotación de l
 
 En el contexto de la ciberseguridad de sistemas, una \textbf{vulnerabilidad} se define como una debilidad en el diseño, implementación o configuración de un sistema que puede ser aprovechada por un agente malicioso para comprometer su integridad, confidencialidad o disponibilidad~\cite{threat_enisa}.\\
 
+En este contexto, el marco \textbf{MITRE ATT\&CK} adquiere una gran importancia, ya que es una fuente de información estandarizada que clasifica las técnicas y tácticas empleadas por los atacantes durante una intrusión.
+Su utilidad reside en que permite describir amenazas con un lenguaje común y evaluar de forma estructurada la capacidad de detección, monitorización, robustez y respuesta frente a estas amenazas~\cite{mitre_attack}.\\
+
 Estas brechas de seguridad constituyen el principal motor de entrada a intrusos y pueden clasificarse fundamentalmente en tres grandes grupos según su naturaleza:
 \begin{itemize}
-    \item \textbf{Vulnerabilidades de \textit{software}}: Fallos a nivel de código fuente del sistema operativo o en las aplicaciones.
-    Típicos ejemplos pueden ser la falta de sanitización o filtrado de datos, derivando en inyecciones de código; o por otro lado, el desbordamiento de \textit{buffer} (\textit{Buffer Overflow}), pudiendo sobrescribir la memoria contigua de un proceso.
+    \item \textbf{Vulnerabilidades de \textit{software} y \textit{hardware}}: Fallos a nivel de código fuente del sistema operativo, aplicaciones o bibliotecas, así como en componentes físicos o en la interacción entre ambos.
+    En el caso del \textit{software}, pueden aparecer por una validación insuficiente de entradas, inyecciones de código o errores de memoria como los desbordamientos de \textit{buffer} (\textit{Buffer Overflow}).
+    En el caso del \textit{hardware}, ataques como \textit{Rowhammer} aprovechan efectos físicos de la memoria \textit{DRAM} para modificar bits en zonas de memoria cercanas.
+    Por otro lado, ataques como \textit{Spectre} explotan la interacción entre el \textit{software} y optimizaciones internas del procesador, como la ejecución especulativa, para inferir información sensible mediante canales laterales.
     \item \textbf{Vulnerabilidades humanas}: Debidas a la falta de concienciación, errores o negligencias de los usuarios propietarios del sistema, pudiendo ser el eslabón más débil de la cadena de seguridad.
     \item \textbf{Vulnerabilidades de configuración}: Diseño o implementaciones inseguras de la propia arquitectura del sistema, como el uso de credenciales por defecto, servicios de red expuestos o una asignación incorrecta de privilegios.
 \end{itemize}
 
-Para aprovechar estas vulnerabilidades y realizar la intrusión del \textit{malware}, los atacantes hacen uso de diversas \textbf{herramientas de ataque} y técnicas específicas para cada escenario:
+\
+
+Para aprovechar estas vulnerabilidades y realizar la intrusión del \textit{malware}, los atacantes hacen uso de diversas \textbf{herramientas de ataque} y técnicas específicas para cada escenario.
+Algunos ejemplos\footnote{Para un detalle pormenorizado de fases y técnicas de explotación puede consultarse MITRE ATT\&CK~\cite{mitre_attack}.}:
 \begin{itemize}
     \item \textbf{Ataques de ingeniería social}: Orientados a explotar las vulnerabilidades humanas. Destacan el \textbf{\textit{phishing}} y sus variantes (\textbf{\textit{spear phishing}}),
     cuyo objetivo es la manipulación psicológica del usuario mediante comunicaciones fraudulentas que permitan revelar credenciales o ejecutar \textit{software} malicioso de forma inadvertida.
-    \item \textbf{\textit{Exploits} y \textit{Payloads}}: Para atacar mediante fallos de configuración o de \textit{software}, se emplean \textit{exploits}.
+    \item \textbf{\textit{Exploits}}: Para atacar mediante fallos de configuración o de \textit{software}, se emplean \textit{exploits}.
     Estos son fragmentos de código diseñados para aprovechar una debilidad técnica y forzar un comportamiento no previsto en la máquina.
     Su principal objetivo suele ser inyectar una carga útil detonante (\textit{payload}), como \textbf{\textit{backdoors}} o herramientas de administración remota (\textbf{\textit{RATs}}).
-    \item \textbf{Ataques de \textit{Privilege Escalation}}: Una vez que el atacante logra comprometer mínimamente el sistema,
+    \item \textbf{Ataques de escala de privilegios}: Una vez que el atacante logra comprometer mínimamente el sistema,
     utiliza herramientas ofensivas para aprovechar vulnerabilidades secundarias del mismo y elevar sus permisos hasta incluso obtener el control de administrador (\textit{root}).
+    \item \textbf{Persistencia y ocultación}: Tras obtener acceso al sistema, el atacante puede emplear técnicas para mantener su presencia y dificultar su detección.
+    En este contexto se sitúan los \textit{rootkits}, capaces de ocultar procesos, ficheros o conexiones manipulando la información visible para el usuario.
 \end{itemize}
+
+\
 
 En definitiva, independientemente de la vulnerabilidad detectada y la técnica ofensiva empleada, existe una necesidad crítica de implementar mecanismos de defensa robustos y una monitorización de estado segura.
 Esto, añadido a una adecuada educación y concienciación de los usuarios, resulta fundamental para mitigar los riesgos y poder proteger en gran medida al sistema.
-
-\
 
 \
 
@@ -111,17 +122,18 @@ En primer lugar, las \textbf{medidas preventivas} buscan reducir la superficie d
     Esto limita drásticamente el impacto de una brecha inicial de acceso y dificulta la escalada de privilegios.
 \end{itemize}
 
+\
+
 Por otro lado, asumiendo que las barreras preventivas pueden ser superadas, es indispensable implementar mecanismos de \textbf{detección, respuesta y monitorización} continua~\cite{nist_detection}:
 \begin{itemize}
     \item \textbf{Sistemas de Detección de Intrusos basados en Host (\textit{HIDS})}: Herramientas que monitorizan la actividad de la máquina, analizan los registros de eventos (\textit{logs}) y detectan alteraciones no autorizadas registradas en ficheros críticos (\textit{File Integrity Monitoring}).
     \item \textbf{Plataformas \textit{EDR} (\textit{Endpoint Detection and Response})}: Evolución del concepto de antivirus tradicional. En lugar de basarse únicamente en firmas, analizan el comportamiento de los procesos en memoria en tiempo real para poder así detectar y bloquear ejecuciones anómalas.
 \end{itemize}
 
+\
+
 Cabe destacar que el ámbito de la ciberseguridad se encuentra en constante evolución. La continua sofisticación y mejora de las técnicas ofensivas exige un gran esfuerzo por parte de la industria para investigar y diseñar nuevos métodos de protección.
 De este modo, los paradigmas de defensa empleados actualmente, como los explicados en este apartado, deben adaptarse de forma dinámica al contexto temporal de cada entorno en el que se utilicen, pudiendo quedar obsoletos y ser ineficaces a corto plazo.\\
-
-En este contexto, el marco \textbf{MITRE ATT\&CK} adquiere una gran importancia, ya que es una fuente de información estandarizada que clasifica las técnicas y tácticas empleadas por los atacantes durante una intrusión.
-Su utilidad reside en que permite describir amenazas con un lenguaje común y evaluar de forma estructurada la capacidad de detección, monitorización, robustez y respuesta frente a estas amenazas~\cite{mitre_attack}.
 
 \
 
@@ -140,6 +152,8 @@ En este contexto de ciberseguridad, un \textbf{\textit{rootkit}} se define como 
   \label{fig:rootkits_layers}
 \end{figure}
 
+\
+
 A diferencia de otras amenazas, su principal objetivo no es propagarse o causar un daño destructivo inmediato, sino lograr una \textbf{persistencia indetectable} a largo plazo tras una intrusión inicial en el sistema objetivo.
 Para alcanzar este nivel de evasión, los \textit{rootkits} alteran el flujo normal de ejecución del sistema operativo mediante técnicas de interceptación y modificación de código, típicamente conocidas como \textbf{\textit{hooking}}.\\
 
@@ -155,15 +169,13 @@ Dependiendo de la capa en la que operen y del nivel de privilegios que puedan ll
     Esto les permite manipular el sistema desde dentro, volviendo completamente inútiles las herramientas de monitorización que operan por encima de ellos con menos privilegios.
 \end{itemize}
 
+\
+
 El desafío fundamental que plantean estos tipos de amenazas radica en un axioma crítico en ciberseguridad: \textbf{\textit{un sistema comprometido no puede proporcionar información fiable sobre sí mismo}}.
 Con base en estos argumentos, intentar detectar o mitigar la acción de un \textit{rootkit} utilizando mecanismos de seguridad que operan en un nivel de privilegios inferior al del atacante es una estrategia totalmente ineficaz.
 Por esta razón, se precisa diseñar arquitecturas defensivas y de monitorización robustas en las capas más profundas del sistema, con el fin de garantizar la integridad de los datos y el correcto funcionamiento del entorno.
 
 \newpage
-
-\
-
-\vfill
 
 Tomando como referencia el complejo panorama de la ciberseguridad descrito y la gran amenaza que suponen los \textbf{\textit{rootkits}}, el presente proyecto propone el diseño y desarrollo de un sistema de reporte seguro para entornos \textit{Linux}, enfocado en proporcionar información crítica del sistema de forma autenticada y verificable frente a posibles manipulaciones de este tipo de \textit{malware}.
 Antes de ello, en el siguiente capítulo se establecerá el marco tecnológico de los sistemas operativos \textit{Linux} actuales, donde se detallará su diseño, arquitectura y funcionamiento, facilitando así la comprensión del proyecto en cuestión.
