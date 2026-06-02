@@ -3,12 +3,14 @@
 
 Tras establecer previamente el contexto necesario sobre el entorno de los sistemas \textit{Linux} y la amenaza que representan los \textit{rootkits}, en este capítulo se describe la problemática concreta que motiva el presente proyecto y los objetivos que se persiguen con el mismo.
 
+\
+
 \section{Descripción del problema}
 
-Uno de los problemas fundamentales en el ámbito de la seguridad de sistemas operativos consiste en determinar hasta qué punto la información crítica ofrecida al administrador sobre el estado de una máquina puede considerarse fiable una vez que el entorno ha sido comprometido, en particular, el \textit{Espacio de Usuario}.
+Uno de los problemas fundamentales en el ámbito de la seguridad de sistemas operativos consiste en determinar hasta qué punto la información crítica ofrecida al administrador sobre el estado de una máquina puede considerarse fiable una vez que el entorno ha sido comprometido, en particular, el \textit{espacio de usuario}.
 Con base en lo expuesto en el estado del arte, los \textit{rootkits} de esta región pueden interceptar funciones de bibliotecas fundamentales y manipular la salida de herramientas como \texttt{ps}, \texttt{ls} o \texttt{netstat}, falseando la visión que el operador tiene del sistema y dificultando la detección de actividad maliciosa~\cite{rootkits}.\\
 
-Este escenario resulta especialmente problemático en sistemas \textit{Linux}, debido a que gran parte de sus tareas de monitorización y administración se apoyan en utilidades de \textit{Espacio de Usuario}, donde la información se expone a través de interfaces de alto nivel.
+Este escenario resulta especialmente problemático en sistemas \textit{Linux}, debido a que gran parte de sus tareas de monitorización y administración se apoyan en utilidades de \textit{espacio de usuario}, donde la información se expone a través de interfaces de alto nivel.
 Si dicha región se encuentra comprometida, confiar en ella para verificar el estado del sistema deja de ser una estrategia sólida.
 Consecuentemente, aparece la necesidad de obtener información sensible desde una capa con mayores privilegios, dificultando su manipulación y, además, dotar a esa información de un mecanismo que permita comprobar posteriormente su integridad y autenticidad.\\
 
@@ -16,27 +18,29 @@ Consecuentemente, aparece la necesidad de obtener información sensible desde un
   \centering
   \scalebox{0.9}{\input{figs/secure_reporting_scheme.tex}}
   \figsource{Elaboración propia.}
-  \caption{Mecanismo de reporte autenticado entre \textit{Espacio de Usuario} y \textit{Espacio de Kernel}.}
+  \caption{Mecanismo de reporte autenticado entre \textit{espacio de usuario} y \textit{Espacio de kernel}.}
   \label{fig:secure_reporting_scheme}
 \end{figure}
 
-\newpage
+\
 
-En este proyecto, se aborda un caso concreto y representativo, tomando como información crítica un listado de todos los procesos del sistema junto con sus metadatos más relevantes, entre ellos identificadores globales y locales de los procesos, de los usuarios que los ejecutan y referencias a sus \textit{namespaces}.
+En este proyecto, se aborda un caso concreto y representativo, tomando como información crítica un listado de todos los procesos del sistema junto con sus metadatos más relevantes, entre ellos, identificadores globales y locales de los procesos, de los usuarios que los ejecutan y referencias a sus \textit{namespaces}.\\
+
 Esta elección no es arbitraria, ya que mediante esta información se puede obtener una visión global del estado del sistema y, por tanto, compararla con los datos obtenidos por otras herramientas para detectar posibles indicios de manipulación y ocultación en dicha región.
-Sin embargo, en manos del atacante, podría ser catastrófico, ya que tendría prácticamente el poder absoluto sobre el sistema.\\
+Sin embargo, si un atacante consigue manipular la información mostrada al administrador, podría ocultar procesos maliciosos o alterar la percepción del estado real del sistema, dificultando así su detección.\\
 
-En conclusión, el problema del proyecto puede formularse del siguiente modo: \textbf{cómo proporcionar al administrador de un sistema \textit{Linux} una visión fiable de información crítica del sistema cuando el \textit{Espacio de Usuario} puede haber sido comprometido por \textit{malware} con capacidades de persistencia y ocultación, como los \textit{rootkits}}.\\
+En conclusión, el problema del proyecto puede formularse del siguiente modo: \textbf{cómo proporcionar al administrador de un sistema \textit{Linux} una visión fiable de información crítica del sistema cuando el \textit{espacio de usuario} puede haber sido comprometido por \textit{malware} con capacidades de persistencia y ocultación, como los \textit{rootkits}}.\\
 
-\newpage
+\
+
+\
 
 \section{Modelo de amenaza}
 \label{sec:modelo-amenaza}
 
-El presente proyecto aborda específicamente la amenaza de los \textbf{\textit{rootkits} de Espacio de Usuario} en sistemas \textit{Linux}.
+El presente proyecto aborda específicamente la amenaza de los \textbf{\textit{rootkits} de espacio de usuario} en sistemas \textit{Linux}.
 Estas son herramientas de \textit{malware} diseñadas para mantener el control sobre esta región del sistema, pudiendo alterar la salida de herramientas de monitorización críticas mediante técnicas de interceptación y modificación de código~\cite{rootkits}.\\
 
-Su técnica más habitual de intrusión consiste en explotar el mecanismo de enlazado dinámico \texttt{LD\_PRELOAD} para cargar bibliotecas maliciosas e interceptar funciones (\textit{hooking}) de bibliotecas típicamente utilizadas en C (como \texttt{libc}), modificando la salida de comandos críticos como \texttt{ps}, \texttt{ls}, \texttt{top} o \texttt{netstat}.
 Esta capacidad de manipulación permite al atacante ocultar:
 
 \begin{itemize}
@@ -46,20 +50,28 @@ Esta capacidad de manipulación permite al atacante ocultar:
     \item \textbf{Actividad de usuarios}: Falsificar información sobre sesiones activas o comandos ejecutados.
 \end{itemize}
 
-En este contexto, el proyecto se centra en diseñar un mecanismo de reporte seguro que permita al administrador obtener información crítica del sistema desde el \textit{Espacio del Kernel}, acompañado de un mecanismo de autenticación criptográfica que permita verificar su integridad y autenticidad posteriormente desde el \textit{Espacio de Usuario}, incluso en escenarios comprometidos por \textit{rootkits} de \textit{Espacio de Usuario}.
+\
+
+En este contexto, el modelo de amenaza se centra en un \textit{espacio de usuario} potencialmente comprometido, capaz de ocultar o falsear información visible para el administrador.
+A continuación, se detallan los supuestos de seguridad considerados.\\
+
+\
 
 \subsection{Contexto de operación y supuestos de seguridad}
 
-El proyecto asume un escenario en el que el \textit{Espacio de Usuario} ha sido comprometido, permitiendo al atacante ejecutar \textit{malware} con capacidades de persistencia y ocultación.
+El proyecto asume un escenario en el que el \textit{espacio de usuario} ha sido comprometido, permitiendo al atacante ejecutar \textit{malware} con capacidades de persistencia y ocultación.
 En este contexto, se plantean los siguientes supuestos:
 
 \begin{itemize}
-    \item \textbf{El \textit{Espacio de Usuario} está bajo control del atacante.} El administrador no puede confiar en la salida de herramientas de monitorización como \texttt{ps}, \texttt{ls} o \texttt{netstat}, ya que pueden haber sido interceptadas y manipuladas por un \textit{rootkit}.
-    \item \textbf{El \textit{Espacio del Kernel} permanece íntegro.} El proyecto asume que no hay compromiso de \textit{rootkits} de \textit{Espacio del Kernel}, manteniendo la integridad del código ejecutado en \textit{Ring 0}.
+    \item \textbf{El \textit{espacio de usuario} está bajo control del atacante.} El administrador no puede confiar en la salida de herramientas de monitorización como \texttt{ps}, \texttt{ls} o \texttt{netstat}, ya que pueden haber sido interceptadas y manipuladas por un \textit{rootkit}.
+    \item \textbf{El \textit{espacio del kernel} permanece íntegro.} El proyecto asume que no hay compromiso de \textit{rootkits} de \textit{espacio del kernel}, manteniendo la integridad del código ejecutado en \textit{Ring 0}.
     \item \textbf{El administrador es de confianza.} Se asume que la clave simétrica compartida para la autenticación HMAC es conocida únicamente por el administrador de confianza del sistema.
-    \item \textbf{La comunicación es unidireccional desde el \textit{Kernel} a \textit{Espacio de Usuario}.} El \textit{Kernel} no confía en datos recibidos desde \textit{Espacio de Usuario} salvo el identificador del fichero de salida, siendo el vector principal de entrada.
-    \item \textbf{\textit{Hardware} y \textit{Firmware} íntegros.} Se asume que tanto el \textit{Hardware} como el \textit{Firmware} del sistema no han sido comprometidos.
+    \item \textbf{La comunicación es unidireccional desde el \textit{kernel} a \textit{espacio de usuario}.} El \textit{kernel} no confía en datos recibidos desde \textit{espacio de usuario} salvo el identificador del fichero de salida, siendo el vector principal de entrada.
+    \item \textbf{\textit{Hardware} y \textit{Firmware} íntegros.} Se asume que tanto el \textit{hardware} como el \textit{firmware} del sistema no han sido comprometidos.
+    \item \textbf{Cadena de confianza de arranque.} Se concibe una cadena de confianza que permite mantener la integridad del \textit{kernel} y del \textit{LKM}, por ejemplo mediante mecanismos de firmado, evitando la ejecución de componentes no autorizados dentro de la base fiable del sistema.
 \end{itemize}
+
+\
 
 \subsection{Capacidades y limitaciones del atacante}
 
@@ -67,106 +79,104 @@ En este contexto, se plantean los siguientes supuestos:
 
 \begin{itemize}
     \item Interceptar y modificar la salida de herramientas de usuario mediante \texttt{LD\_PRELOAD} y \textit{hooking} de funciones de bibliotecas como \texttt{libc}.
-    \item Ocultar procesos, ficheros, conexiones de red y actividad maliciosa desde herramientas de monitorización de \textit{Espacio de Usuario}.
-    \item Ejecutar código malicioso con privilegios arbitrarios en \textit{Espacio de Usuario}.
+    \item Ocultar procesos, ficheros, conexiones de red y actividad maliciosa desde herramientas de monitorización de \textit{espacio de usuario}.
+    \item Ejecutar código malicioso con privilegios arbitrarios en \textit{espacio de usuario}.
     \item Manipular información en \texttt{/proc} mediante \textit{bind mounts} y \textit{namespaces}.
 \end{itemize}
+
+\
 
 \textbf{Limitaciones del atacante dentro del escenario modelado:}
 
 \begin{itemize}
-    \item No puede modificar el \textit{Kernel} ni cargar \textit{LKMs} maliciosos (no accede a \textit{Ring 0}).
+    \item No puede modificar el \textit{kernel} ni cargar \textit{LKMs} maliciosos (no accede a \textit{Ring 0}).
     \item No puede interceptar llamadas al sistema ni modificar la \textit{Tabla de Llamadas del Sistema} (\textit{sys\_call\_table}).
-    \item No puede falsificar el HMAC-SHA256 sin conocer la clave simétrica compartida entre el \textit{Kernel} y el administrador del sistema.
+    \item No puede falsificar el HMAC-SHA256 sin conocer la clave simétrica compartida entre el \textit{kernel} y el administrador del sistema.
+    \item La clave simétrica se carga en el \textit{kernel} durante el proceso de arranque sin que el atacante tenga acceso a ella.
 \end{itemize}
+
+\
 
 \subsection{Cobertura defensiva}
 
 \textbf{Lo que el sistema protege:}
 
 \begin{itemize}
-    \item \textbf{Ocultación de procesos}: Proporciona visibilidad desde \textit{Kernel}, imposible de manipular desde \textit{Espacio de Usuario}.
+    \item \textbf{Ocultación de procesos}: Proporciona visibilidad desde \textit{kernel}, imposible de manipular desde \textit{espacio de usuario}.
     \item \textbf{Integridad de información}: Mediante autenticación criptográfica HMAC-SHA256, verificable matemáticamente mediante la misma clave con la que se codifica.
-    \item \textbf{Detección de manipulación}: Permite comparar información autenticada del \textit{Kernel} con herramientas comprometidas de \textit{Espacio de Usuario}.
+    \item \textbf{Detección de manipulación}: Permite comparar información autenticada del \textit{kernel} con herramientas comprometidas de \textit{espacio de usuario}.
 \end{itemize}
+
+\
 
 \textbf{Lo que el sistema NO protege:}
 
 \begin{itemize}
-    \item Amenazas de \textit{rootkits} de \textit{Espacio del Kernel} que operen en \textit{Ring 0}.
-    \item Compromisos post-carga del \textit{LKM} mediante modificación de memoria del \textit{Kernel}.
-    \item Exposición o interceptación de la clave simétrica compartida entre el \textit{Kernel} y el administrador.
+    \item Amenazas de \textit{rootkits} de \textit{espacio del kernel} que operen en \textit{Ring 0}.
+    \item Compromisos post-carga del \textit{LKM} mediante modificación de memoria del \textit{kernel}.
+    \item Exposición o interceptación de la clave simétrica compartida entre el \textit{kernel} y el administrador.
     \item Procesos o actividad maliciosa anterior a la carga del \textit{LKM}.
   \end{itemize}
 
+\
+
+\
+
 \section{Objetivos}
 
-El objetivo principal del presente proyecto consiste en \textbf{diseñar un mecanismo de reporte seguro para sistemas \textit{Linux} capaz de proporcionar al administrador una visión más fiable de información crítica del sistema, concretamente del estado de sus procesos activos, especialmente en entornos comprometidos por \textit{rootkits} de \textit{Espacio de Usuario}}.
-Para ello, la solución propuesta desplaza la obtención de la información crítica al \textit{Espacio de Kernel} mediante un \textit{LKM}, incorporando además un mecanismo criptográfico que permita verificar posteriormente su integridad y autenticidad desde \textit{Espacio de Usuario} por el propio administrador.\\
+El objetivo principal del presente proyecto consiste en \textbf{diseñar un mecanismo de reporte seguro para sistemas \textit{Linux} capaz de proporcionar al administrador una visión más fiable de información crítica del sistema, concretamente del estado de sus procesos activos, especialmente en entornos comprometidos por \textit{rootkits} de \textit{espacio de usuario}}.
+Para ello, la solución propuesta desplaza la obtención de la información crítica al \textit{Espacio de kernel} mediante un \textit{LKM}, incorporando además un mecanismo criptográfico que permita verificar posteriormente su integridad y autenticidad desde \textit{espacio de usuario} por el propio administrador.\\
 
 Con base en este objetivo general, el proyecto se concreta en los siguientes objetivos:
+
+\
 
 \subsection{Objetivos funcionales}
 \label{sec:ofunc}
 
-Los objetivos funcionales describen \textbf{qué debe hacer} la solución propuesta, en otras palabras, las capacidades específicas que el sistema debe adquirir para resolver el problema planteado.
-En este caso, son los siguientes:
+Los objetivos funcionales que describen \textbf{qué debe hacer} la solución propuesta son:
 
 \begin{itemize}
-    \item \textbf{Obtener información crítica del sistema desde \textit{Espacio del Kernel}.} Se precisa del diseño de un mecanismo de reporte seguro desde el \textit{Espacio de Kernel}, mediante un \textit{LKM}, capaz de recopilar información de los procesos activos sin depender de herramientas de \textit{Espacio de Usuario}.
-    \item \textbf{Construir una vista global y estructurada de los procesos del sistema.} Dicho mecanismo de reporte debe generar un listado estructurado de los procesos activos del sistema, que incluya los metadatos más relevantes de los mismos: \textit{UID} global, \textit{UID} local, identificador del \textit{namespace} de usuario, \textit{PID} global, \textit{PID} local, identificador del \textit{namespace} de procesos, \textit{GID} y comando asociado.
-    \item \textbf{Transferir la información obtenida desde el \textit{Espacio de Kernel} a un canal accesible desde \textit{Espacio de Usuario}, cuando el administrador lo solicite.} Se debe habilitar un mecanismo de comunicación controlado entre ambas regiones, de modo que el \textit{Kernel} pueda detectar la solicitud de información y transferirla. En este caso, se articula la transferencia de información enviando la referencia de un fichero fijado por el administrador, mediante su \textit{File Descriptor}, desde \textit{Espacio de Usuario} a \textit{Espacio del Kernel}.
-    \item \textbf{Autenticar criptográficamente el contenido generado en \textit{Espacio de Kernel}.} El reporte producido debe ir acompañado de un mecanismo que demuestre su autenticidad e integridad, implementado en este proyecto mediante un \textit{HMAC} basado en \texttt{SHA-256}, calculado mediante una clave simétrica \textit{K} a partir de la información del listado de procesos.
-    \item \textbf{Permitir una verificación posterior de la información solicitada al \textit{Kernel} desde \textit{Espacio de Usuario}.} Desde \textit{Espacio de Usuario}, el administrador debe poder verificar la autenticidad e integridad del reporte generado por el \textit{LKM}. Para ello, se crea un \textit{marco de confianza} en el que tanto el administrador como el \textit{Kernel} deben compartir una clave simétrica \textit{K}. En este contexto, se implementa en \textit{Espacio de Usuario} un mecanismo que recalcula el \textit{HMAC} correspondiente y comprueba si el resultado coincide con el valor autenticado emitido por el \textit{Kernel}.
-    \item \textbf{Facilitar la detección de amenazas de ocultación y manipulación.} El sistema de reporte desarrollado debe permitir comparar la información autenticada obtenida desde \textit{Espacio del Kernel} con la ofrecida por herramientas de monitorización de \textit{Espacio de Usuario}, posibilitando la identificación de indicios de ocultación o manipulación.
+    \item \textbf{Obtener información crítica del sistema desde \textit{espacio del kernel}.} Se precisa del diseño de un mecanismo de reporte seguro desde el \textit{Espacio de kernel}, mediante un \textit{LKM}, capaz de recopilar información de los procesos activos sin depender de herramientas de \textit{espacio de usuario}.
+    \item \textbf{Construir una vista global y estructurada de los procesos del sistema.} Dicho mecanismo de reporte debe generar un listado estructurado de los procesos activos del sistema, que incluya los metadatos más relevantes de los mismos: \textit{UID} global, \textit{UID} local, identificador del espacio de nombres de usuario, \textit{PID} global, \textit{PID} local, identificador del espacio de nombres de procesos, \textit{GID} y comando asociado.
+    \item \textbf{Transferir la información obtenida desde el \textit{Espacio de kernel} a un canal accesible desde \textit{espacio de usuario}, cuando el administrador lo solicite.} Se debe habilitar un mecanismo de comunicación controlado entre ambas regiones, de modo que el \textit{kernel} pueda detectar la solicitud de información y transferirla. En este caso, se articula la transferencia de información enviando la referencia de un fichero fijado por el administrador, mediante su descriptor de fichero, desde \textit{espacio de usuario} a \textit{espacio del kernel}.
+    \item \textbf{Autenticar criptográficamente el contenido generado en \textit{Espacio de kernel}.} El reporte producido debe ir acompañado de un mecanismo que demuestre su autenticidad e integridad, implementado en este proyecto mediante un \textit{HMAC} basado en \texttt{SHA-256}, calculado mediante una clave simétrica \textit{K} a partir de la información del listado de procesos.
+    \item \textbf{Permitir una verificación posterior de la información solicitada al \textit{kernel} desde \textit{espacio de usuario}.} El administrador debe poder verificar la autenticidad e integridad del reporte generado por el \textit{LKM}, pudiendo realizar dicha comprobación posteriormente en otra máquina no comprometida tras copiar los datos obtenidos. Para ello, se crea un \textit{marco de confianza} en el que tanto el administrador como el \textit{kernel} deben compartir una clave simétrica \textit{K}, y en este mismo contexto, se implementa en \textit{espacio de usuario} un mecanismo que recalcula el \textit{HMAC} correspondiente y comprueba si el resultado coincide con el valor autenticado emitido por el \textit{kernel}.
+    \item \textbf{Facilitar la detección de amenazas de ocultación y manipulación.} El sistema de reporte desarrollado debe permitir comparar la información autenticada obtenida desde \textit{espacio del kernel} con la ofrecida por herramientas de monitorización de \textit{espacio de usuario}, posibilitando la identificación de indicios de ocultación o manipulación.
     \item \textbf{Validar el funcionamiento del prototipo.} El mecanismo diseñado debe probarse en un entorno \textit{Linux} real, incluyendo procesos y usuarios pertenecientes a distintos \textit{namespaces}, con el fin de demostrar que el administrador obtiene correctamente la información crítica y que su autenticación puede verificarse satisfactoriamente.
 \end{itemize}
+
+\
 
 \subsection{Objetivos no funcionales}
 \label{sec:onf}
 
-Los objetivos no funcionales describen \textbf{cómo debe hacerlo} el sistema diseñado, estableciendo los criterios de seguridad, calidad, robustez y viabilidad que se deben cumplir.
-En este proyecto, se establecen estos criterios:
+Los objetivos no funcionales que describen \textbf{cómo debe hacerlo} el sistema diseñado son:
 
 \begin{itemize}
-    \item \textbf{Integridad y autenticidad verificables de la información crítica.} El sistema de reporte no debe limitarse a exponer datos del \textit{Kernel} únicamente, sino que debe garantizar que dichos datos puedan comprobarse posteriormente mediante un mecanismo criptográfico de autenticación, en este caso un \textit{HMAC} basado en \texttt{SHA-256}.
-    \item \textbf{Robustez en la comunicación entre espacios.} La interfaz entre \textit{Espacio del Kernel} y \textit{Espacio de Usuario} debe incorporar validaciones de toda la información que entre dentro del \textit{Kernel}, ya sean sobre permisos, descriptores de fichero, modos de apertura o límites de memoria, reduciendo el riesgo de usos incorrectos o comportamientos inseguros que puedan comprometer la estabilidad del sistema.
-    \item \textbf{Seguridad.} El sistema implementado debe minimizar la confianza depositada en el \textit{Espacio de Usuario}, de forma que la información crítica sea generada prioritariamente en una región con mayor privilegio, como el \textit{Espacio del Kernel}, y se acompañe de mecanismos criptográficos y autenticables que permitan detectar modificaciones no autorizadas.
-    \item \textbf{Modularidad y bajo impacto en el \textit{Kernel} del sistema.} El mecanismo de reporte seguro debe integrarse como un \textit{Módulo del Kernel} (\textit{LKM}), evitando modificar el núcleo de forma permanente y facilitando tanto su despliegue controlado como su descarga del sistema, además de cumplir con el objetivo anterior de generar la información crítica desde una región con altos privilegios para favorecer su integridad.
-    \item \textbf{Compatibilidad con entornos \textit{Linux}.} El diseño debe apoyarse en interfaces y mecanismos estándar del ecosistema \textit{Linux}, como \texttt{/proc}, la \textit{Crypto API} del \textit{Kernel}, utilidades convencionales de compilación en lenguaje \texttt{C} y las cabeceras necesarias para la compilación de \textit{LKMs}.
+    \item \textbf{Integridad y autenticidad verificables de la información crítica.} El sistema de reporte no debe limitarse a exponer datos del \textit{kernel} únicamente, sino que debe garantizar que dichos datos puedan comprobarse posteriormente mediante un mecanismo criptográfico de autenticación, en este caso un \textit{HMAC} basado en \texttt{SHA-256}.
+    \item \textbf{Robustez en la comunicación entre espacios.} La interfaz entre \textit{espacio del kernel} y \textit{espacio de usuario} debe incorporar validaciones de toda la información que entre dentro del \textit{kernel}, ya sean sobre permisos, descriptores de fichero, modos de apertura o límites de memoria, reduciendo el riesgo de usos incorrectos o comportamientos inseguros que puedan comprometer la estabilidad del sistema.
+    \item \textbf{Seguridad.} El sistema implementado debe minimizar la confianza depositada en el \textit{espacio de usuario}, de forma que la información crítica sea generada prioritariamente en una región con mayor privilegio, como el \textit{espacio del kernel}, y se acompañe de mecanismos criptográficos y autenticables que permitan detectar modificaciones no autorizadas.
+    \item \textbf{Modularidad y bajo impacto en el \textit{kernel} del sistema.} El mecanismo de reporte seguro debe integrarse como un \textit{módulo del kernel} (\textit{LKM}), evitando modificar el núcleo de forma permanente y facilitando tanto su despliegue controlado como su descarga del sistema, además de cumplir con el objetivo anterior de generar la información crítica desde una región con altos privilegios para favorecer su integridad.
+    \item \textbf{Portabilidad con entornos \textit{Linux}.} El diseño debe apoyarse en interfaces y mecanismos estándar del ecosistema \textit{Linux}, como \texttt{/proc}, la \textit{Crypto API} del \textit{kernel}, utilidades convencionales de compilación en lenguaje \texttt{C} y las cabeceras necesarias para la compilación de \textit{LKMs}.
     \item \textbf{Reproducibilidad del prototipo.} El prototipo debe poder compilarse, cargarse, descargarse y verificarse mediante un procedimiento claro y preciso, de forma que los resultados obtenidos durante el desarrollo puedan repetirse y analizarse posteriormente.
     \item \textbf{Formato de salida.} La información proporcionada por el mecanismo de reporte debe presentarse en una estructura legible y ordenada, facilitando su inspección, análisis y su comparación con la salida de herramientas habituales de monitorización del sistema.
 \end{itemize}
 
-\section{Competencias}
+\
 
-La realización de este TFG ha requerido aplicar e integrar competencias adquiridas tanto a lo largo del \textit{Grado en Ingeniería en Tecnologías de la Telecomunicación} como a partir del propio trabajo autónomo de investigación, diseño, implementación y validación del prototipo.
-Las competencias más relevantes consolidadas son las siguientes:
+\
 
-\begin{itemize}
-    \item \textbf{Análisis de problemas técnicos complejos y resolución autónoma.} El proyecto requirió analizar un problema de seguridad complejo, estudiar alternativas de diseño en el \textit{Kernel}, y tomar decisiones sobre la comunicación entre espacios de usuario y kernel, la representación de información crítica y la implementación criptográfica de HMAC.
-    
-    \item \textbf{Programación de sistemas y programación en kernel de \textit{Linux}.} Mediante aprendizaje autónomo sobre programación de \textit{LKMs}, gestión de procesos y \textit{namespaces}, sistema de ficheros \texttt{/proc} e interacción entre regiones de memoria, se diseñó e implementó en \texttt{C} tanto el módulo del kernel como los programas de usuario necesarios para su validación.
-    
-    \item \textbf{Criptografía, seguridad y mecanismos de autenticación.} Se aplicaron conocimientos sobre análisis de malware, gestión de claves criptográficas, HMAC-SHA256, integridad de información y diseño de comunicaciones seguras entre espacios de usuario y kernel.
-    
-    \item \textbf{Diseño, ejecución y análisis de pruebas de validación.} El prototipo fue probado en entorno \textit{Linux} real con procesos y usuarios en distintos \textit{namespaces}, validando comunicación con kernel a través de \texttt{/proc}, generación de información crítica del sistema y verificación de integridad mediante HMAC.
-    
-    \item \textbf{Comunicación técnica y documentación.} Se aplicó en la redacción rigurosa de la memoria, organización de la metodología del desarrollo, documentación del prototipo y preparación de la presentación, fundamentando la solución en documentación oficial de \textit{Linux}, \textit{ENISA}~\cite{threat_enisa}, artículos técnicos especializados~\cite{rootkits} y MITRE ATT\&CK~\cite{mitre_attack}.
-\end{itemize}
-
-En conjunto, el proyecto constituyó una tarea integradora de conceptos del grado con aprendizaje técnico autodidacta en programación de sistemas y seguridad de información.
- 
 \section{Metodología}
 
-La metodología seguida en este proyecto ha sido principalmente de tipo \textbf{\textit{Spiral}} o en espiral.
+La metodología seguida en este proyecto ha sido principalmente de tipo \textbf{Espiral} (\textbf{\textit{Spiral}}).
 Esta elección se debe a que, aunque la problemática a abordar estaba claramente definida desde el inicio, la solución técnica concreta a la misma no lo estaba.
-Por ello, no resultó adecuado plantear una metodología puramente \textbf{\textit{Agile}} (\textit{Ágil}), ya que durante las primeras fases del proyecto todavía no se conocían con precisión varios aspectos necesarios para poder diseñar una solución adecuada al problema.
-Por esta razón, se optó por una metodología en espiral, la cual permite investigar, diseñar, implementar y validar de forma iterativa y progresiva los conocimientos requeridos para desarrollar un prototipo funcional que sirva como solución a la problemática planteada.\\
+Durante las primeras fases del proyecto todavía no se conocían con precisión varios aspectos necesarios para poder diseñar una solución adecuada al problema.
+Por esta razón, se optó por una metodología en espiral, la cual permite investigar, diseñar, implementar y validar de forma iterativa y progresiva los conocimientos requeridos para desarrollar una serie de prototipos funcionales que sirvan como solución a la problemática planteada.\\
 
 En primer lugar, se estudió a fondo el problema planteado y el marco tecnológico donde se desarrolla el prototipo, así como los fundamentos técnicos necesarios para empezar a diseñar el \textit{LKM}.
 Posteriormente, se fueron construyendo varios prototipos incrementales, incorporando en cada vuelta nuevos elementos y funcionalidades sobre la base validada del prototipo previo, lo que permitió construir progresivamente el componente hasta lograr las funcionalidades definidas.
-Finalmente, en cada iteración se realizaron las validaciones necesarias en el propio entorno \textit{Linux} de desarrollo, apoyándose además en dos componentes de \textit{Espacio de Usuario} que permitieron comprobar el correcto funcionamiento del sistema de reporte seguro creado.\\
+Finalmente, en cada iteración se realizaron las validaciones necesarias en el propio entorno \textit{Linux} de desarrollo, apoyándose además en dos componentes de \textit{espacio de usuario} que permitieron comprobar el correcto funcionamiento del sistema de reporte seguro creado.\\
 
 \begin{figure}[h!]
   \centering
@@ -178,13 +188,17 @@ Finalmente, en cada iteración se realizaron las validaciones necesarias en el p
 
 En conclusión, puede considerarse que el proyecto ha seguido una metodología en espiral con refinamiento progresivo sobre lo desarrollado en iteraciones anteriores, ya que el diseño final del prototipo se fue consolidando a medida que se avanzaba en el estudio técnico, la implementación y la validación de cada nuevo prototipo.
 
+\
+
+\
+
 \section{Plan de trabajo}
 
 La planificación del trabajo seguido en el proyecto ha estado directamente alineada con la metodología en espiral descrita en el apartado anterior, avanzando mediante iteraciones sucesivas que dependían de los conocimientos y resultados obtenidos en las anteriores.
 Durante todo el desarrollo del proyecto se mantuvieron reuniones semanales con el tutor, de una duración media aproximada de entre 30 y 60 minutos, en las que se revisaba el trabajo realizado en la iteración en curso, se resolvían dudas y se proponían las correcciones pertinentes para refinar cada prototipo.
 Una vez completada una iteración, se fijaban los objetivos parciales a realizar en la siguiente.\\
 
-La primera fase comenzó en julio de 2025 y estuvo centrada en el estudio del entorno de desarrollo (\textit{Linux}), del problema a abordar (\textit{rootkits de Espacio de Usuario}) y de la base técnica necesaria para empezar a plantear una solución práctica viable (programación de \textit{LKMs} y mecanismos criptográficos).
+La primera fase comenzó en julio de 2025 y estuvo centrada en el estudio del entorno de desarrollo (\textit{Linux}), del problema a abordar (\textit{rootkits de espacio de usuario}) y de la base técnica necesaria para empezar a plantear una solución práctica viable (programación de \textit{LKMs} y mecanismos criptográficos).
 Ya consolidada esta base, en septiembre de 2025 se inició la implementación del componente principal del proyecto.
 Desde ese momento hasta enero de 2026 se fue desarrollando progresivamente el prototipo final del sistema de reporte seguro a medida que se profundizaba más en los conocimientos técnicos requeridos, incorporando poco a poco las distintas funcionalidades definidas, realizando las validaciones necesarias y refinando el código mediante ajustes, comentarios y correcciones hasta alcanzar una versión funcional.\\
 

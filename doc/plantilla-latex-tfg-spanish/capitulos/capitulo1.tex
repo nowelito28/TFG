@@ -55,7 +55,7 @@ Por otro lado, encontramos variantes focalizadas en el espionaje y/o el lucro ec
 
 No obstante, dentro de este ecosistema ofensivo existe una categoría que destaca por su extrema criticidad y que constituye el foco principal de este proyecto: los \textbf{\textit{rootkits}}.
 A diferencia de otras familias de \textit{malware} centradas en la propagación, el espionaje o el lucro económico directo, los \textit{rootkits} se caracterizan por su capacidad para ocultar y manipular recursos y actividad del sistema, comprometiendo la integridad de la información que este proporciona.
-Estas amenazas pueden operar tanto en el \textit{Espacio de Usuario} como en el \textit{Espacio del Kernel}, siendo una gran amenaza para la seguridad de los sistemas de información actuales.
+Estas amenazas pueden operar tanto en el \textit{espacio de usuario} como en el \textit{espacio del kernel}, siendo una gran amenaza para la seguridad de los sistemas de información actuales.
 Más adelante se profundizará con mayor detalle en su funcionamiento.\\
 
 Sin embargo, para que este \textit{malware} logre infiltrarse en la infraestructura del sistema, los atacantes necesitan métodos de acceso y mecanismos de persistencia.
@@ -159,13 +159,13 @@ Para alcanzar este nivel de evasión, los \textit{rootkits} alteran el flujo nor
 
 Dependiendo de la capa en la que operen y del nivel de privilegios que puedan llegar a escalar, se pueden dividir en dos grandes categorías en sistemas \textit{Linux}:
 \begin{itemize}
-    \item \textbf{\textit{Rootkits} de Modo Usuario (\textit{User-space}):} Operan en la región de menor privilegio (\textit{Ring 3}).
+    \item \textbf{\textit{Rootkits} de Modo Usuario (\textit{User-Space}):} Operan en la región de menor privilegio (\textit{Ring 3}).
     La técnica más común consiste en capturar las funciones de la biblioteca estándar de C (\texttt{libc}) mediante mecanismos como la carga dinámica de bibliotecas a través de la variable \texttt{LD\_PRELOAD}.
     De esta forma, logran interceptar las peticiones a dichas funciones (\textit{hooks}) como \texttt{open} o \texttt{read}, antes de llegar al \textit{kernel}, ocultando y filtrando los resultados en la salida hacia el usuario.
     Investigaciones recientes demuestran que las herramientas de detección clásicas que operan en el nivel de privilegios de usuario normal resultan fácilmente evadibles, generando una falsa sensación de seguridad~\cite{rootkits}.
     
-    \item \textbf{\textit{Rootkits} de Modo Kernel (\textit{Kernel-space}):} Representan la amenaza más crítica, ya que operan en el nivel de máximo privilegio (\textit{Ring 0}).
-    Suelen implementarse mediante Módulos del Kernel (\textit{LKMs}). Al residir en el \textit{kernel} del sistema, adquieren privilegios de administrador sobre las estructuras de datos críticos y la Tabla de Llamadas al Sistema (\textit{sys\_call\_table}).
+    \item \textbf{\textit{Rootkits} de Modo Kernel (\textit{Kernel-Space}):} Representan la amenaza más crítica, ya que operan en el nivel de máximo privilegio (\textit{Ring 0}).
+    Suelen implementarse mediante \textit{módulos del kernel} (\textit{LKMs}). Al residir en el \textit{kernel} del sistema, adquieren privilegios de administrador sobre las estructuras de datos críticos y la Tabla de Llamadas al Sistema (\textit{sys\_call\_table}).
     Esto les permite manipular el sistema desde dentro, volviendo completamente inútiles las herramientas de monitorización que operan por encima de ellos con menos privilegios.
 \end{itemize}
 

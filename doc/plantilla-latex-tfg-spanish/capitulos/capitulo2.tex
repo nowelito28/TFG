@@ -108,9 +108,9 @@ A su vez, este espacio de \textit{memoria virtual} se divide de forma estricta e
 \end{figure}
 
 \begin{itemize}
-    \item \textbf{\textit{Espacio de Usuario} (\textit{User Space}):} Es la porción inferior de la memoria virtual, asociada al \textit{Ring 3}. En esta región se cargan y ejecutan las aplicaciones de usuario, sus bibliotecas y los datos pertinentes.
+    \item \textbf{\textit{Espacio de Usuario} (\textit{User-Space}):} Es la porción inferior de la memoria virtual, asociada al \textit{Ring 3}. En esta región se cargan y ejecutan las aplicaciones de usuario, sus bibliotecas y los datos pertinentes.
     Si un proceso comete un error ``crítico'' en esta región (como intentar acceder a memoria que no le pertenece), el sistema operativo interviene para finalizar dicho proceso y genera un error (típicamente conocido como \textit{Segmentation Fault}), evitando que el fallo afecte al resto del sistema.
-    \item \textbf{\textit{Espacio del Kernel} (\textit{Kernel Space}):} Es la porción superior de la memoria virtual, reservada exclusivamente para el \textbf{\textit{kernel}} con sus módulos y los controladores de dispositivos (\textit{drivers}).
+    \item \textbf{\textit{Espacio del Kernel} (\textit{Kernel-Space}):} Es la porción superior de la memoria virtual, reservada exclusivamente para el \textbf{\textit{kernel}} con sus módulos y los controladores de dispositivos (\textit{drivers}).
     Al estar asociado al \textit{Ring 0}, el código que reside aquí tiene acceso total a la memoria física y, por consiguiente, al \textit{hardware}. Un fallo de programación o una intrusión maliciosa en este nivel compromete todo el sistema, pudiendo provocar una caída total del mismo (\textit{Kernel Panic}).
 \end{itemize}
 
@@ -148,12 +148,12 @@ Dentro de esta estructura, uno de los directorios más singulares es \texttt{/pr
 Su principal propósito es exponer, a través de una interfaz basada en ficheros, información sobre parámetros del sistema, procesos en ejecución y determinados estados internos del \textit{kernel}, como \texttt{/proc/meminfo} o \texttt{/proc/cpuinfo}.
 El acceso a estas entradas se realiza mediante operaciones estándar sobre ficheros, como \texttt{read()} o \texttt{write()}, que el \textit{kernel} redirige a los manejadores correspondientes según la naturaleza y propósito de cada fichero virtual.\\
 
-De esta manera, es posible crear interfaces de comunicación entre el \textit{Espacio de Usuario} y el \textit{Espacio del Kernel} mediante \textit{Módulos del Kernel} que creen nuevas entradas de fichero virtual dentro de este directorio,
+De esta manera, es posible crear interfaces de comunicación entre el \textit{espacio de usuario} y el \textit{espacio del kernel} mediante \textit{módulos del kernel} que creen nuevas entradas de fichero virtual dentro de este directorio,
 permitiendo asociar operaciones de lectura y escritura a manejadores específicos para solicitar o reportar información sensible del sistema de forma controlada.\\
 
 Para gestionar esta gran heterogeneidad de recursos y permitir la coexistencia de múltiples sistemas de ficheros físicos (como \textit{ext4} o \textit{NTFS}) en un mismo sistema anfitrión, el \textit{kernel} implementa una capa de abstracción denominada \textbf{Sistema de Ficheros Virtual (\textit{VFS})},
 situada entre la capa de llamadas al sistema (\textit{syscalls}) y los \textit{drivers} de bajo nivel.
-Su función es proporcionar una \textit{API} unificada que permite a las aplicaciones del \textit{Espacio de Usuario} utilizar llamadas estándar (como \texttt{read()} o \texttt{write()}) sobre cualquier fichero o dispositivo, abstrayendo por completo los detalles de la máquina~\cite{librossoo}.\\
+Su función es proporcionar una \textit{API} unificada que permite a las aplicaciones del \textit{espacio de usuario} utilizar llamadas estándar (como \texttt{read()} o \texttt{write()}) sobre cualquier fichero o dispositivo, abstrayendo por completo los detalles de la máquina~\cite{librossoo}.\\
 
 \begin{figure}[h!]
   \centering
@@ -163,8 +163,8 @@ Su función es proporcionar una \textit{API} unificada que permite a las aplicac
   \label{fig:vfs}
 \end{figure}
 
-Principalmente, el \textit{VFS} actúa como un enrutador central entre el \textit{Espacio de Usuario} y el \textit{Espacio del Kernel}, recibiendo las peticiones de las aplicaciones y redirigiéndolas de forma transparente al \textit{driver} correspondiente.
-Además, los sistemas modernos soportan mecanismos avanzados como \textit{FUSE} (\textit{Filesystem in Userspace}), que permite al \textit{VFS} delegar la gestión de ciertos sistemas de ficheros a procesos que se ejecutan de forma segura directamente en el \textit{Espacio de Usuario}.\\
+Principalmente, el \textit{VFS} actúa como un enrutador central entre el \textit{espacio de usuario} y el \textit{espacio del kernel}, recibiendo las peticiones de las aplicaciones y redirigiéndolas de forma transparente al \textit{driver} correspondiente.
+Además, los sistemas modernos soportan mecanismos avanzados como \textit{FUSE} (\textit{Filesystem in Userspace}), que permite al \textit{VFS} delegar la gestión de ciertos sistemas de ficheros a procesos que se ejecutan de forma segura directamente en el \textit{espacio de usuario}.\\
 
 Para integrar distintos sistemas de ficheros dentro del sistema anfitrión, \textit{Linux} prescinde de unidades aisladas y utiliza la tecnología de \textbf{montaje} (\textit{mounting}).
 Este mecanismo unificador ``engancha'' lógicamente cualquier sistema de ficheros externo a un directorio existente (por ejemplo, \texttt{/mnt} o \texttt{/media}), considerado \textbf{punto de montaje} (\textit{mount point}).
@@ -178,8 +178,8 @@ De este modo, se crea una estructura de directorios continua y transparente que 
   \label{fig:mounting_point}
 \end{figure}
 
-Como se ha expuesto en los apartados anteriores, la arquitectura de \textit{Linux} se fundamenta en recursos fuertemente centralizados: un único \textit{Kernel}, memoria física compartida, una jerarquía de directorios global, entre otros.
-Para romper con esta centralización y dotar al sistema de capacidades de aislamiento, el \textit{Kernel} implementa la tecnología de los \textit{Espacios de nombres} que permite el confinamiento de procesos y recursos, tanto físicos como lógicos, dentro de un entorno aislado y controlado.
+Como se ha expuesto en los apartados anteriores, la arquitectura de \textit{Linux} se fundamenta en recursos fuertemente centralizados: un único \textit{kernel}, memoria física compartida, una jerarquía de directorios global, entre otros.
+Para romper con esta centralización y dotar al sistema de capacidades de aislamiento, el \textit{kernel} implementa la tecnología de los \textit{Espacios de nombres} que permite el confinamiento de procesos y recursos, tanto físicos como lógicos, dentro de un entorno aislado y controlado.
 Este concepto se explica en detalle en el siguiente apartado~\cite{librossoo, love_linux}.
 
 \
@@ -237,12 +237,12 @@ a diferencia de un usuario estándar con un \textit{UID} distinto (como el 1000)
 Es en este punto donde la tecnología de \textit{Namespaces} entra en escena, alterando por completo este paradigma. Un \textbf{\textit{Namespace}} funciona como una capa de abstracción lógica que envuelve un recurso global del sistema 
 y lo expone a un grupo de procesos como si fuera un recurso aislado y privilegiado, siendo el \textit{kernel} el encargado de traducir estas identidades, atributos, permisos y recursos de forma totalmente transparente.\\
 
-En la práctica, esto implica que un proceso ejecutándose dentro de un \textit{Namespace} aislado puede tener asignado el \textit{PID} 1 (el cual típicamente corresponde al primer proceso ejecutado en la máquina, \textit{systemd} o \textit{init}),
-dándole la ilusión de que es el núcleo central del sistema. Sin embargo, desde la perspectiva exterior del \textit{kernel}, ese mismo proceso es simplemente un proceso regular más con el \textit{PID} 4500, por ejemplo.\\
+En la práctica, esto implica que un proceso ejecutándose dentro de un \textit{Namespace} aislado puede tener asignado el \textit{PID} 1, típicamente asociado al primer proceso ejecutado en la máquina, \textit{systemd} o \textit{init}.
+Sin embargo, desde la perspectiva exterior del \textit{kernel}, ese mismo proceso es simplemente un proceso regular más con el \textit{PID} 4500, por ejemplo.\\
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=0.75\textwidth]{figs/linux-namespaces-types.pdf}
+  \includegraphics[width=0.8\textwidth]{figs/linux-namespaces-types.pdf}
   \figsource{\getauthor{hackerstack_namespaces}, \gettitle{hackerstack_namespaces} (\getyear{hackerstack_namespaces})~\cite{hackerstack_namespaces}.}
   \caption{Tipos de \textit{Namespaces}.}
   \label{fig:namespaces_types}
@@ -270,7 +270,9 @@ Estos son los principales tipos de \textit{Namespaces} a implementar en un siste
     Esto oculta la jerarquía de políticas y límites de recursos (como \textit{CPU} o memoria) establecidos por el \textit{kernel}, evitando que un proceso aislado los conozca o intente modificarlos.
     \item \textbf{\textit{Time} (\texttt{time}):} Aísla los relojes internos del sistema, especialmente el reloj de arranque (\textit{boot clock}) y el reloj monotónico (\textit{monotonic clock}).
     Esto permite que este espacio aislado tenga su propia línea temporal, lo cual es muy útil para migrar contenedores entre diferentes servidores físicos sin alterar su percepción del tiempo de actividad (\textit{uptime}).
-  \end{itemize}
+\end{itemize}
+
+\
 
 La combinación estratégica de estos bloques es, precisamente, el motor tecnológico que hace posible la existencia de tecnologías de virtualización modernas como los contenedores (\textit{Docker}),
 cuya arquitectura típica se ilustra en la siguiente Figura \ref{fig:ns-docker}.
@@ -294,19 +296,19 @@ Para dotarlo de una alta flexibilidad y permitir la extensión de sus funcionali
 \subsection{Módulos del Kernel de \textit{Linux} (\textit{LKMs})}
 \label{sec:lkms}
 
-Un \textbf{Módulo del Kernel} (\textit{LKM}) es código objeto compilado (cuyo código fuente está escrito en lenguaje \textit{C}) que puede ser cargado y descargado del espacio de memoria del núcleo (\textit{kernel}) en tiempo de ejecución.
+Un \textbf{módulo del kernel} (\textit{LKM}) es código objeto compilado (cuyo código fuente está escrito en lenguaje \textit{C}) que puede ser cargado y descargado del espacio de memoria del núcleo (\textit{kernel}) en tiempo de ejecución.
 Estos módulos permiten al \textit{kernel} extender sus funcionalidades (como incorporar nuevos sistemas de ficheros) sin necesidad de reiniciar el sistema ni recompilar el \textit{kernel} completo~\cite{geeks_lkm}.\\
 
-El desarrollo de \textit{LKMs} presenta diferencias drásticas frente a la programación convencional en \textit{Espacio de Usuario}.
+El desarrollo de \textit{LKMs} presenta diferencias drásticas frente a la programación convencional en \textit{espacio de usuario}.
 Al operar directamente en el nivel de máximos privilegios, los módulos no pueden acceder a la biblioteca estándar de \textit{C} (\texttt{libc}) y, por consiguiente, a funciones típicas como \texttt{printf()} o \texttt{malloc()}.
 Además de esto, al formar parte del propio \textit{kernel}, tampoco pueden utilizar llamadas al sistema (\textit{syscalls}) a través de la interfaz estándar, sino que invocan directamente las funciones internas del \textit{kernel}.\\
 
-Por otro lado, no existe una salida estándar por consola como ocurre en \textit{Espacio de Usuario}, y para suplirla, el \textit{kernel} proporciona su propia macro de impresión de \textit{logs}: \texttt{printk()}.
+Por otro lado, no existe una salida estándar por consola como ocurre en \textit{espacio de usuario}, y para suplirla, el \textit{kernel} proporciona su propia macro de impresión de \textit{logs}: \texttt{printk()}.
 Las trazas generadas mediante esta función se almacenan en un \textit{buffer} circular interno y se registran en ficheros, típicamente en \texttt{/var/log/kern.log}.
 Asimismo, \texttt{printk()} exige clasificar cada traza con un nivel de prioridad (\textit{log level}), abarcando eventos críticos o de error (\texttt{KERN\_EMERG} y \texttt{KERN\_ERR}), como también informativos o de depuración (\texttt{KERN\_INFO} y \texttt{KERN\_DEBUG}).\\
 
 En cuanto a su compilación, se requieren las cabeceras del \textit{kernel} (paquetes \texttt{linux-headers}) que coincidan con la versión exacta del sistema.
-Mediante un fichero \texttt{Makefile}, el código se compila generando un fichero objeto especial empaquetado con extensión \texttt{.ko} (\textit{Kernel Object}).
+Mediante un fichero \texttt{Makefile}, el código se compila generando un fichero objeto especial empaquetado con extensión \texttt{.ko} (\textit{kernel object}).
 Una vez compilado, la gestión de su ciclo de vida se resume en cuatro fases básicas:
 
 \begin{itemize}
@@ -331,7 +333,7 @@ make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
   LD [M]  /home/lkms/hw.ko
 make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
 
-# 2. Load the module (.ko) into the Kernel
+# 2. Load the module (.ko) into the kernel
 $ insmod hw.ko
 
 # 3. Inspect the module metadata
@@ -359,8 +361,8 @@ A nivel de código fuente, la estructura lógica de cualquier \textit{LKM} se as
 En primer lugar, una \textbf{función de inicialización o de carga} (\texttt{module\_init()}), la cual se ejecuta automáticamente al insertar el módulo en el \textit{kernel} (mediante \texttt{insmod}) y se encarga de reservar los recursos necesarios o crear los ficheros virtuales implicados.
 En segundo lugar, una \textbf{función de limpieza o de descarga} (\texttt{module\_exit()}), invocada al eliminar el módulo cargado (\texttt{rmmod}) con el fin de liberar la memoria utilizada y evitar fugas o estados inconsistentes en el sistema.\\
 
-Finalmente, para poder establecer un canal o interfaz de comunicación bidireccional entre el \textit{Espacio de Usuario} y el \textit{Espacio del Kernel}, una de las técnicas más eficientes es la creación de ficheros virtuales a través del pseudo-sistema de ficheros de \textbf{\texttt{/proc}}.
-De esta manera, el módulo instancia un fichero virtual (por ejemplo, \texttt{/proc/mydev}) y define manejadores personalizados (\textit{handlers}) que interceptan las llamadas al sistema que actúan sobre él, como \texttt{read} o \texttt{write}, y así poder declarar específicamente cómo interactuar con el \textit{Espacio de Usuario}.
+Finalmente, para poder establecer un canal o interfaz de comunicación bidireccional entre el \textit{espacio de usuario} y el \textit{espacio del kernel}, una técnica eficiente es la creación de ficheros virtuales a través del pseudo-sistema de ficheros de \textbf{\texttt{/proc}}.
+De esta manera, el módulo instancia un fichero virtual (por ejemplo, \texttt{/proc/mydev}) y define manejadores personalizados (\textit{handlers}) que interceptan las llamadas al sistema que actúan sobre él, como \texttt{read} o \texttt{write}, y así poder declarar específicamente cómo interactuar con el \textit{espacio de usuario}.
 Para implementar esta metodología en el \textit{LKM}, se precisa del uso de funciones específicas de la \textit{API} del \textit{kernel} que aseguran su correcto funcionamiento de forma segura, como \texttt{copy\_to\_user()} y \texttt{copy\_from\_user()} para la transferencia de información entre espacios de memoria distintos~\cite{medium_proc}.\\
 
 En conclusión, el conjunto de todas las características estructurales y funcionales expuestas anteriormente constituye la base tecnológica de un sistema operativo \textit{Linux}.
@@ -374,9 +376,13 @@ Esto permite garantizar un acceso directo a las capas más profundas del sistema
 \subsection{Entorno de desarrollo}
 \label{sec:denv}
 
-Teniendo en cuenta todas las funcionalidades descritas en entornos \textit{Linux}, se eligió realizar el desarrollo de este proyecto sobre una máquina física dedicada \textbf{Raspberry Pi 4 Model B} de \textbf{4 GB de RAM}, perteneciente a la familia de arquitecturas \textit{ARM}.
-La elección de esta plataforma y de un sistema basado en \textit{Linux} se debe principalmente a su versatilidad y al alto grado de control que ofrece sobre el sistema operativo, el \textit{kernel} y las herramientas de bajo nivel necesarias para compilar, cargar y depurar \textit{Módulos del Kernel}.
-Además, al tratarse de una máquina física aislada, se reducen los riesgos asociados a las pruebas con código en \textit{Espacio de Kernel}, evitando corromper un equipo de uso cotidiano y facilitando una experimentación más segura sobre un entorno real~\cite{rpi4_specs}.\\
+Teniendo en cuenta todas las funcionalidades descritas en entornos \textit{Linux}, se eligió realizar el desarrollo de este proyecto sobre una máquina física dedicada \textbf{Raspberry Pi 4 Model B} de \textbf{4 GB de RAM}, perteneciente a la familia de arquitecturas \textit{ARM}.\\
+
+La elección de esta plataforma y de un sistema basado en \textit{Linux} se debe principalmente a su versatilidad y al alto grado de control que ofrece sobre el sistema operativo, el \textit{kernel} y las herramientas de bajo nivel necesarias para compilar, cargar y depurar \textit{módulos del kernel}.
+Además, al tratarse de una máquina física aislada, se reducen los riesgos asociados a las pruebas con código en \textit{Espacio del kernel}, evitando corromper un equipo de uso cotidiano y facilitando una experimentación más segura sobre un entorno real~\cite{rpi4_specs}.\\
+
+No obstante, la elección de esta placa no condiciona conceptualmente el mecanismo diseñado.
+La \textit{Raspberry Pi} se emplea como plataforma experimental controlada, portable y adecuada para las pruebas, pero las ideas desarrolladas se apoyan en interfaces y mecanismos propios de \textit{Linux}, por lo que podrían trasladarse a otros sistemas compatibles con las adaptaciones necesarias al \textit{nernel}, la arquitectura y el entorno de compilación.\\
 
 \begin{figure}[h!]
   \centering
@@ -398,7 +404,7 @@ Su elección se debe a que proporciona un entorno configurable, ligero y especia
 \end{figure}
 
 Y por otro lado, la preparación del entorno comenzó con la instalación externa de dicha imagen de la distribución \textit{Armbian} en una tarjeta \textit{microSD} de 32 \textit{GB} y el arranque inicial de la placa tras introducirla.
-Una vez iniciado el sistema, se actualizó y se instalaron las herramientas necesarias para la compilación en \textit{C} (\texttt{gcc} y \texttt{make}), el desarrollo de \textit{Módulos del Kernel} (\texttt{kmod}) y las cabeceras del \textit{kernel} necesarias para su compilación (\texttt{linux-headers}),
+Una vez iniciado el sistema, se actualizó y se instalaron las herramientas necesarias para la compilación en \textit{C} (\texttt{gcc} y \texttt{make}), el desarrollo de \textit{módulos del kernel} (\texttt{kmod}) y las cabeceras del \textit{kernel} necesarias para su compilación (\texttt{linux-headers}),
 el uso de \textit{OpenSSL} (\texttt{openssl} y \texttt{libssl-dev}) y el despliegue de contenedores para crear nuevos espacios de nombres con \textit{Docker} (\texttt{docker.io}).
 
 \begin{code}[h!]

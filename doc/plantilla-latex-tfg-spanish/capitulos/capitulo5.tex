@@ -4,8 +4,10 @@
 Una vez definida la problemática abordada, los objetivos del proyecto y el marco tecnológico en el que se desarrolla, en este capítulo se describe el proceso seguido para construir la solución propuesta.
 Se presentan los prototipos desarrollados hasta alcanzar la versión final funcional, describiendo su implementación y validación, así como los errores encontrados y las soluciones adoptadas.\\
 
-Cabe resaltar que el código fuente oficial del \textit{Kernel} de \textit{Linux} se encuentra disponible en \url{https://www.kernel.org}, y que la versión del \textit{Kernel} utilizada en el proyecto es la \texttt{6.12.41-current-bcm2711}.
-Esta precisión resulta importante, ya que el desarrollo y las referencias consultadas se basan en el código fuente de esta versión, pudiendo variar tanto la funcionalidad como la localización de algunos recursos respecto a otras versiones del \textit{Kernel}.\\
+Cabe resaltar que el código fuente oficial del \textit{kernel} de \textit{Linux} se encuentra disponible en \url{https://www.kernel.org}, y que la versión del \textit{kernel} utilizada en el proyecto es la \texttt{6.12.41-current-bcm2711}.
+Esta precisión resulta importante, ya que el desarrollo y las referencias consultadas se basan en el código fuente de esta versión, pudiendo variar tanto la funcionalidad como la localización de algunos recursos respecto a otras versiones del \textit{kernel}.\\
+
+\
 
 \section{Prototipos, Implementaciones y Validaciones}
 \label{sec:prototipos-implementaciones-validaciones}
@@ -13,14 +15,15 @@ Esta precisión resulta importante, ya que el desarrollo y las referencias consu
 En esta sección se describen los prototipos desarrollados durante el proyecto desde una perspectiva conceptual, explicando los conocimientos teóricos aplicados en cada etapa y la forma en la que dichos conceptos se integran progresivamente en la solución final.
 El objetivo no es reproducir aquí el código fuente, sino justificar el diseño seguido, detallar el funcionamiento de cada mecanismo y relacionar cada prototipo con la necesidad técnica que resuelve dentro del sistema de reporte seguro propuesto.\\
 
-La implementación en detalle, los códigos y scripts utilizados junto con las salidas de validación generadas se recogen en el Apéndice~\ref{anexo:codigo-prototipos}.
+La implementación en detalle, el código y scripts utilizados junto con las salidas de validación generadas se recogen en el Apéndice~\ref{anexo:codigo-prototipos}.
 Por otra parte, el código fuente completo del proyecto se encuentra también disponible en el repositorio público de \textit{GitHub} \url{https://github.com/nowelito28/TFG}.\\
 
+\
 
 \subsection{\textit{Hello World}}
 
 El primer prototipo desarrollado consistió en un \textit{LKM} mínimo de tipo \textit{Hello World}.
-Se trata de una primera toma de contacto con programación dentro del \textit{Kernel}, validando el flujo básico de trabajo necesario para desarrollar código ejecutado en esta región.\\
+Se trata de una primera toma de contacto con programación dentro del \textit{kernel}, validando el flujo básico de trabajo necesario para desarrollar código ejecutado en esta región.\\
 
 \begin{figure}[h!]
   \centering
@@ -30,75 +33,69 @@ Se trata de una primera toma de contacto con programación dentro del \textit{Ke
   \label{fig:hello_world_scheme}
 \end{figure}
 
-Lo primero que se debe entender es que un \textit{LKM} no forma parte necesariamente de la imagen principal del \textit{Kernel} en el arranque, sino que puede compilarse como un objeto independiente con extensión \texttt{.ko} y cargarse en tiempo de ejecución.
-Esto permite extender la funcionalidad del \textit{Kernel} sin recompilarlo por completo.
-Esta es la principal herramienta utilizada en el proyecto, ya que todos los prototipos se construyen como módulos externos y mantienen el mismo ciclo general de compilación, carga, prueba y descarga sin tener que reiniciar el sistema cada vez que se quiera ejecutar.\\
+El componente de \textit{LKM} es la principal herramienta utilizada en el proyecto, ya que todos los prototipos se construyen como módulos externos y mantienen el mismo ciclo general de compilación, carga, prueba y descarga sin tener que reiniciar el sistema cada vez que se quiera ejecutar.\\
 
-La compilación del módulo se apoya en \textit{kbuild}, el sistema de construcción utilizado por el propio \textit{Kernel} de \textit{Linux}.
-En lugar de compilar el fichero fuente como un programa de usuario convencional, el \textit{Makefile} delega la construcción en el árbol de cabeceras del \textit{Kernel} activo mediante la ruta \texttt{/lib/modules/\$(uname -r)/build}.
-De esta forma, el módulo se compila con la misma versión del \textit{Kernel} que lo va a cargar, en este caso \texttt{6.12.41-current-bcm2711}.
+La compilación del módulo se apoya en \textit{kbuild}, el sistema de construcción utilizado por el propio \textit{kernel} de \textit{Linux}.
+En lugar de compilar el fichero fuente como un programa de usuario convencional, el \textit{Makefile} delega la construcción en el árbol de cabeceras del \textit{kernel} activo mediante la ruta \texttt{/lib/modules/\$(uname -r)/build}.
+De esta forma, el módulo se compila con la misma versión del \textit{kernel} que lo va a cargar, en este caso \texttt{6.12.41-current-bcm2711}.
 El detalle del fichero de compilación utilizado se recoge en el Código~\ref{cod:makefile} del Apéndice~\ref{anexo:codigo-prototipos}.\\
 
-Desde el punto de vista estructural, el módulo necesita incluir las cabeceras que exponen las primitivas básicas de desarrollo en \textit{Espacio del Kernel}.
+Desde el punto de vista estructural, el módulo necesita incluir las cabeceras que exponen las primitivas básicas de desarrollo en \textit{espacio del kernel}.
 Entre ellas se encuentran las necesarias para declarar módulos (\textit{LKMs}), utilizar funciones del núcleo y registrar las rutinas de inicialización y salida.
 Además, el prototipo define metadatos mediante macros como la licencia, el autor, la descripción y la versión.
-Estos metadatos no son puramente informativos, ya que la licencia indicada afecta a cómo el \textit{Kernel} considera el módulo cargado.
-Concretamente, declarar una licencia compatible con \textit{GPL} evita que el núcleo marque el módulo como \textit{tainted} por incompatibilidad de licencia, lo cual advierte que el \textit{Kernel} ha sido modificado o ejecuta componentes que pueden dificultar el diagnóstico de errores.
+Estos metadatos no son puramente informativos, ya que la licencia indicada afecta a cómo el \textit{kernel} considera el módulo cargado.
+Concretamente, declarar una licencia compatible con \textit{GPL} evita que el núcleo marque el módulo como \textit{tainted} por incompatibilidad de licencia, lo cual advierte que el \textit{kernel} ha sido modificado o ejecuta componentes que pueden dificultar el diagnóstico de errores.
 La declaración concreta de cabeceras y metadatos se muestra en el Código~\ref{cod:hello_headers} del anexo.\\
 
 El comportamiento del módulo se organiza principalmente mediante dos puntos de entrada.
 El primero es la función de inicialización (asociada a la macro \texttt{module\_init()}), ejecutada automáticamente al cargar el módulo mediante \texttt{insmod}.
-Y el segundo es la función de salida (asociada a la macro \texttt{module\_exit()}), ejecutada cuando el módulo se descarga del \textit{Kernel} mediante \texttt{rmmod}.
-Estos puntos representan el ciclo de vida mínimo de un \textit{LKM}: reservar o inicializar recursos al entrar en el \textit{Kernel} (\textit{carga}), y liberar o finalizar el trabajo al salir (\textit{descarga}).
+Y el segundo es la función de salida (asociada a la macro \texttt{module\_exit()}), ejecutada cuando el módulo se descarga del \textit{kernel} mediante \texttt{rmmod}.
+Estos puntos representan el ciclo de vida mínimo de un \textit{LKM}: reservar o inicializar recursos al entrar en el \textit{kernel} (\textit{carga}), y liberar o finalizar el trabajo al salir (\textit{descarga}).
 En este primer prototipo todavía no se reserva memoria ni se crean interfaces de comunicación, el objetivo es únicamente demostrar cómo funcionan ambas fases del módulo y su flujo de ejecución.
-Esta lógica se detalla en los Códigos~\ref{cod:hello_init_exit} y~\ref{cod:hello_module_init}.\\
+Esta lógica se detalla en ~\ref{cod:hello_init_exit} y~\ref{cod:hello_module_init}.\\
 
-Para validar que el código se ejecuta realmente dentro del \textit{Kernel}, se utiliza \texttt{printk}.
-Esta función es el mecanismo habitual para registrar mensajes/trazas desde \textit{Espacio del Kernel}, de forma análoga a cómo un programa de usuario podría escribir por la salida estándar, pero integrado en el sistema de registros del núcleo.
+Para validar que el código se ejecuta realmente dentro del \textit{kernel}, se utiliza \texttt{printk}.
+Esta función es el mecanismo habitual para registrar mensajes/trazas desde \textit{espacio del kernel}, de forma análoga a cómo un programa de usuario podría escribir por la salida estándar, pero integrado en el sistema de registros del núcleo.
 Cada mensaje puede incluir un nivel de prioridad dependiendo de la traza a escribir y su función, como \texttt{KERN\_INFO}, utilizada para trazas meramente informativas, o \texttt{KERN\_ERR}, para registrar errores.
-Posteriormente, dichas trazas pueden consultarse desde \textit{Espacio de Usuario} mediante herramientas como \texttt{dmesg} o el fichero de \textit{logs} del \textit{Kernel} \texttt{/var/log/kern.log}, accesible desde \textit{Espacio de Usuario}.
-Estos métodos de validación son importantes porque permiten confirmar simultáneamente estos aspectos: que el módulo se carga o descarga, que el \textit{Kernel} ejecuta sus rutinas de inicialización y salida correctamente, y si fuera necesario, ver trazas de depuración de la lógica implementada en dicho módulo.\\
+Posteriormente, dichas trazas pueden consultarse desde \textit{espacio de usuario} mediante herramientas como \texttt{dmesg} o el fichero de \textit{logs} del \textit{kernel} \texttt{/var/log/kern.log}, accesible desde \textit{espacio de usuario}.
+Estos métodos de validación son importantes porque permiten confirmar simultáneamente estos aspectos: que el módulo se carga o descarga, que el \textit{kernel} ejecuta sus rutinas de inicialización y salida correctamente, y si fuera necesario, ver trazas de depuración de la lógica implementada en dicho módulo.\\
 
-Finalmente, una vez programado el \textit{LKM}, se procede a validar su funcionamiento, empezando por su compilación, carga en el \textit{Kernel}, comprobar los mensajes generados (\textit{logs}), consultar sus metadatos con \texttt{modinfo} y descargarlo verificando la ejecución de la rutina de salida.
+Finalmente, una vez programado el \textit{LKM}, se procede a validar su funcionamiento, empezando por su compilación, carga en el \textit{kernel}, comprobar los mensajes generados (\textit{logs}), consultar sus metadatos con \texttt{modinfo} y descargarlo verificando la ejecución de la rutina de salida.
 El procedimiento completo de comandos y salidas se encuentra recogido en el Código~\ref{cod:hello_validation}.\\
 
 Con ello, se desarrolló y validó la base técnica sobre la que se construyen los siguientes prototipos.\\\\
 
+\
 
 \subsection{Fichero virtual \texttt{/proc/fdev}}
 
-Una vez validado el ciclo de vida básico de un \textit{LKM}, el siguiente prototipo incorporó una interfaz de comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.
-El objetivo de esta etapa fue exponer un punto de interacción controlado que permitiese enviar datos al módulo y dar pie a una gestión personalizada de los mismos dentro del \textit{Kernel}.
+Una vez validado el ciclo de vida básico de un \textit{LKM}, el siguiente prototipo incorporó una interfaz de comunicación entre \textit{espacio de usuario} y \textit{espacio del kernel}.
+El objetivo de esta etapa fue exponer un punto de interacción controlado que permitiese enviar datos al módulo y dar pie a una gestión personalizada de los mismos dentro del \textit{kernel}.
 Para ello se utilizó el sistema de ficheros virtual \texttt{/proc} como interfaz de entrada al \textit{LKM}, mediante el fichero \texttt{/proc/fdev}.\\
 
 \begin{figure}[h!]
   \centering
   \scalebox{1}{\input{figs/proc_fdev_scheme.tex}}
   \figsource{Elaboración propia.}
-  \caption{Comunicación básica entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel} mediante un fichero virtual en \texttt{/proc}.}
+  \caption{Comunicación básica entre \textit{espacio de usuario} y \textit{espacio del kernel} mediante un fichero virtual en \texttt{/proc}.}
   \label{fig:proc_fdev_scheme}
 \end{figure}
 
-El sistema de ficheros \texttt{/proc} no almacena ficheros persistentes en disco, sino que presenta una vista virtual de información y mecanismos expuestos por el \textit{Kernel} en memoria (\textit{RAM}).
-Desde \textit{Espacio de Usuario}, una entrada de \texttt{/proc} se manipula como un fichero ordinario mediante operaciones como apertura, lectura y escritura.
-Sin embargo, internamente dichas operaciones no acceden a un contenido físico, sino que son atendidas por funciones del \textit{Kernel} (\textit{syscalls}) asociadas a esa entrada.
-Esta característica lo convierte en un mecanismo adecuado para establecer una vía de comunicación entre una región y otra.\\
-
-En primer lugar, para poder crear y gestionar este fichero virtual fue necesario ampliar las cabeceras del módulo con soporte para dos aspectos principales: la creación de entradas en el sistema de ficheros virtual \texttt{/proc} y la transferencia controlada de datos entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}.
-El primer grupo permite registrar el fichero virtual y asociarle operaciones propias, mientras que el segundo proporciona primitivas específicas para copiar información entre ambas regiones de memoria sin desreferenciar directamente punteros procedentes de \textit{Espacio de Usuario}.
-Esta separación es importante, ya que el \textit{Kernel} y los procesos de usuario trabajan en contextos de memoria distintos, por lo que el acceso directo a direcciones de usuario desde el \textit{Kernel} debe realizarse de forma correcta, evitando accesos inseguros o corruptos.
+En primer lugar, para poder crear y gestionar este fichero virtual fue necesario ampliar las cabeceras del módulo con soporte para dos aspectos principales: la creación de entradas en el sistema de ficheros virtual \texttt{/proc} y la transferencia controlada de datos entre \textit{espacio de usuario} y \textit{espacio del kernel}.
+El primer grupo permite registrar el fichero virtual y asociarle operaciones propias, mientras que el segundo proporciona primitivas específicas para copiar información entre ambas regiones de memoria sin desreferenciar directamente punteros procedentes de \textit{espacio de usuario}.
+Esta separación es importante, ya que el \textit{kernel} y los procesos de usuario trabajan en contextos de memoria distintos, por lo que el acceso directo a direcciones de usuario desde el \textit{kernel} debe realizarse de forma correcta, evitando accesos inseguros o corruptos.
 El conjunto concreto de cabeceras incorporadas en este prototipo se recoge en el Código~\ref{cod:proc_headers} del Apéndice~\ref{anexo:codigo-prototipos}.\\
 
-En este prototipo se crea una entrada específica dentro de \texttt{/proc} mediante el fichero \texttt{/proc/fdev}, la cual se registra durante la carga del módulo mediante la función de inicialización.
-Conceptualmente, el módulo solicita al subsistema \texttt{/proc} que cree un nuevo nodo visible desde \textit{Espacio de Usuario} y que asocie a dicho nodo una tabla de operaciones.
-Esta tabla actúa como el contrato entre las operaciones de fichero invocadas desde \textit{Espacio de Usuario} y las funciones internas del módulo.
+En este prototipo se crea una entrada específica dentro de \texttt{/proc} mediante el fichero \texttt{/proc/fdev}, que se registra durante la carga del módulo mediante la función de inicialización.
+Conceptualmente, el módulo solicita al subsistema \texttt{/proc} que cree un nuevo nodo visible desde \textit{espacio de usuario} y que asocie a dicho nodo una tabla de operaciones.
+Esta tabla actúa como el contrato entre las operaciones de fichero invocadas desde \textit{espacio de usuario} y las funciones internas del módulo.
 Así, una lectura sobre \texttt{/proc/fdev} se redirige al \textit{handler} de lectura, mientras que una escritura sobre esa misma ruta se redirige al \textit{handler} de escritura.
 Al descargar el módulo, la rutina de salida elimina la entrada para no dejar referencias inválidas dentro de \texttt{/proc}.
 La referencia a la entrada virtual, su tabla de operaciones y el registro mediante \texttt{proc\_create} se detallan en el Código~\ref{cod:proc_entry_ops}.\\
 
 En relación con lo anterior, se puede considerar que el núcleo de este prototipo se encuentra en los \textit{handlers} de lectura y escritura.
-El \textit{handler} de escritura recibe los bytes proporcionados desde \textit{Espacio de Usuario}, los copia a un \textit{buffer} temporal en memoria del \textit{Kernel} y los interpreta como valores de prueba.
-En sentido contrario, el \textit{handler} de lectura construye una respuesta dentro del \textit{Kernel} y la devuelve al \textit{buffer} de usuario.
+El \textit{handler} de escritura recibe los bytes proporcionados desde \textit{espacio de usuario}, los copia a un \textit{buffer} temporal en memoria del \textit{kernel} y los interpreta como valores de prueba.
+En sentido contrario, el \textit{handler} de lectura construye una respuesta dentro del \textit{kernel} y la devuelve al \textit{buffer} de usuario.
 Para realizar estas transferencias se emplean funciones específicas como \texttt{copy\_from\_user} y \texttt{copy\_to\_user}, que además permiten detectar fallos de acceso y devolver errores en lugar de provocar accesos inseguros.
 La implementación concreta de estos manejadores se encuentra en el Código~\ref{cod:proc_rw_handlers}.\\
 
@@ -107,34 +104,35 @@ Aunque \texttt{/proc/fdev} no representa un fichero persistente, las operaciones
 El prototipo utiliza dicha posición para imponer una semántica sencilla de una única operación efectiva por apertura (\textit{single-shot}), evitando que se realicen varias lecturas consecutivas o que una escritura se procese varias veces dentro del mismo flujo.
 Esta decisión simplifica la validación y hace que el comportamiento observado desde herramientas como \texttt{cat} sea controlado y predecible.\\
 
-Para finalizar este prototipo, se realizó un proceso de validación que consistió en compilar el módulo, cargarlo, comprobar la creación de \texttt{/proc/fdev}, escribir valores desde \textit{Espacio de Usuario}, leerlos de nuevo, revisar las trazas generadas en el registro del \textit{Kernel} y descargar el \textit{LKM}.
+Para finalizar este prototipo, se realizó un proceso de validación que consistió en compilar el módulo, cargarlo, comprobar la creación de \texttt{/proc/fdev}, escribir valores desde \textit{espacio de usuario}, leerlos de nuevo, revisar las trazas generadas en el registro del \textit{kernel} y descargar el \textit{LKM}.
 Con ello se comprobó que la entrada virtual se creaba y eliminaba correctamente, que las operaciones de lectura y escritura eran redirigidas a los \textit{handlers} del módulo correspondientes, y que la transferencia de información entre ambas regiones funcionaba de forma controlada.
 El procedimiento completo de comandos y salidas se recoge en el Código~\ref{cod:proc_validation}.\\
 
-En conclusión, este prototipo establece la primera interfaz funcional entre el administrador y el \textit{Módulo del Kernel}.
-A partir de este punto, los siguientes prototipos reutilizan \texttt{/proc/fdev} como canal de entrada para transferir información desde \textit{Espacio de Usuario} hacia el \textit{LKM}, ampliando progresivamente la lógica ejecutada dentro del módulo.\\\\
+En conclusión, este prototipo establece la primera interfaz funcional entre el administrador y el \textit{módulo del kernel}.
+A partir de este punto, los siguientes prototipos reutilizan \texttt{/proc/fdev} como canal de entrada para transferir información desde \textit{espacio de usuario} hacia el \textit{LKM}, ampliando progresivamente la lógica ejecutada dentro del módulo.\\\\
 
+\
 
 \subsection{\textit{File Handoff}}
+\label{sec:file_handoff}
 
 Una vez establecida la comunicación básica mediante el fichero virtual \texttt{/proc/fdev}, el siguiente prototipo incorporó un mecanismo de \textit{File Handoff}.
-El objetivo de esta etapa fue permitir que el \textit{LKM} no se limitase a recibir datos simples desde \textit{Espacio de Usuario}, sino que pudiera resolver la referencia a un fichero real abierto por el administrador y utilizarlo como vía de comunicación hacia \textit{Espacio de Usuario}.\\
+El objetivo de esta etapa fue permitir que el \textit{LKM} no se limitase a recibir datos simples desde \textit{espacio de usuario}, sino que pudiera resolver la referencia de un descriptor de fichero (\textit{FD}) abierto por el administrador y utilizarlo como vía de comunicación hacia \textit{espacio de usuario}.\\
 
 \begin{figure}[h!]
   \centering
   \scalebox{0.95}{\input{figs/file_handoff_scheme.tex}}
   \figsource{Elaboración propia.}
-  \caption{Transferencia de un \textit{File Descriptor} de un fichero real al \textit{LKM} para establecer una vía de comunicación desde \textit{Espacio del Kernel} hacia \textit{Espacio de Usuario}.}
+  \caption{Transferencia de un \textit{File Descriptor} de un fichero real al \textit{LKM} para establecer una vía de comunicación desde \textit{espacio del kernel} hacia \textit{espacio de usuario}.}
   \label{fig:file_handoff_scheme}
 \end{figure}
 
-El concepto clave de este prototipo es que el usuario administrador no entrega al módulo el fichero completo, sino un \textit{File Descriptor} (\textit{FD}) que lo referencia.
-Un \textit{FD} es un identificador entero de un fichero asociado a la tabla de ficheros abiertos del proceso que lo posee.
-Por tanto, cuando un proceso en \textit{Espacio de Usuario} abre un fichero, el sistema le devuelve un entero que sirve como referencia local a una estructura interna del \textit{Kernel} que representa dicho fichero.
-El mecanismo de \textit{File Handoff} consiste en enviar ese identificador al módulo a través de \texttt{/proc/fdev}, para que el \textit{Kernel} pueda resolverlo y operar sobre el fichero referenciado.\\
+Un \textit{FD} es un identificador entero de un fichero asociado a la tabla de ficheros abiertos del proceso que lo posee, pudiendo referenciar un fichero regular, una conexión de red, etc.
+Por tanto, cuando un proceso en \textit{espacio de usuario} abre un fichero, el sistema le devuelve un entero que sirve como referencia local a una estructura interna del \textit{kernel} que representa dicho fichero.
+El mecanismo de \textit{File Handoff} consiste en enviar ese identificador al módulo a través de \texttt{/proc/fdev}, para que el \textit{kernel} pueda resolverlo y operar sobre el fichero referenciado.\\
 
 Para soportar este mecanismo fue necesario ampliar las cabeceras del módulo con funcionalidades relacionadas con el subsistema de ficheros, la resolución de descriptores, la conversión segura de cadenas a enteros y la validación de permisos.
-Este conjunto de dependencias permite pasar de una comunicación basada en texto a una interacción con objetos reales del \textit{VFS} del \textit{Kernel}.
+Este conjunto de dependencias permite pasar de una comunicación basada en texto a una interacción con objetos reales del \textit{VFS} del \textit{kernel}.
 Las cabeceras concretas incorporadas en este prototipo se recogen en el Código~\ref{cod:file_handoff_headers} del Apéndice~\ref{anexo:codigo-prototipos}.\\
 
 En este prototipo, la función de lectura mantiene un papel auxiliar.
@@ -143,146 +141,133 @@ De esta manera, la lectura de \texttt{/proc/fdev} funciona como una comprobació
 La implementación concreta de esta función se muestra en el Código~\ref{cod:file_handoff_read}.\\
 
 Por otro lado, la escritura sobre \texttt{/proc/fdev} es el punto de entrada principal del prototipo.
-El administrador abre o crea el fichero destino en modo escritura y anexado (modo \textit{append}) desde \textit{Espacio de Usuario}, obtiene su \textit{FD}, lo convierte a texto y lo escribe en \texttt{/proc/fdev}.
-Desde el punto de vista del \textit{LKM}, esa cadena de texto escrita se recibe como una secuencia de \textit{bytes}, la cual se copia a memoria del \textit{Kernel}, se interpreta como un entero y se comprueba si el \textit{FD} extraído es válido.
+El administrador abre o crea el fichero destino en modo escritura y añadido al final (modo \textit{append}) desde \textit{espacio de usuario}, obtiene su \textit{FD}, lo convierte a texto y lo escribe en \texttt{/proc/fdev}.
+Desde el punto de vista del \textit{LKM}, esa cadena de texto escrita se recibe como una secuencia de \textit{bytes}, que se copia a memoria del \textit{kernel}, se interpreta como un entero y se comprueba si el \textit{FD} extraído es válido.
 El programa auxiliar encargado de abrir el fichero destino y enviar el \textit{FD} al módulo se recoge en el Código~\ref{cod:mk_fhandoff}.\\
 
-Una vez recibido el descriptor, el módulo utiliza una primitiva del \textit{Kernel} para transformar el entero en una referencia interna de tipo \texttt{struct file}.
+Una vez recibido el descriptor, el módulo utiliza una primitiva del \textit{kernel} para transformar el entero en una referencia interna de tipo \texttt{struct file}.
 Este paso es importante porque el \textit{FD} por sí solo no permite escribir directamente sobre el fichero; primero se debe resolver mediante la tabla de ficheros abiertos del proceso que invoca la operación.
 Si la resolución tiene éxito, el \textit{LKM} obtiene una referencia válida al objeto \texttt{struct file} del fichero y debe liberarla posteriormente cuando deje de utilizarla.
 Esta lógica principal de recepción del descriptor, conversión, resolución y liberación se detalla en el Código~\ref{cod:file_handoff_write}.\\
 
-Antes de escribir desde \textit{Espacio del Kernel}, el prototipo comprueba que el fichero cumple la política definida.
+Antes de escribir desde \textit{espacio del kernel}, el prototipo comprueba que el fichero cumple la política definida.
 En concreto, se exige que el fichero haya sido abierto con capacidad de escritura y en modo \textit{append}.
 Esta decisión evita sobrescrituras accidentales y problemas con el control del puntero de escritura, haciendo así que la información generada por el módulo se añada siempre al final del fichero destino.
 Además, se comprueban los permisos efectivos sobre el fichero para verificar que la operación de escritura y anexado está autorizada.
 La función auxiliar encargada de estas comprobaciones se referencia en el Código~\ref{cod:file_handoff_val_metadata}.\\
 
-La escritura efectiva sobre el fichero no se realiza con las funciones habituales de \textit{Espacio de Usuario}, sino mediante la funcionalidad de escritura disponible dentro del \textit{Kernel} que utilice datos en memoria en esta misma región (\verb|kernel_write|).
+La escritura efectiva sobre el fichero no se realiza con las funciones habituales de \textit{espacio de usuario}, sino mediante la funcionalidad de escritura disponible dentro del \textit{kernel} que utilice datos en memoria en esta misma región (\verb|kernel_write|).
 Para ello se implementa una función auxiliar que escribe todo el contenido previsto, repitiendo la operación si solo se escribe una parte de los \textit{bytes} solicitados (\verb|write_full|).
 Este diseño evita asumir que una llamada de escritura completa siempre termina transfiriendo todos los datos de golpe y permite devolver errores si la escritura falla o no avanza.
 La función auxiliar de escritura completa se encuentra en el Código~\ref{cod:file_handoff_write_full}.\\
 
-Finalmente, la validación del prototipo consistió en compilar y cargar el módulo, comprobar que \texttt{/proc/fdev} quedaba disponible, crear el fichero destino mediante la utilidad de usuario, enviar su \textit{FD} al módulo y verificar que el contenido de prueba era escrito desde \textit{Espacio del Kernel} correctamente.
-También se revisaron las trazas del \textit{Kernel} y se descargó el módulo al finalizar la prueba.
+Finalmente, la validación del prototipo consistió en compilar y cargar el módulo, comprobar que \texttt{/proc/fdev} quedaba disponible, crear el fichero destino mediante la utilidad de usuario, enviar su \textit{FD} al módulo y verificar que el contenido de prueba era escrito desde \textit{espacio del kernel} correctamente.
+También se revisaron las trazas del \textit{kernel} y se descargó el módulo al finalizar la prueba.
 El procedimiento completo se recoge en el Código~\ref{cod:file_handoff_validation}.\\
 
 En conclusión, este prototipo amplía la interfaz creada en la etapa anterior permitiendo que el administrador indique dinámicamente la referencia al fichero donde se depositará la información generada por el \textit{LKM}.
-A partir de este punto, los siguientes prototipos reutilizan este mecanismo como canal principal de salida para escribir contenido generado en \textit{Espacio del Kernel}, añadiendo posteriormente autenticación criptográfica y el reporte final de procesos del sistema.\\\\
+A partir de este punto, los siguientes prototipos reutilizan este mecanismo como canal principal de salida para escribir contenido generado en \textit{espacio del kernel}, añadiendo posteriormente autenticación criptográfica y el reporte final de procesos del sistema.\\\\
 
+\
 
 \subsection{Mecanismo criptográfico de autenticación \textit{HMAC-SHA256}}
 
-Una vez validado el mecanismo de \textit{File Handoff}, el siguiente prototipo incorporó autenticación criptográfica sobre el contenido generado en \textit{Espacio del Kernel} y escrito en el fichero referenciado en \textit{Espacio de Usuario} mediante un \textit{HMAC-SHA256}.
+Una vez validado el mecanismo de \textit{File Handoff}, el siguiente prototipo incorporó autenticación criptográfica sobre el contenido generado en \textit{espacio del kernel} y escrito en el fichero referenciado en \textit{espacio de usuario} mediante un \textit{HMAC-SHA256}.\\
+
 El objetivo de esta etapa fue que el fichero escrito por el \textit{LKM} no contuviese únicamente datos, sino también una etiqueta de autenticación que permitiese comprobar posteriormente si dicho contenido había sido autenticado con la clave secreta esperada y si no había sido modificado tras su escritura.\\
+
+\newpage
 
 \begin{figure}[h!]
   \centering
-  \scalebox{0.95}{\input{figs/crypto_hmac_scheme.tex}}
+  \scalebox{1}{\input{figs/crypto_hmac_scheme.tex}}
   \figsource{Elaboración propia.}
   \caption{Incorporación de un mecanismo de autenticación \textit{HMAC-SHA256} al sistema de \textit{File Handoff}.}
   \label{fig:crypto_hmac_scheme}
 \end{figure}
-
-\newpage
 
 Se empleó una etiqueta criptográfica \textit{HMAC-SHA256} como mecanismo de autenticación de mensajes, basado en una clave simétrica secreta (\(K\)) y en la función resumen \textit{SHA-256} cuyo tamaño de bloque es de 512 \textit{bits}.
 Es importante destacar que este mecanismo no cifra el contenido, por lo que los datos escritos en el fichero siguen siendo legibles.
 Su finalidad es generar un valor de autenticación dependiente simultáneamente del contenido y de la clave secreta \(K\), por lo que, para un único contenido, solo es posible calcular una única etiqueta \textit{HMAC-SHA256} para una clave simétrica \(K\) dada.
 Así, cualquier modificación del contenido, o cualquier intento de generar una etiqueta sin conocer dicha clave, provocaría que la verificación posterior no coincidiese, asegurando de esta manera la integridad del contenido a transferir.\\
 
-Para que este mecanismo tenga sentido, cabe destacar que la clave \(K\) debe ser secreta y compartida únicamente entre el \textit{LKM} en \textit{Espacio del Kernel} y la utilidad de verificación del contenido por parte del administrador del sistema en \textit{Espacio de Usuario}.
-Como se explicó en el modelo de amenaza del Apartado~\ref{sec:modelo-amenaza}, en el entorno en el que se envuelve el sistema de reporte seguro propuesto se asume que el atacante no tiene acceso a esta clave simétrica (\(K\)), por lo que no puede generar etiquetas válidas para contenidos falsificados ni modificar el contenido sin invalidar la etiqueta.
+Para que este mecanismo tenga sentido, cabe destacar que la clave \(K\) debe ser secreta y compartida únicamente entre el \textit{LKM} en \textit{espacio del kernel} y la utilidad de verificación del contenido por parte del administrador del sistema en \textit{espacio de usuario}.
+Como se explicó en el modelo de amenaza del Apartado~\ref{sec:modelo-amenaza}, en el entorno en el que se envuelve el sistema de reporte seguro propuesto se asume que el atacante no tiene acceso a esta clave simétrica secreta (\(K\)) según la cadena de confianza descrita, por lo que no puede generar etiquetas válidas para contenidos falsificados ni modificar el contenido sin invalidar la etiqueta.
 En caso contrario, este mecanismo no aportaría integridad alguna al contenido a transferir.\\
 
-Desde el punto de vista criptográfico, \textit{HMAC} no consiste simplemente en calcular \textit{SHA-256} sobre la concatenación de la clave y el mensaje.
-Antes de procesar los datos, la clave se adapta al tamaño de bloque de la función \textit{hash}, que en el caso del algoritmo \textit{SHA-256} es de 512 \textit{bits}, es decir, 64 \textit{bytes}.
-Si la clave fuese más larga que ese tamaño, primero se calcularía \textit{SHA-256(K)}, obteniendo una salida de 32 \textit{bytes} (256 \textit{bits}), y después se completarían los bytes restantes con ceros por la derecha hasta alcanzar los 64 \textit{bytes}.
-Por el contrario, si fuese más corta, se conservaría su valor y se añadirían bytes \texttt{0x00} al final hasta completar el bloque de 64 \textit{bytes}.
-En este proyecto se genera una clave simétrica \(K\) con tamaño óptimo de 64 \textit{bytes}, por lo que encaja directamente con el tamaño de bloque usado por \textit{SHA-256} sin necesitar reducción ni relleno.\\
+En este proyecto se genera una clave simétrica \(K\) con tamaño óptimo de 64 \textit{bytes}, por lo que encaja directamente con el tamaño de bloque usado por \textit{SHA-256} sin necesitar reducción si fuese de mayor tamaño, teniendo que calcular \textit{SHA-256(K)} dando una salida de 32 \textit{bytes} y teniendo que rellenar con ceros (\texttt{0x00}) por la derecha hasta llegar al tamaño.
+Ni utilizar relleno por otro lado si fuese de menor tamaño, teniendo que cumplimentar con ceros por la derecha.\\
 
-\begin{figure}[h!]
-  \centering
-  \scalebox{0.95}{\input{figs/hmac_sha256_blocks_scheme.tex}}
-  \figsource{Elaboración propia.}
-  \caption{Esquema del cálculo del \textit{HMAC-SHA256} del contenido por bloques con clave simétrica (\(K\)).}
-  \label{fig:hmac_sha256_blocks_scheme}
-\end{figure}
-
-A partir de esa clave normalizada \(K'\) de tamaño 64 \textit{bytes}, se construye el \textit{HMAC} a partir de dos variantes mediante operaciones XOR (suma bit a bit sin acarreo) con dos constantes de relleno: \textit{ipad}, con valor de \texttt{0x36} en cada \textit{byte}, utilizada en la fase interna; y \textit{opad}, con valor de \texttt{0x5c} en cada \textit{byte}, utilizada en la fase externa.
-Ambas constantes tienen una longitud de 64 \textit{bytes} (512 \textit{bits}), ya que el algoritmo \textit{SHA-256} trabaja con bloques de este tamaño.
-El contenido (\(M\)) se procesa como una secuencia de bloques de entrada para aplicar el algoritmo \textit{SHA-256}, representados en la figura como \(M_1\), \(M_2\), \(\ldots\), \(M_n\), cada uno de 512 \textit{bits} de tamaño máximo.
-En la primera fase, se calcula un resumen interno aplicando \textit{SHA-256} sobre la concatenación de \(K' \oplus \mathrm{ipad}\) y dichos bloques del mensaje.
-El resultado de esta fase es un resumen intermedio \(H_i\) de 256 \textit{bits} de longitud.
-En la segunda fase, se aplica de nuevo \textit{SHA-256}, pero esta vez sobre \(K' \oplus \mathrm{opad}\) concatenado con \(H_i\).
-Esta doble aplicación de la función resumen evita que el autenticador sea una simple suma de clave y mensaje, y produce finalmente una etiqueta \textit{HMAC-SHA256} binaria de 256 \textit{bits}, es decir, 32 \textit{bytes}.\\
-
-Una vez ya calculada la etiqueta \textit{HMAC-SHA256} binaria, el prototipo la codifica en \textit{Base64} para escribirla posteriormente en el fichero de transferencia.
+Una vez ya calculada la etiqueta \textit{HMAC-SHA256} binaria mediante el resumen por bloques de 64 \textit{bytes} del contenido y la clave simétrica de tamaño óptimo (\(K\)), el prototipo la codifica en \textit{Base64} para escribirla posteriormente en el fichero de transferencia.
 Esta codificación agrupa los datos binarios de entrada en bloques de 3 \textit{bytes} (24 \textit{bits}), donde a su vez se dividen en 4 grupos de 6 \textit{bits}, pudiendo así representar dicha información codificando cada bloque de 6 \textit{bits} en un carácter de los 64 del alfabeto \textit{ASCII} limitado (A-Z, a-z, 0-9, +, /).
-Por ello, los 32 \textit{bytes} de la etiqueta \textit{HMAC-SHA256} se transforman en 44 caracteres \textit{Base64}, incluyendo el carácter de relleno final (\textit{=}) cuando se aplica \textit{padding} a los grupos incompletos, como en este caso para el tamaño de 32 \textit{bytes}, ya que no forma un número entero de grupos de 3 \textit{bytes}.
+Por ello, los 32 \textit{bytes} de la etiqueta \textit{HMAC-SHA256} se transforman en 44 caracteres en \textit{Base64}, incluyendo el carácter de relleno final (\textit{=}) cuando se aplica \textit{padding} a los grupos incompletos, como en este caso para el tamaño de 32 \textit{bytes}, ya que no forma un número entero de grupos de 3 \textit{bytes}.
 Esta conversión no modifica la seguridad criptográfica del mecanismo, sino únicamente su representación para poder almacenarlo y procesarlo como texto.\\
 
-Para integrar este mecanismo en el \textit{LKM} fue necesario incorporar soporte de la \textit{Crypto API} del \textit{Kernel}, la codificación en \textit{Base64} y la clave simétrica embebida.
+Para integrar este mecanismo en el \textit{LKM} fue necesario incorporar soporte de la \textit{Crypto API} del \textit{kernel}, la codificación en \textit{Base64} y la clave simétrica embebida.
 La clave no fue escrita manualmente en el código, sino que se generó mediante un script auxiliar que crea un valor aleatorio de 64 \textit{bytes} y lo transforma en una cabecera C importable al módulo (\texttt{.h}).
-De esta forma, tanto el \textit{Kernel} como el administrador pueden operar con la misma clave secreta durante la prueba.
+De esta forma, tanto el \textit{kernel} como el administrador pueden operar con la misma clave secreta durante la prueba.
 Las cabeceras añadidas y el proceso de generación de la clave se recogen en los Códigos~\ref{cod:crypto_headers} y~\ref{cod:gen_k_embedded} del Apéndice~\ref{anexo:codigo-prototipos}.\\
 
-El cálculo de la etiqueta \textit{HMAC} se delega en la \textit{Crypto API} del \textit{Kernel} mediante un transformador síncrono de tipo \texttt{shash} asociado al algoritmo \texttt{hmac(sha256)}.
-Conceptualmente, el módulo solicita dicho transformador, le asocia la clave simétrica \(K\), reserva memoria para el resultado y ejecuta el cálculo sobre el bloque de datos recibido.
-Aunque la llamada de alto nivel abstrae las operaciones internas de \textit{HMAC}, el mecanismo subyacente es el descrito anteriormente: dos aplicaciones de \textit{SHA-256} combinando el contenido con las constantes interna (\textit{ipad}) y externa (\textit{opad}) de la clave.
+El cálculo de la etiqueta \textit{HMAC} se delega en la \textit{Crypto API} del \textit{kernel} mediante una instancia síncrona de \textit{hash} (\texttt{shash}) asociada al algoritmo \texttt{hmac(sha256)}.
+Conceptualmente, el módulo solicita dicha instancia para una \textit{hash}, le asocia la clave simétrica secreta \(K\) previamente cargada en el \textit{kernel} dentro de la cadena de confianza considerada, reserva memoria para el resultado y ejecuta el cálculo sobre el bloque de datos recibido.
+La llamada de alto nivel abstrae las operaciones internas de \textit{HMAC}.
 La implementación concreta del cálculo se muestra en el Código~\ref{cod:crypto_get_hmac_sha256}.\\
 
 Una vez calculado el \textit{HMAC} binario de 32 \textit{bytes}, el prototipo lo convierte a \textit{Base64} siguiendo el proceso anteriormente explicado.
 Se pasa de una etiqueta binaria de 32 \textit{bytes} a una cadena de 44 caracteres \textit{Base64}: diez grupos completos generan 40 caracteres y los dos bytes restantes generan cuatro caracteres adicionales con relleno.
-Al tratarse de un fichero generado para ser revisado y validado desde \textit{Espacio de Usuario}, codificar la etiqueta a \textit{Base64} evita escribir bytes binarios directamente y facilita su extracción posterior por parte del programa de comprobación.
+Al tratarse de un fichero generado para ser revisado y validado desde \textit{espacio de usuario}, codificar la etiqueta a \textit{Base64} evita escribir bytes binarios directamente y facilita su extracción posterior por parte del programa de comprobación.
 La función auxiliar encargada de esta conversión se recoge en el Código~\ref{cod:crypto_get_hmac_b64}.\\
 
 El formato final escrito en el fichero de \textit{handoff} se organiza mediante separadores textuales.
-En primer lugar se escribe un marcador que identifica el inicio del contenido generado por el \textit{Kernel}, después se añade el contenido protegido, posteriormente se escribe un separador específico para la etiqueta, y finalmente, se incorpora el \textit{HMAC} codificado en \textit{Base64}.
+En primer lugar se escribe un marcador que identifica el inicio del contenido generado por el \textit{kernel}, después se añade el contenido protegido, posteriormente se escribe un separador específico para la etiqueta, y finalmente, se incorpora el \textit{HMAC} codificado en \textit{Base64}.
 Esta estructura hace que el fichero sea determinista y permite que la utilidad de verificación pueda separar sin ambigüedad la información útil transferida de su autenticador.
 La lógica de escritura conjunta del contenido y su etiqueta \textit{HMAC} se detalla en el Código~\ref{cod:crypto_write_cont_hmac}.\\
 
 En este prototipo, la función principal de integración genera todavía un contenido fijo de prueba, calcula su \textit{HMAC-SHA256}, lo codifica en \textit{Base64} y escribe el conjunto completo en el fichero real recibido a través del mecanismo de \textit{File Handoff}.
-Por tanto, la lógica de recepción del \textit{FD}, resolución mediante el objeto \texttt{struct file} y validación del fichero se mantiene igual respecto al prototipo anterior, pero la escritura en dicho fichero desde el \textit{Kernel} se sustituye por una escritura autenticada.
-Esta integración se muestra en los Códigos~\ref{cod:crypto_printh} y~\ref{cod:crypto_mywrite}.\\
+Por tanto, la lógica de recepción del \textit{FD}, resolución mediante el objeto \texttt{struct file} y validación del fichero se mantiene igual respecto al prototipo anterior, pero la escritura en dicho fichero desde el \textit{kernel} se sustituye por una escritura autenticada.
+Esta integración se muestra en ~\ref{cod:crypto_printh} y~\ref{cod:crypto_mywrite}.\\
 
-Para cerrar el ciclo de validación fue necesario implementar también una utilidad adicional en \textit{Espacio de Usuario}, con la cual el administrador pudiese validar la integridad y autenticidad del contenido transferido.
+Para cerrar el ciclo de validación fue necesario implementar también una utilidad adicional en \textit{espacio de usuario}, con la cual el administrador pudiese validar (en otra máquina) la integridad y autenticidad del contenido transferido.
 Esta herramienta abre el fichero de transferencia, localiza los separadores, extrae por un lado el contenido o \textit{payload} y por otro la etiqueta \textit{HMAC} en \textit{Base64}, recalcula localmente dicha etiqueta de autenticación con \textit{OpenSSL} usando la misma clave \(K\) con respecto al contenido extraído, vuelve a codificar el resultado y compara ambas etiquetas.
-La comparación se realiza con una primitiva criptográfica específica, evitando una comparación ordinaria de cadenas y así reducir la exposición a ataques de temporización.
-Las partes principales de esta utilidad se recogen en los Códigos~\ref{cod:check_hmac},~\ref{cod:check_hmac_extract},~\ref{cod:check_hmac_calc} y~\ref{cod:check_hmac_verify_main}.\\
+La comparación se realiza con una primitiva criptográfica específica, evitando una comparación ordinaria de cadenas y así reducir la exposición a ataques de canales laterales basados en el tiempo (\textit{time side-channel attacks}).
+Las partes principales de esta utilidad se recogen en ~\ref{cod:check_hmac},~\ref{cod:check_hmac_extract},~\ref{cod:check_hmac_calc} y~\ref{cod:check_hmac_verify_main}.\\
 
-Finalmente, la validación práctica confirmó que el módulo podía generar un contenido autenticado en \textit{Espacio del Kernel}, escribirlo en el fichero recibido desde \textit{Espacio de Usuario} y verificar posteriormente que la etiqueta recibida coincidía con la recalculada por la utilidad de usuario.
+Finalmente, la validación práctica confirmó que el módulo podía generar un contenido autenticado en \textit{espacio del kernel}, escribirlo en el fichero recibido desde \textit{espacio de usuario} y verificar posteriormente que la etiqueta recibida coincidía con la recalculada por la utilidad de usuario.
 El procedimiento completo de compilación, ejecución y verificación se recoge en el Código~\ref{cod:crypto_validation}.\\
 
-Esta implementación se utilizará como mecanismo de autenticidad e integridad en la solución final del proyecto, proporcionando una herramienta robusta a prueba de ataques de \textit{rootkits} de \textit{Espacio de Usuario} siguiendo el \textit{Modelo de amenaza} definido.
-A partir de este punto, el siguiente y último paso consistió en sustituir el contenido fijo de prueba por información crítica real del sistema, generada dinámicamente en \textit{Espacio del Kernel} y protegida mediante el mismo esquema \textit{HMAC-SHA256}.\\\\
+Esta implementación se utilizará como mecanismo de autenticidad e integridad en la solución final del proyecto, proporcionando una herramienta robusta a prueba de ataques de \textit{rootkits} de \textit{espacio de usuario} siguiendo el \textit{Modelo de amenaza} definido.
+A partir de este punto, el siguiente y último paso consistió en sustituir el contenido fijo de prueba por información crítica real del sistema, generada dinámicamente en \textit{espacio del kernel} y protegida mediante el mismo esquema \textit{HMAC-SHA256}.\\\\
 
+\
 
 \subsection{Sistema de reporte seguro de los procesos en ejecución del sistema}
 
-Una vez diseñado el canal de \textit{File Handoff} y el mecanismo de autenticación mediante \textit{HMAC-SHA256}, el prototipo final sustituyó el contenido fijo de prueba por información crítica real del sistema generada dinámicamente en \textit{Espacio del Kernel}.
+Una vez diseñado el canal de \textit{File Handoff} y el mecanismo de autenticación mediante \textit{HMAC-SHA256}, el prototipo final sustituyó el contenido fijo de prueba por información crítica real del sistema generada dinámicamente en \textit{espacio del kernel}.\\
+
 El objetivo de esta etapa fue construir un reporte de todos los procesos activos del sistema y transferirlo de forma autenticada mediante los mecanismos diseñados en los prototipos anteriores.
+
+\newpage
 
 \begin{figure}[h!]
   \centering
   \scalebox{0.95}{\input{figs/final_report_scheme.tex}}
   \figsource{Elaboración propia.}
-  \caption{Generación y transferencia autenticada de un reporte de los procesos activos del sistema desde \textit{Espacio del Kernel}.}
+  \caption{Generación y transferencia autenticada de un reporte de los procesos activos del sistema desde \textit{espacio del kernel}.}
   \label{fig:final_report_scheme}
 \end{figure}
 
 Este prototipo unifica todas las capacidades desarrolladas en las etapas anteriores, añadiendo funcionalidades para la generación de reportes de procesos activos como contenido a transferir de manera autenticada.
 La comunicación entre el administrador y el módulo se sigue realizando mediante el fichero virtual \texttt{/proc/fdev}. El administrador continúa entregando un \textit{FD} de un fichero real, el \textit{LKM} resuelve dicho descriptor como un objeto \texttt{struct file}, y la escritura final mantiene la estructura formada por contenido, separador textual y etiqueta \textit{HMAC-SHA256} codificada en \textit{Base64}.
-La diferencia principal respecto al prototipo anterior es que el contenido protegido deja de ser una cadena fija y pasa a ser una tabla generada a partir de las estructuras internas del \textit{Kernel} con la información principal de todos los procesos activos en el sistema.\\
+La diferencia principal respecto al prototipo anterior es que el contenido protegido deja de ser una cadena fija y pasa a ser una tabla generada a partir de las estructuras internas del \textit{kernel} con la información principal de todos los procesos activos en el sistema.\\
 
 Para construir este reporte fue necesario ampliar las dependencias del módulo con cabeceras relacionadas con credenciales, procesos, identificadores, espacios de nombres y sincronización.
-Estas cabeceras permiten acceder a las credenciales de cada tarea en ejecución, recorrer la lista global de procesos, obtener identificadores globales y locales respecto a los espacios de nombres activos y proteger el recorrido mediante el mecanismo \textit{RCU}, evitando condiciones de carrera sobre las estructuras compartidas del \textit{Kernel}.
+Estas cabeceras permiten acceder a las credenciales de cada tarea en ejecución, recorrer la lista global de procesos, obtener identificadores globales y locales respecto a los espacios de nombres activos y proteger el recorrido mediante el mecanismo \textit{RCU}, evitando condiciones de carrera sobre las estructuras compartidas del \textit{kernel}.
 Además, se definieron constantes para acotar el tamaño máximo del reporte y así simplificar la implementación, y por otra parte, se reservan anchuras fijas para cada campo y se construye una cabecera bien espaciada con los metadatos que se desean mostrar de cada proceso para una mejor legibilidad.
 Las cabeceras, constantes y estructura inicial de la tabla se recogen en el Código~\ref{cod:report_headers_consts} del Apéndice~\ref{anexo:codigo-prototipos}.\\
 
-El formato elegido para el reporte está inspirado en la salida de herramientas como \texttt{ps aux}, pero con campos adaptados al objetivo del proyecto.
-Cada fila representa un proceso en ejecución e incluye el identificador de usuario \textit{UID} global visible desde el \textit{Kernel} y el local relativo al espacio de nombres del proceso, el identificador del \textit{namespace} de usuario, el identificador de proceso \textit{PID} global y relativo a su \textit{namespace} con el identificador del \textit{namespace} de procesos, el identificador de grupo \textit{GID} y el nombre del comando asociado.
-Esta combinación permite comparar la visión global del sistema vista desde el propio \textit{Kernel} con la visión local que pueden tener procesos ejecutados dentro de contenedores o espacios de nombres diferenciados.\\
+El formato elegido para el reporte está inspirado en la salida de herramientas como \texttt{ps}, pero con campos adaptados al objetivo del proyecto.
+Cada fila representa un proceso en ejecución e incluye el identificador de usuario \textit{UID} global visible desde el \textit{kernel} y el local relativo al espacio de nombres del proceso, el identificador del \textit{namespace} de usuario, el identificador de proceso \textit{PID} global y relativo a su \textit{namespace} con el identificador del \textit{namespace} de procesos, el identificador de grupo \textit{GID} y el nombre del comando asociado.
+Esta combinación permite comparar la visión global del sistema vista desde el propio \textit{kernel} con la visión local que pueden tener procesos ejecutados dentro de contenedores o espacios de nombres diferenciados.\\
 
 Antes de recorrer los procesos, el módulo incorpora funciones auxiliares para construir el contenido de forma ordenada y controlada, pudiendo además mejorar su posterior interpretabilidad.
 Por un lado, una de ellas rellena cada campo con espacios hasta alcanzar una anchura fija, de manera que las columnas del reporte queden totalmente alineadas.
@@ -290,14 +275,13 @@ Y por otro lado, hay otra función auxiliar que copia cada fragmento en el \text
 Estas operaciones de formateo y copia de datos segura se detallan en el Código~\ref{cod:report_pad_safe_chunk}.\\
 
 La función central de este prototipo final es la encargada de generar el contenido completo del reporte.
-En primer lugar, se reserva memoria en \textit{Espacio del Kernel} para un \textit{buffer} de tamaño máximo fijo, se añade la cabecera de la tabla y se entra en una sección de lectura protegida mediante \textit{RCU} delimitada por \verb|rcu_read_lock| y \verb|rcu_read_unlock|.
+En primer lugar, se reserva memoria en \textit{espacio del kernel} para un \textit{buffer} de tamaño máximo fijo, se añade la cabecera de la tabla y se entra en una sección de lectura protegida mediante \textit{RCU} delimitada por \verb|rcu_read_lock| y \verb|rcu_read_unlock|.
 Dentro de esta sección, se recorre la lista global de tareas del sistema mediante \texttt{for\_each\_process}, comprobando antes de cada inserción que el \textit{buffer} dispone todavía de espacio suficiente para la nueva fila más los separadores y la etiqueta \textit{HMAC-SHA256}.
 Para cada proceso, delega en una función auxiliar la extracción y serialización de sus metadatos.
-La construcción general del listado en memoria se muestra en el Código~\ref{cod:report_get_ps}.\\
+La construcción general del listado en memoria se muestra en ~\ref{cod:report_get_ps}.\\
 
 El uso de \textit{RCU} resulta bastante relevante porque la lista de procesos y las estructuras \texttt{task\_struct} pueden ser consultadas mientras el sistema sigue ejecutándose y modificando su estado.
-La protección de lectura no detiene el sistema ni bloquea globalmente la creación o finalización de procesos, pero permite recorrer las referencias de forma coherente durante la generación del reporte.
-De esta forma, el módulo puede obtener una instantánea práctica del estado de los procesos sin depender de herramientas de \textit{Espacio de Usuario}, que son precisamente las que se consideran potencialmente manipulables dentro del modelo de amenaza.\\
+La protección de lectura no detiene el sistema ni bloquea globalmente la creación o finalización de procesos, pero permite recorrer las referencias de forma coherente durante la generación del reporte.\\
 
 La serialización de cada fila se encapsula en una función específica que recibe la tarea actual y añade sus campos al \textit{buffer} global del reporte.
 Esta función no calcula directamente todos los valores, sino que coordina llamadas auxiliares especializadas para obtener cada metadato, formatearlo como una cadena textual portable y añadirlo de forma secuencial.
@@ -305,25 +289,25 @@ Si alguna extracción falla o si no existe espacio suficiente en el \textit{buff
 La lógica de serialización de una fila completa se referencia en el Código~\ref{cod:report_ps_data}.\\
 
 Los identificadores de usuario (\textit{UIDs}) se tratan diferenciando entre el valor global y el valor local respecto a un espacio de nombres específico.
-El \textit{UID} global se obtiene tomando como referencia el espacio de nombres inicial del sistema, por lo que representa la visión del \textit{Kernel}.
+El \textit{UID} global se obtiene tomando como referencia el espacio de nombres inicial del sistema, por lo que representa la visión del \textit{kernel}.
 El \textit{UID} local, en cambio, se obtiene a partir del \textit{namespace} asociado a las credenciales del proceso, permitiendo reflejar el valor del identificador que tendría dicho usuario dentro de su propio contexto.
 Además, se incluye el identificador interno del \textit{namespace} de usuario, lo que permite distinguir procesos que pueden compartir valores locales pero pertenecer a espacios de nombres distintos.
-Estas funciones se muestran en el Código~\ref{cod:report_uid_fields}.\\
+Estas funciones se muestran en ~\ref{cod:report_uid_fields}.\\
 
 De forma análoga, los identificadores de proceso (\textit{PIDs}) se separan en \textit{PID} global y \textit{PID} local respecto al \textit{namespace} asociado a cada tarea.
-El \textit{PID} global corresponde al identificador visible desde el \textit{Kernel}, mientras que el \textit{PID} local se obtiene respecto al espacio de nombres en el que trabaja dicha tarea.
+El \textit{PID} global corresponde al identificador visible desde el \textit{kernel}, mientras que el \textit{PID} local se obtiene respecto al espacio de nombres en el que trabaja dicha tarea.
 Esta distinción es especialmente útil en entornos con contenedores, donde un proceso puede aparecer con \textit{PID} local 1 dentro del contenedor, aunque tenga otro \textit{PID} distinto desde la perspectiva global del sistema.
 La obtención de estos campos se recoge en el Código~\ref{cod:report_pid_fields}.\\
 
 El reporte se completa con el identificador de grupo (\textit{GID}) y el comando asociado a cada proceso.
 Para el \textit{GID} se parte de las credenciales del proceso y se obtiene su valor global respecto al espacio de nombres inicial del sistema.
-Y como último tipo de metadato, se obtiene el nombre del comando asociado a cada proceso, distinguiendo entre procesos de usuario con ejecutable asociado, hilos del \textit{Kernel} (recogidos entre corchetes \texttt{[]}) y casos en los que solo está disponible el nombre almacenado en \texttt{task->comm}.
+Y como último tipo de metadato, se obtiene el nombre del comando asociado a cada proceso, distinguiendo entre procesos de usuario con ejecutable asociado, hilos del \textit{kernel} (recogidos entre corchetes \texttt{[]}) y casos en los que solo está disponible el nombre almacenado en \texttt{task->comm}.
 Cuando existe un ejecutable asociado, se intenta resolver su ruta mediante las estructuras internas del fichero ejecutable, pero si no es posible, se utiliza el nombre corto del proceso registrado en la propia tarea (\texttt{task->comm}).
-Estas funciones se referencian en el Código~\ref{cod:report_gid_command}.\\
+Estas funciones se referencian en ~\ref{cod:report_gid_command}.\\
 
 Una vez construido el contenido crítico real del reporte, el flujo vuelve a coincidir con el prototipo anterior.
 El módulo calcula el \textit{HMAC-SHA256} sobre la tabla completa de procesos generada, codifica la etiqueta en \textit{Base64} y escribe en el fichero de transferencia el marcador de inicio, la tabla de procesos como información crítica a transferir, el separador de la etiqueta y el \textit{HMAC} final.
-De esta forma, la autenticación no protege únicamente una cadena de prueba, sino el listado completo de procesos en ejecución del sistema generado con sus metadatos más relevantes desde \textit{Espacio del Kernel}.
+De esta forma, la autenticación no protege únicamente una cadena de prueba, sino el listado completo de procesos en ejecución del sistema generado con sus metadatos más relevantes desde \textit{espacio del kernel}.
 La escritura conjunta del contenido y su autenticador se apoya en la lógica descrita anteriormente en el Código~\ref{cod:crypto_write_cont_hmac}.\\
 
 El resultado escrito en el fichero de transferencia mantiene una estructura textual clara, donde el bloque de procesos y la etiqueta de autenticación quedan delimitados por marcadores explícitos.
@@ -367,84 +351,98 @@ ckvLUckcgmt6RFfdGzuvgnAEgt9rLPJ5q9FYJoFKAW0=
 \label{cod:handoff_file_structure}
 \vspace{\baselineskip}
 
-La validación de este prototipo final se realizó compilando y cargando el módulo, generando de nuevo la clave embebida, habilitando el fichero de salida mediante la utilidad de \textit{File Handoff} y verificando el resultado con el programa de comprobación de \textit{HMAC} de \textit{Espacio de Usuario}.
+La validación de este prototipo final se realizó compilando y cargando el módulo, generando de nuevo la clave embebida, habilitando el fichero de salida mediante la utilidad de \textit{File Handoff} y verificando el resultado con el programa de comprobación de \textit{HMAC} de \textit{espacio de usuario}.
 Además, se ejecutaron varios contenedores \textit{Docker} para forzar la presencia de procesos en distintos espacios de nombres y comprobar que el reporte reflejaba diferencias en campos como \texttt{UID\_LOCAL}, \texttt{PID\_LOCAL}, \texttt{UID\_NS} y \texttt{PID\_NS}, y también, respecto a sus identificadores globales.
 El procedimiento completo de validación, incluyendo la generación del fichero, la presencia de procesos de contenedores y la verificación criptográfica, se recoge en el Código~\ref{cod:report_validation}.\\
 
-Finalmente, a partir de los resultados obtenidos, se pudo concluir que el \textit{LKM} era capaz de generar desde \textit{Espacio del Kernel} una tabla global de procesos activos del sistema, incluir metadatos relevantes de usuarios, procesos, grupos y espacios de nombres, transferir dicha información a un fichero de transferencia indicado por el administrador y adjuntar una etiqueta \textit{HMAC-SHA256} verificable posteriormente desde \textit{Espacio de Usuario}.
-Con ello queda completado el prototipo final del sistema de reporte seguro, integrando en una única solución la comunicación entre \textit{Espacio de Usuario} y \textit{Espacio del Kernel}, la generación de información crítica desde una región privilegiada y la autenticación criptográfica del contenido transferido para asegurar su integridad frente a \textit{rootkits} de \textit{Espacio de Usuario}.\\\\
+Finalmente, a partir de los resultados obtenidos, se pudo concluir que el \textit{LKM} era capaz de generar desde \textit{espacio del kernel} una tabla global de procesos activos del sistema, incluir metadatos relevantes de usuarios, procesos, grupos y espacios de nombres, transferir dicha información a un fichero de transferencia indicado por el administrador y adjuntar una etiqueta \textit{HMAC-SHA256} verificable posteriormente desde \textit{espacio de usuario}.
+Con ello queda completado el prototipo final del sistema de reporte seguro, integrando en una única solución la comunicación entre \textit{espacio de usuario} y \textit{espacio del kernel}, la generación de información crítica desde una región privilegiada y la autenticación criptográfica del contenido transferido para asegurar su integridad frente a \textit{rootkits} de \textit{espacio de usuario}.\\\\
 
+\
+
+\
 
 \section{Problemas y Errores encontrados}
 \label{sec:problemas-errores}
 
-Durante el desarrollo del proyecto no solo fue necesario implementar progresivamente los prototipos descritos, sino también profundizar en matices realmente complejos y corregir decisiones iniciales que, aunque podían funcionar en pruebas sencillas, no eran adecuadas para una solución ejecutada dentro del \textit{Kernel}.
-La principal dificultad estuvo en que cada mecanismo debía respetar las reglas propias del núcleo del sistema: el acceso a ficheros no podía tratarse como una escritura convencional de \textit{Espacio de Usuario}, el cálculo criptográfico debía apoyarse en la infraestructura interna del \textit{Kernel} y el recorrido de procesos debía realizarse teniendo en cuenta problemas de concurrencia del sistema.
-Por ello, las decisiones finales no se limitaron a conseguir una salida correcta, sino que buscaron reducir riesgos de concurrencia, evitar accesos inseguros, procurar seguir una metodología compatible con las funcionalidades del \textit{Kernel} y mantener una estructura verificable desde \textit{Espacio de Usuario} de forma sencilla y práctica.\\
+Durante el desarrollo del proyecto no solo fue necesario implementar progresivamente los prototipos descritos, sino también profundizar en matices realmente complejos y corregir decisiones iniciales que, aunque podían funcionar en pruebas sencillas, no eran adecuadas para una solución ejecutada dentro del \textit{kernel}.\\
+
+La principal dificultad estuvo en que cada mecanismo debía respetar las reglas propias del núcleo del sistema: el acceso a ficheros no podía tratarse como una escritura convencional de \textit{espacio de usuario}, el cálculo criptográfico debía apoyarse en la infraestructura interna del \textit{kernel} y el recorrido de procesos debía realizarse teniendo en cuenta problemas de concurrencia del sistema.
+Por ello, las decisiones finales no se limitaron a conseguir una salida correcta, sino que buscaron evitar accesos inseguros, procurar seguir una metodología compatible con las funcionalidades del \textit{kernel} y mantener una estructura verificable desde \textit{espacio de usuario} de forma sencilla y práctica.\\
 
 A continuación, se describen los tres problemas más relevantes encontrados durante el desarrollo del proyecto y la solución adoptada en cada caso.\\
+
+\
 
 \subsection{Escritura sobre el fichero de transferencia en modo \textit{append}}
 
 Uno de los primeros problemas importantes apareció al diseñar el mecanismo de \textit{File Handoff}.
-El objetivo era que el administrador abriese un fichero real en \textit{Espacio de Usuario}, enviase su \textit{FD} al \textit{LKM} y que el módulo escribiese en dicho fichero desde \textit{Espacio del Kernel}.
-Inicialmente, esta operación podía parecer equivalente a una escritura ordinaria sobre un fichero abierto, pero al analizar el flujo real de escritura del \textit{Kernel} se comprobó que el manejo del puntero de posición del fichero (\verb|f_pos|) era un punto realmente delicado a tener en cuenta.\\
+El objetivo era que el administrador abriese un fichero real en \textit{espacio de usuario}, enviase su \textit{FD} al \textit{LKM} y que el módulo escribiese en dicho fichero desde \textit{espacio del kernel}.
+Inicialmente, esta operación podía parecer equivalente a una escritura ordinaria sobre un fichero abierto, pero al analizar el flujo real de escritura del \textit{kernel} se comprobó que el manejo del puntero de posición del fichero (\verb|f_pos|) era un punto realmente delicado a tener en cuenta.\\
 
 En una escritura normal, la posición del puntero de escritura del fichero determina dónde se insertan los nuevos bytes.
 Si el módulo escribiese directamente usando el puntero asociado al objeto \texttt{struct file}, tendría que asumir la responsabilidad de controlar correctamente dicha posición, especialmente si el fichero pudiera ser utilizado por más de una ruta de ejecución.
-Esto habría añadido complejidad adicional al prototipo, ya que sería necesario razonar sobre actualizaciones parciales del puntero, implementación de mecanismos de bloqueo sobre el puntero, posibles escrituras intermedias, escrituras incompletas y sobrescrituras accidentales del contenido previo.
+Esto habría añadido complejidad adicional al prototipo, ya que sería necesario razonar sobre actualizaciones parciales del puntero, implementación de mecanismos de bloqueo sobre el puntero, posibles escrituras intermedias, escrituras incompletas y sobrescrituras accidentales del contenido previo.\\
+
 Además, como el contenido final se escribe en varias partes (marcador inicial, contenido, separador y etiqueta \textit{HMAC}), una gestión incorrecta de la posición podría producir un fichero mal formateado con una difícil verificación posterior.\\
 
 La solución adoptada fue exigir que el fichero recibido estuviese abierto con capacidad de escritura y en modo \textit{append}.
-De esta forma, la política del prototipo queda restringida a añadir el reporte al final del fichero de transferencia, evitando depender de una posición arbitraria proporcionada por el estado previo del descriptor y de su correcta gestión y modificación.
-Esta decisión se implementó en la validación de metadatos del fichero, comprobando tanto \verb|FMODE_WRITE| como el \textit{flag} \verb|O_APPEND|, y verificando además los permisos efectivos mediante \verb|file_permission| con \verb|MAY_WRITE| y \verb|MAY_APPEND| dentro del \textit{LKM}.
-El código asociado a esta lógica de validación se encuentra en el Código~\ref{cod:file_handoff_val_metadata}.\\
+De esta forma, la política del prototipo queda restringida a añadir el reporte al final del fichero de transferencia, evitando depender de una posición arbitraria proporcionada por el estado previo del descriptor y de su correcta gestión y modificación.\\
 
-Por otra parte, se implementó la función auxiliar \verb|write_full|, ya que una llamada de escritura no garantiza necesariamente que todos los bytes solicitados se escriban en una única operación.
-Por ello, la función repite internamente las llamadas a \verb|kernel_write| hasta completar la adición total del contenido solicitado o detectar un error.
-Con esta solución, el módulo mantiene una semántica de escritura más controlada, solo acepta ficheros compatibles con la política definida de escritura en modo \textit{append}, escribiendo de esta manera siempre al final del fichero y tratando correctamente posibles escrituras parciales.
+Esta decisión se implementó en la validación de metadatos del fichero, comprobando tanto \verb|FMODE_WRITE| como el \textit{flag} \verb|O_APPEND|, y verificando además los permisos efectivos mediante \verb|file_permission| con \verb|MAY_WRITE| y \verb|MAY_APPEND| dentro del \textit{LKM}.
+El código asociado a esta lógica de validación se encuentra en ~\ref{cod:file_handoff_val_metadata}.\\
+
+Por otra parte, se implementó la función auxiliar \verb|write_full| para tratar correctamente posibles escrituras parciales cuando se pretenda escribir grandes cantidades de datos, es necesario ir poco a poco.
+Por ello, la función repite internamente las llamadas a \verb|kernel_write| hasta completar la adición total del contenido solicitado o detectar un error.\\
+
+Con esta solución, el módulo mantiene una semántica de escritura más controlada, solo acepta ficheros compatibles con la política definida de escritura en modo \textit{append}, escribiendo de esta manera siempre al final del fichero.
 El diseño final de esta parte se recoge en el Código~\ref{cod:file_handoff_write_full}.\\\\
 
+\
 
 \subsection{Integración del mecanismo \textit{HMAC-SHA256} entre \textit{Kernel-Space} y \textit{User-Space}}
 
 Otro punto especialmente delicado fue la incorporación del mecanismo criptográfico de autenticación en el \textit{LKM}.
-Las primeras pruebas permitieron validar el concepto desde \textit{Espacio de Usuario}, generando una clave simétrica y calculando un \textit{HMAC-SHA256} mediante \textit{OpenSSL}.\\
+Las primeras pruebas permitieron validar el concepto desde \textit{espacio de usuario}, generando una clave simétrica y calculando un \textit{HMAC-SHA256} mediante \textit{OpenSSL}.\\
 
-Sin embargo, trasladar esa idea al \textit{Módulo del Kernel} no consistía en reutilizar directamente las mismas funcionalidades de usuario, ya que dentro del \textit{Kernel} no se dispone de las bibliotecas ni del mismo modelo de memoria.
-Fue necesario apoyarse en la \textit{Crypto API} del \textit{Kernel}, concretamente en la interfaz de \textit{hash} síncrono (\texttt{shash}) asociada al algoritmo \texttt{hmac(sha256)}.
-El cálculo exigía solicitar primero el transformador criptográfico con \verb|crypto_alloc_shash|, asociarle la clave mediante \verb|crypto_shash_setkey|, obtener el tamaño real del resumen con \verb|crypto_shash_digestsize| y reservar memoria para la etiqueta resultante mediante \verb|kmalloc|.
+Sin embargo, trasladar esa idea al \textit{módulo del kernel} no consistía en reutilizar directamente las mismas funcionalidades de usuario, ya que dentro del \textit{kernel} no se dispone de las bibliotecas ni del mismo modelo de memoria.
+Fue necesario apoyarse en la \textit{Crypto API} del \textit{kernel}, concretamente en la interfaz de \textit{hash} síncrono (\texttt{shash}) asociada al algoritmo \texttt{hmac(sha256)}.\\
+
+El cálculo exigía solicitar primero la instancia al \textit{hash} (\textit{shash}) con \verb|crypto_alloc_shash|, asociarle la clave mediante \verb|crypto_shash_setkey|, obtener el tamaño real del resumen con \verb|crypto_shash_digestsize| y reservar memoria para la etiqueta resultante mediante \verb|kmalloc|.
 Después, se debía construir el descriptor temporal requerido por la \textit{API} con \verb|SHASH_DESC_ON_STACK|, ejecutar el resumen con \verb|crypto_shash_digest| y controlar en cada paso los errores y la liberación de recursos, sabiendo que la salida de todo este proceso es binaria.
-Esto hizo que el mecanismo fuese mucho más complejo en comparación a la facilidad de cálculo mediante \textit{OpenSSL} en \textit{Espacio de Usuario}.\\
+Esto hizo que el mecanismo fuese mucho más complejo en comparación a la facilidad de cálculo mediante \textit{OpenSSL} en \textit{espacio de usuario}.\\
 
-Otro obstáculo importante encontrado en esta parte del proyecto fue coordinar correctamente tres aspectos: la clave compartida, el cálculo del autenticador en \textit{Espacio del Kernel} y la verificación posterior desde \textit{Espacio de Usuario}.\\
+Otro obstáculo importante encontrado en esta parte del proyecto fue coordinar correctamente tres aspectos: la clave compartida, el cálculo del autenticador en \textit{espacio del kernel} y la verificación posterior desde \textit{espacio de usuario}.\\
 
 Durante el desarrollo se pasó de pruebas iniciales con claves creadas manualmente a una clave embebida generada previamente mediante un script auxiliar de manera aleatoria.
-Este cambio permitió que el \textit{LKM} y la utilidad de verificación del administrador en \textit{Espacio de Usuario} trabajasen con la misma clave \(K\) de forma práctica.
+Este cambio permitió que el \textit{LKM} y la utilidad de verificación del administrador en \textit{espacio de usuario} trabajasen con la misma clave \(K\) de forma práctica.
 La generación de la cabecera con la clave embebida se recoge en el Código~\ref{cod:gen_k_embedded}.\\
 
 Por otro lado, fue necesario tratar correctamente la representación del \textit{HMAC}.
 El resultado de \textit{HMAC-SHA256} es una etiqueta binaria de 32 \textit{bytes}, no una cadena de texto directamente legible.
 Escribir esos bytes sin codificación complicaría la inspección manual del fichero y su verificación.
 Por ello, el módulo convierte la etiqueta binaria a \textit{Base64} antes de escribirla en el fichero de transferencia, generando una representación textual estable que puede ser leída, separada y recalculada por la utilidad de usuario de forma sencilla y muy práctica.
-Esta decisión obligó a cuidar la estructura del fichero, separando explícitamente el contenido protegido de la etiqueta mediante marcadores textuales, para que la verificación se realizase exactamente sobre los mismos bytes que habían sido autenticados por el \textit{Kernel}.\\
+Esta decisión obligó a cuidar la estructura del fichero, separando explícitamente el contenido protegido de la etiqueta mediante marcadores textuales, para que la verificación se realizase exactamente sobre los mismos bytes que habían sido autenticados por el \textit{kernel}.\\
 
-Finalmente, la utilidad de comprobación en \textit{Espacio de Usuario} tuvo que reproducir el mismo proceso de forma coherente: extraer el contenido entre separadores, recalcular el \textit{HMAC-SHA256} con la misma clave, codificarlo en \textit{Base64} y compararlo con el valor escrito por el módulo.
+Finalmente, la utilidad de comprobación en \textit{espacio de usuario} tuvo que reproducir el mismo proceso de forma coherente: extraer el contenido entre separadores, recalcular el \textit{HMAC-SHA256} con la misma clave, codificarlo en \textit{Base64} y compararlo con el valor escrito por el módulo.
 Además, la comparación se realiza mediante una primitiva criptográfica específica, evitando una comparación ordinaria de cadenas y reduciendo así posibles fugas de información por diferencias de tiempo en la comparación.
-Con ello se consiguió cerrar el ciclo completo de autenticación: generación dentro del \textit{Kernel}, transferencia textual estructurada y verificación externa del contenido.
-La implementación de este mecanismo se detalla en los Códigos~\ref{cod:crypto_get_hmac_sha256},~\ref{cod:crypto_get_hmac_b64},~\ref{cod:crypto_write_cont_hmac} y~\ref{cod:check_hmac_verify_main}.\\\\
+Con ello se consiguió cerrar el ciclo completo de autenticación: generación dentro del \textit{kernel}, transferencia textual estructurada y verificación externa del contenido.
+La implementación de este mecanismo se detalla en ~\ref{cod:crypto_get_hmac_sha256},~\ref{cod:crypto_get_hmac_b64},~\ref{cod:crypto_write_cont_hmac} y~\ref{cod:check_hmac_verify_main}.\\\\
 
+\
 
 \subsection{Recorrido seguro de la lista de procesos mediante \textit{RCU}}
 
 El último problema relevante durante el desarrollo del proyecto apareció al sustituir el contenido fijo de prueba por información real del sistema.
-El prototipo final debía recorrer la lista global de tareas del \textit{Kernel} y extraer los metadatos más relevantes de cada proceso, como identificadores de usuario, de proceso, de grupo, espacios de nombres y el nombre del comando asociado.
+El prototipo final debía recorrer la lista global de tareas del \textit{kernel} y extraer los metadatos más relevantes de cada proceso, como identificadores de usuario, de proceso, de grupo, espacios de nombres y el nombre del comando asociado.\\
+
 Esta operación no puede plantearse como un recorrido estático sobre una estructura inmutable, ya que la lista de procesos cambia continuamente mientras el sistema está en ejecución: pueden crearse nuevas tareas, finalizar procesos o modificarse estructuras internas relacionadas con ellos.\\
 
 Una primera aproximación sin una protección específica habría expuesto al módulo a condiciones de carrera durante el recorrido.
-Por ejemplo, mientras se consulta una entrada del listado, el proceso correspondiente podría finalizar o cambiar su estado, dejando referencias inconsistentes o potencialmente inválidas.
-En código ejecutado dentro del \textit{Kernel}, al tratarse de una región privilegiada del sistema, este tipo de errores es especialmente crítico, ya que no se limita a producir una salida incorrecta, sino que puede provocar lecturas incoherentes, accesos a memoria no válidos o fallos del propio módulo.
-Por este motivo, recorrer estructuras internas como la lista de procesos exige respetar los mecanismos de sincronización previstos por el \textit{Kernel}.\\
+Por ejemplo, mientras se consulta una entrada del listado, el proceso correspondiente podría finalizar o cambiar su estado, dejando referencias inconsistentes o potencialmente inválidas.\\
+
+En código ejecutado dentro del \textit{kernel}, al tratarse de una región privilegiada del sistema, este tipo de errores es especialmente crítico, ya que no se limita a producir una salida incorrecta, sino que puede provocar lecturas incoherentes, accesos a memoria no válidos o fallos del propio módulo.
+Por este motivo, recorrer estructuras internas como la lista de procesos exige respetar los mecanismos de sincronización previstos por el \textit{kernel}.\\
 
 La solución adoptada fue proteger el recorrido mediante una sección de lectura \textit{RCU} (\textit{Read-Copy-Update}), delimitada por \verb|rcu_read_lock| y \verb|rcu_read_unlock|.
 \textit{RCU} permite que el módulo recorra referencias compartidas de forma segura sin bloquear globalmente la creación o finalización de procesos.
@@ -452,11 +450,12 @@ Esto encaja con el objetivo del proyecto, ya que no se necesita congelar por com
 La macro \verb|for_each_process| se ejecuta dentro de esta sección protegida, y cada tarea se serializa inmediatamente en el \textit{buffer} del reporte mediante funciones auxiliares.\\
 
 Esta solución no convierte el reporte en una fotografía transaccional perfecta del sistema, ya que el sistema operativo continúa ejecutándose y su estado puede cambiar durante la generación del listado.
-No obstante, sí evita recorrer la lista de procesos sin protección y reduce el riesgo de acceder a referencias inestables mientras se construye el reporte.
+No obstante, sí evita recorrer la lista de procesos sin protección y reduce el riesgo de acceder a referencias inestables mientras se construye el reporte.\\
+
 Además, en los puntos donde se consultan credenciales de las tareas, el módulo utiliza referencias controladas mediante las primitivas correspondientes, como \verb|get_task_cred| y \verb|put_cred|, para no depender de estructuras cuya vida útil no esté protegida.
 La construcción del listado bajo protección \textit{RCU} se muestra en el Código~\ref{cod:report_get_ps}.\\\\
 
 \newpage
 
-La solución final desarrollada no elimina por completo el riesgo asociado a un sistema comprometido, pero sí proporciona un mecanismo práctico para elevar la confianza en una fuente concreta de información crítica, reduciendo la dependencia exclusiva de herramientas de \textit{Espacio de Usuario} cuando estas pueden haber sido alteradas por un \textit{rootkit}.
+La solución final desarrollada no elimina por completo el riesgo asociado a un sistema comprometido, pero sí proporciona un mecanismo práctico para elevar la confianza en una fuente concreta de información crítica, reduciendo la dependencia exclusiva de herramientas de \textit{espacio de usuario} cuando estas pueden haber sido alteradas por un \textit{rootkit}.
 A continuación, se profundizará en todo lo relacionado con las conclusiones obtenidas tras la finalización del proyecto desde distintos puntos de vista.
