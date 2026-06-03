@@ -143,7 +143,7 @@ La implementación concreta de esta función se muestra en el Código~\ref{cod:f
 Por otro lado, la escritura sobre \texttt{/proc/fdev} es el punto de entrada principal del prototipo.
 El administrador abre o crea el fichero destino en modo escritura y añadido al final (modo \textit{append}) desde \textit{espacio de usuario}, obtiene su \textit{FD}, lo convierte a texto y lo escribe en \texttt{/proc/fdev}.
 Desde el punto de vista del \textit{LKM}, esa cadena de texto escrita se recibe como una secuencia de \textit{bytes}, que se copia a memoria del \textit{kernel}, se interpreta como un entero y se comprueba si el \textit{FD} extraído es válido.
-El programa auxiliar encargado de abrir el fichero destino y enviar el \textit{FD} al módulo se recoge en el Código~\ref{cod:mk_fhandoff}.\\
+El programa auxiliar de \textit{espacio de usuario} encargado de abrir el fichero destino y enviar el \textit{FD} al módulo se recoge en el Código~\ref{cod:mk_fhandoff}.\\
 
 Una vez recibido el descriptor, el módulo utiliza una primitiva del \textit{kernel} para transformar el entero en una referencia interna de tipo \texttt{struct file}.
 Este paso es importante porque el \textit{FD} por sí solo no permite escribir directamente sobre el fichero; primero se debe resolver mediante la tabla de ficheros abiertos del proceso que invoca la operación.
@@ -157,9 +157,8 @@ Además, se comprueban los permisos efectivos sobre el fichero para verificar qu
 La función auxiliar encargada de estas comprobaciones se referencia en el Código~\ref{cod:file_handoff_val_metadata}.\\
 
 La escritura efectiva sobre el fichero no se realiza con las funciones habituales de \textit{espacio de usuario}, sino mediante la funcionalidad de escritura disponible dentro del \textit{kernel} que utilice datos en memoria en esta misma región (\verb|kernel_write|).
-Para ello se implementa una función auxiliar que escribe todo el contenido previsto, repitiendo la operación si solo se escribe una parte de los \textit{bytes} solicitados (\verb|write_full|).
-Este diseño evita asumir que una llamada de escritura completa siempre termina transfiriendo todos los datos de golpe y permite devolver errores si la escritura falla o no avanza.
-La función auxiliar de escritura completa se encuentra en el Código~\ref{cod:file_handoff_write_full}.\\
+Para ello se implementa una función auxiliar (\verb|write_full|) que encapsula una única llamada a \verb|kernel_write| y centraliza la comprobación de errores, verificando que la operación no falle y que el número de \textit{bytes} escritos coincida con el tamaño solicitado.
+La función auxiliar de escritura se encuentra en el Código~\ref{cod:file_handoff_write_full}.\\
 
 Finalmente, la validación del prototipo consistió en compilar y cargar el módulo, comprobar que \texttt{/proc/fdev} quedaba disponible, crear el fichero destino mediante la utilidad de usuario, enviar su \textit{FD} al módulo y verificar que el contenido de prueba era escrito desde \textit{espacio del kernel} correctamente.
 También se revisaron las trazas del \textit{kernel} y se descargó el módulo al finalizar la prueba.
@@ -382,7 +381,7 @@ Inicialmente, esta operación podía parecer equivalente a una escritura ordinar
 
 En una escritura normal, la posición del puntero de escritura del fichero determina dónde se insertan los nuevos bytes.
 Si el módulo escribiese directamente usando el puntero asociado al objeto \texttt{struct file}, tendría que asumir la responsabilidad de controlar correctamente dicha posición, especialmente si el fichero pudiera ser utilizado por más de una ruta de ejecución.
-Esto habría añadido complejidad adicional al prototipo, ya que sería necesario razonar sobre actualizaciones parciales del puntero, implementación de mecanismos de bloqueo sobre el puntero, posibles escrituras intermedias, escrituras incompletas y sobrescrituras accidentales del contenido previo.\\
+Esto habría añadido complejidad adicional al prototipo, ya que sería necesario razonar sobre actualizaciones del puntero, implementación de mecanismos de bloqueo sobre el puntero, posibles escrituras intermedias y sobrescrituras accidentales del contenido previo.\\
 
 Además, como el contenido final se escribe en varias partes (marcador inicial, contenido, separador y etiqueta \textit{HMAC}), una gestión incorrecta de la posición podría producir un fichero mal formateado con una difícil verificación posterior.\\
 
@@ -392,8 +391,8 @@ De esta forma, la política del prototipo queda restringida a añadir el reporte
 Esta decisión se implementó en la validación de metadatos del fichero, comprobando tanto \verb|FMODE_WRITE| como el \textit{flag} \verb|O_APPEND|, y verificando además los permisos efectivos mediante \verb|file_permission| con \verb|MAY_WRITE| y \verb|MAY_APPEND| dentro del \textit{LKM}.
 El código asociado a esta lógica de validación se encuentra en ~\ref{cod:file_handoff_val_metadata}.\\
 
-Por otra parte, se implementó la función auxiliar \verb|write_full| para tratar correctamente posibles escrituras parciales cuando se pretenda escribir grandes cantidades de datos, es necesario ir poco a poco.
-Por ello, la función repite internamente las llamadas a \verb|kernel_write| hasta completar la adición total del contenido solicitado o detectar un error.\\
+Por otra parte, se implementó la función auxiliar \verb|write_full| para mantener encapsulada la operación de escritura desde el \textit{LKM}.
+Esta función realiza una única llamada a \verb|kernel_write| y comprueba tanto el posible código de error devuelto por el \textit{kernel} como que el número de \textit{bytes} escritos coincida con el tamaño solicitado, asegurando de esta forma que se realiza una escritura completa.\\
 
 Con esta solución, el módulo mantiene una semántica de escritura más controlada, solo acepta ficheros compatibles con la política definida de escritura en modo \textit{append}, escribiendo de esta manera siempre al final del fichero.
 El diseño final de esta parte se recoge en el Código~\ref{cod:file_handoff_write_full}.\\\\

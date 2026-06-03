@@ -389,22 +389,17 @@ Sin embargo, la funcionalidad principal de este prototipo se concentra en la fun
 \begin{lstlisting}[language=C]
 static int write_full(struct file *f, const char *buf, int len)
 {
-    int w = 0;
-    int off = 0;
-    loff_t *ppos = &f->f_pos;
+	int w = 0;
+	loff_t *ppos = &f->f_pos;
 
-    while (off < len) {
-        w = kernel_write(f, buf + off, len - off, ppos);
+	w = kernel_write(f, buf, len, ppos);
+	if (w < 0)
+		return w;
 
-        if (w < 0)
-            return w;
+	if (w != len)
+		return -EIO;
 
-        if (w == 0)
-            return -EIO;
-
-        off += w;
-    }
-    return off;
+	return w;
 }
 \end{lstlisting}
 \captionsetup{type=code,justification=centering,singlelinecheck=false}
@@ -412,9 +407,9 @@ static int write_full(struct file *f, const char *buf, int len)
 \label{cod:file_handoff_write_full}
 \vspace{\baselineskip}
 
-La función auxiliar \verb|write_full| encapsula la lógica de escritura completa sobre un fichero ya abierto desde \textit{espacio del kernel}, garantizando que todo el contenido del \textit{buffer} (\verb|buf|) se escriba mediante llamadas sucesivas a \verb|kernel_write| en un bucle controlado hasta completar el número total de \textit{bytes} solicitado, cuyo mecanismo optimiza la escritura en caso de grandes volúmenes de datos.
-Además, se eligió operar sobre ficheros abiertos en modo \textit{append} sin tener que tener espcial cuidado con el puntero de escritura (\verb|ppos|), como ya se explicó anteriormente en \ref{sec:file_handoff}.
-Sin embargo, en caso de que la escritura devuelva un error o no avance, se retorna el error correspondiente (\texttt{-EIO}).\\
+La función auxiliar \verb|write_full| encapsula la escritura sobre un fichero ya abierto desde \textit{espacio del kernel} mediante una única llamada a \verb|kernel_write|.
+Para ello, utiliza como posición de escritura el puntero asociado al fichero (\verb|f_pos|) para escribir al final del mismo, comprueba si la llamada devuelve un error y verifica que el número de \textit{bytes} escritos (\verb|w|) coincida con la longitud solicitada (\verb|len|).
+En caso contrario, se retorna un código de error (\texttt{-EIO}), manteniendo centralizada la comprobación de la escritura dentro del \textit{LKM}.\\
 
 El uso de \verb|kernel_write| se apoyó en la verificación de su implementación dentro del código fuente del \textit{VFS} del \textit{kernel}, concretamente en el fichero \texttt{fs/read\_write.c}.\\
 
@@ -470,9 +465,10 @@ static ssize_t mywrite(struct file *file, const char __user *ubuf,
     if (kstrtoint(buf, 10, &fd))
         return -EINVAL;
 
-
     if (fd < 0)
         return -EBADF;
+
+
 
     f = fget(fd);
     if (!f)
@@ -521,22 +517,19 @@ Para completar este prototipo fue necesario implementar también una utilidad ex
 
 static int write_full(int fd, const char *buf, int len)
 {
-    int off = 0;
-    int w = 0;
+	int w = 0;
 
-    while (off < len) {
-        w = write(fd, buf + off, len - off);
+	w = write(fd, buf, len);
+	if (w < 0)
+		return -1;
 
-        if (w < 0) {
-            if (errno == EINTR)
-                continue;
+	if (w != len) {
+		errno = EIO;
+		return -errno;
 
-            return -1;
-        }
+	}
 
-        off += w;
-    }
-    return off;
+	return w;
 }
 
 int main(int argc, char *argv[])
@@ -551,17 +544,17 @@ int main(int argc, char *argv[])
 
     int fd_handoff = open(f_handoff, O_CREAT | O_RDWR | O_APPEND, 0666);
 
-
     if (fd_handoff < 0) {
         err(EXIT_FAILURE, "Error opening/creating the file %s",
             f_handoff);
     }
 
+
+
     int fd_proc = open(f_proc, O_RDWR);
     if (fd_proc < 0) {
         err(EXIT_FAILURE, "Error opening %s", f_proc);
     }
-
 
     char fd_str[12];
     snprintf(fd_str, sizeof(fd_str), "%d", fd_handoff);
@@ -587,7 +580,7 @@ int main(int argc, char *argv[])
 \vspace{\baselineskip}
 
 Este programa actúa como intermediario desde \textit{espacio de usuario}, creando o abriendo el fichero real que actuará como destino a partir del nombre indicado como primer argumento, obteniendo su \textit{FD} y enviándolo al módulo a través de \texttt{/proc/fdev}, cuya ruta se indica como segundo argumento al ejecutar el programa, completando así el mecanismo de \textit{File Handoff}.
-Cabe destacar que en esta utilidad de usuario, se implementó una función auxiliar de escritura (\verb|write_full|) la cual optimiza dicha acción en escrituras grandes, aunque en este caso no sea necesario, ya que al \textit{LKM} se le envía pocos \textit{bytes} de información (un \textit{FD}, el cual es generalmente un entero que se pasa a cadena de caracteres para escribirlo).\\
+Cabe destacar que en esta utilidad de usuario se implementó también una función auxiliar de escritura (\verb|write_full|), encargada de encapsular la llamada a \verb|write| y comprobar que la operación no falle y que el número de \textit{bytes} escritos coincida con el tamaño solicitado.\\
 
 Una vez terminado el mecanismo completo de \textit{File Handoff} básico, se procedió a validar su funcionamiento, comprobando que el módulo recibía correctamente el \textit{FD} de un fichero real desde \textit{espacio de usuario}, lo resolvía dentro del \textit{kernel} y escribía sobre dicho fichero la cadena definida en \verb|mywrite|:
 
@@ -670,8 +663,8 @@ En consecuencia, el proceso de compilación del módulo deja de depender únicam
 Para ello, se diseñó un script auxiliar \verb|gen_k_embedded.sh|, encargado de generar una clave aleatoria de 64 \textit{bytes}, almacenarla en un fichero binario \verb|key.bin| y transformarla después en la cabecera \verb|k_embedded.h| como un vector constante de \textit{bytes}, pudiendo así importarla en el \textit{LKM}.
 A su vez, el \textit{Makefile} de compilación del \textit{LKM} pasa a declarar \verb|k_embedded.h| como dependencia previa de la regla \verb|all|.\\
 
-\begin{lstlisting}[language=bash]
-#!/usr/bin/env bash
+\begin{lstlisting}[language=sh]
+#!/bin/sh
 set -e
 
 KEY_LEN=64
@@ -746,6 +739,7 @@ static int get_hmac_b64(const u8 *hmac, int hmac_len, u8 **hmac_b64,
 	int hmac_b64cap = BASE64_CHARS(hmac_len);
 
 	*hmac_b64 = kmalloc(hmac_b64cap, GFP_KERNEL);
+
 	if (!*hmac_b64)
 		return -ENOMEM;
 
@@ -777,7 +771,6 @@ A nivel de formato de salida, el contenido ya no se escribe de forma aislada en 
 \begin{lstlisting}[language=C]
 static const char sep[] = "\n--KERNEL-PS--\n";
 static const int sep_len = sizeof(sep) - 1;
-
 static const char sep_hmac[] = "\n--HMAC--\n";
 static const int sep_hmac_len = sizeof(sep_hmac) - 1;
 
@@ -820,7 +813,7 @@ Para ello, escribe secuencialmente separadores textuales distinguibles, empezand
 
 De este modo, el fichero resultante queda estructurado de forma determinista, facilitando tanto la separación entre el contenido principal a transferir y el \textit{HMAC} necesario para su posterior validación desde \textit{espacio de usuario}.\\
 
-Ya explicado el desarrollo del mecanismo de autenticación diseñado, se procedió a modificar la función manejadora de escritura para integrar todos los componentes unificados:
+Ya explicado el desarrollo del mecanismo de autenticación, se procedió a modificar la función manejadora de escritura para integrar todos los componentes unificados:\\
 
 \begin{lstlisting}[language=C]
 static int printh(struct file *f)
@@ -868,6 +861,8 @@ out:
 
 Ahora, la función \verb|printh| pasa a concentrar la lógica principal de integración del mecanismo diseñado en este prototipo.
 En este caso de prueba, se utiliza una cadena de contenido constante \verb|cont|, a la cual se le calcula su \textit{HMAC-SHA256}, se codifica en \textit{Base64} y se escribe todo bien estructurado por separado en el fichero de transferencia.\\
+
+\
 
 \begin{lstlisting}[language=C]
 static ssize_t mywrite(struct file *file, const char __user *ubuf,
@@ -947,7 +942,7 @@ const char sep_hmac[] = "--HMAC--\n";
 \label{cod:check_hmac}
 \vspace{\baselineskip}
 
-En primer lugar, las funciones \verb|read_until_separator|, \verb|read_hmac_line| y \verb|extract_data| se encargan de deserializar el contenido del fichero de transferencia generado mediante el mecanismo de \textit{File Handoff}, separando el contenido principal de la etiqueta \textit{HMAC} almacenada en formato \textit{Base64} mediante la detección de los separadores definidos:\\
+En primer lugar, las funciones \verb|read_until_separator|, \verb|read_hmac_line| y \verb|extract_data| se encargan de deserializar el contenido del fichero de transferencia generado mediante el mecanismo de \textit{File Handoff}, separando el contenido principal de la etiqueta \textit{HMAC} almacenada en formato \textit{Base64} mediante la detección de los separadores definidos:
 
 \begin{lstlisting}[language=C]
 int read_until_separator(FILE *f, char **content, int *content_len)
@@ -1087,11 +1082,6 @@ int encode_base64(unsigned char *hmac_calc, unsigned int hmac_calc_len,
 	return 0;
 }
 
-
-
-
-
-
 int calc_and_encode_hmac(const char *content, int content_len,
 			 unsigned char **hmac_b64_calc, int *hmac_b64_calc_len)
 {
@@ -1151,7 +1141,6 @@ int main(int argc, char *argv[])
 
 	char *content = NULL;
 	int content_len = 0;
-
 	char *hmac_b64 = NULL;
 	int hmac_b64_len = 0;
 
@@ -1173,7 +1162,6 @@ int main(int argc, char *argv[])
 				 &hmac_b64_calc, &hmac_b64_calc_len)) {
 		goto free_all;
 	}
-
 	free(content);
 	content = NULL;
 
@@ -1183,7 +1171,6 @@ int main(int argc, char *argv[])
 
 	free(hmac_b64);
 	free(hmac_b64_calc);
-
 	exit(ext);
 
 free_all:
@@ -1305,7 +1292,7 @@ Este módulo se diseñó en el fichero \verb|crypto_ps.c|.\\
 
 En este punto, toda la infraestructura desarrollada en los prototipos anteriores se reutiliza sin cambios sustanciales, incluyendo el mecanismo de \textit{File Handoff}, la escritura conjunta del contenido y su \textit{HMAC} en \textit{Base64}, así como las utilidades de escritura en el fichero de \texttt{/proc} y verificación en \textit{espacio de usuario}.\\
 
-Inicialmente, se tuvo que incorporar nuevas constantes y cabeceras al módulo para su correcto funcionamiento y compilación:
+Inicialmente, se tuvo que incorporar nuevas constantes y cabeceras al módulo:
 
 \begin{lstlisting}[language=C]
 #include <linux/cred.h>
@@ -1315,7 +1302,6 @@ Inicialmente, se tuvo que incorporar nuevas constantes y cabeceras al módulo pa
 #include <linux/sched.h>
 #include <linux/nsproxy.h>
 #include <linux/pid_namespace.h>
-
 enum {
 	MAX_SIZE = 1024 * 40,
 	TIPIC_HMACB64_SIZE = 44,
@@ -1328,14 +1314,12 @@ enum {
 	PS_LINE_SIZE = UID_SIZE + UID_SIZE + UIDNS_SIZE +
 	    PID_SIZE + PID_SIZE + PIDNS_SIZE + GID_SIZE + CMD_SIZE,
 };
-
 static const char header[] =
     "UID_KERNEL  UID_LOCAL   UID_NS        PID_KERNEL  PID_LOCAL   PID_NS        GID        COMMAND\n";
-
 static const int header_len = sizeof(header) - 1;
 \end{lstlisting}
 \captionsetup{type=code,justification=centering,singlelinecheck=false}
-\captionof{code}[Cabeceras y constantes necesarias para la generación del listado de procesos global.]{Cabeceras y constantes necesarias para la generación del listado de procesos global.}
+\captionof{code}[Cabeceras y constantes para la generación del listado de procesos.]{Cabeceras y constantes para la generación del listado de procesos.}
 \label{cod:report_headers_consts}
 \vspace{\baselineskip}
 
@@ -1371,6 +1355,7 @@ static int pad_str_right(char *buf, int curr_len, int buf_len, char pad_char)
 static int safe_chunk(u8 *dst, int *current_len, char *src, int src_len)
 {
 	int max_len = MAX_SIZE - *current_len;
+
 
 	if (max_len < src_len)
 		return -ENOSPC;
@@ -1412,9 +1397,8 @@ static int get_ps(u8 **cont, int *cont_len)
 
 	for_each_process(task) {
 		if (*cont_len >= MAX_SIZE - PS_LINE_SIZE -
-		    sep_len - sep_hmac_len - TIPIC_HMACB64_SIZE) {
+		    	sep_len - sep_hmac_len - TIPIC_HMACB64_SIZE) {
 			printk(KERN_WARNING "get_ps: Buffer full -> Truncating\n");
-
 			goto out_fail;
 		}
 
@@ -1423,7 +1407,9 @@ static int get_ps(u8 **cont, int *cont_len)
 
 			goto out_fail;
 		}
+
 	}
+
 	rcu_read_unlock();
 
 	printk(KERN_INFO "get_ps: Generated ps-like output of %d bytes.\n", *cont_len);
@@ -1481,8 +1467,6 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len)
 	if (safe_chunk(cont, cont_len, luid_str, UID_SIZE) < 0)
 		goto out_fail;
 
-
-
 	int uidns_len = get_uidns_str(task, uidns_str);
 	if (uidns_len <= 0)
 		goto out_fail;
@@ -1503,6 +1487,7 @@ static int ps_data(struct task_struct *task, u8 *cont, int *cont_len)
 
 	if (safe_chunk(cont, cont_len, lpid_str, PID_SIZE) < 0)
 		goto out_fail;
+
 
 	int pidns_len = get_pidns_str(task, pidns_str);
 	if (pidns_len <= 0)
@@ -1604,7 +1589,7 @@ static int get_uidns_str(struct task_struct *task, char *uidns_str)
 \vspace{\baselineskip}
 
 Estas funciones permiten obtener y formatear los identificadores de usuario (\textit{UIDs}) asociados a cada proceso.
-En concreto, \verb|get_kuid_str| obtiene el UID global visible desde el \textit{kernel}, \verb|get_luid_str| recupera el UID relativo al espacio de nombres del proceso y \verb|get_uidns_str| identifica el espacio de nombres de usuario al que pertenecen dichas credenciales.\\
+En concreto, \verb|get_kuid_str| obtiene el UID global visible desde el \textit{kernel}, \verb|get_luid_str| el UID relativo al espacio de nombres del proceso y \verb|get_uidns_str| el espacio de nombres de usuario al que pertenecen dichas credenciales.\\
 
 \begin{lstlisting}[language=C]
 static int get_kpid_str(int pid, char *pid_str)
@@ -1621,10 +1606,8 @@ static int get_lpid_str(struct task_struct *task, char *pid_str)
 	struct pid_namespace *ns = task_active_pid_ns(task);
 	if (!ns) {
 		printk(KERN_ERR "get_lpid_str: No PID namespace found for task\n");
-
 		return -ENOSPC;
 	}
-
 
 	int pid = task_pid_nr_ns(task, ns);
 
@@ -1635,13 +1618,11 @@ static int get_lpid_str(struct task_struct *task, char *pid_str)
 	return pid_len;
 }
 
-
 static int get_pidns_str(struct task_struct *task, char *pidns_str)
 {
 	struct pid_namespace *pid_ns = task_active_pid_ns(task);
 	if (!pid_ns) {
 		printk(KERN_ERR "get_pidns_str: No PID namespace found for task\n");
-
 		return -ENOSPC;
 	}
 

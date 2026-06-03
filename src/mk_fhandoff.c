@@ -7,29 +7,24 @@
 #include <unistd.h>
 
 /*
- * Ensure complete write required: 
- * Return: bytes written (>0 -> can be <len) <-> -1 error
+ * Write the complete buffer in a single write call:
+ * Return: bytes written (length) success <-> <0 error
  */
 static int write_full(int fd, const char *buf, int len)
 {
-	int off = 0;
 	int w = 0;
 
-	while (off < len) {
-		w = write(fd, buf + off, len - off);
+	w = write(fd, buf, len);
+	if (w < 0)
+		return -1;
 
-		// got interrupted -> retries the write
-		if (w < 0) {
-			if (errno == EINTR)
-				continue;
+	if (w != len) {
+		errno = EIO;
+		return -errno;
 
-			return -1;
-		}
-
-		off += w;
 	}
 
-	return off;
+	return w;
 }
 
 /*

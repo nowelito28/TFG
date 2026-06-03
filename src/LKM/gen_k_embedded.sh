@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/bin/sh
 set -e               # Exit if any command returns error (exit != 0)
 
 # 1) Generate 64 random bytes and save it in key.bin (binary file) -> Optimal for key SHA-256

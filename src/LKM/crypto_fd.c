@@ -57,29 +57,22 @@ static const char header[] =
 static const int header_len = sizeof(header) - 1;
 
 /*
- * Aux function -> Write all content passed in buf to the file position ppos:
- * Return: bytes written (off) success <-> <0 error <-> 0 if EOF is found
+ * Aux function -> Write the complete buffer in a single kernel_write call:
+ * Return: bytes written (len) success <-> <0 error
  */
 static int write_full(struct file *f, const char *buf, int len)
 {
 	int w = 0;
-	int off = 0;
 	loff_t *ppos = &f->f_pos;
 
-	while (off < len) {
-		w = kernel_write(f, buf + off, len - off, ppos);
+	w = kernel_write(f, buf, len, ppos);
+	if (w < 0)
+		return w;
 
-		if (w < 0)
-			return w;
+	if (w != len)
+		return -EIO;
 
-		if (w == 0)
-			return -EIO;
-
-		off += w;
-
-	}
-
-	return off;
+	return w;
 }
 
 /*
