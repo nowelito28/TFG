@@ -29,3 +29,7 @@
 
 # PDFs - reports
 *.pdf
+
+# Allow PDFs in figs directories
+!doc/plantilla-latex-tfg-spanish/figs/*.pdf
+!doc/template-latex-bdp-english/figs/*.pdf
