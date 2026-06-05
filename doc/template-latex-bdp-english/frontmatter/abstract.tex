@@ -1,0 +1,21 @@
+\cleardoublepage
+
+\chapter*{Abstract\markboth{Abstract}{Abstract}}
+
+Security in modern systems is a constantly evolving field in which data integrity and control over system operation play a fundamental role.
+This is due to the presence of threats and external agents whose malicious purpose is to compromise such information, making it necessary to develop increasingly robust protection mechanisms.\\
+
+In this context, one of the most critical threats currently affecting information systems is represented by \textit{rootkits}, malicious software designed to hide and manipulate system resources or activity, such as processes, files or network connections.
+These threats may operate both in \textit{User Space} and in \textit{Kernel Space}, compromising the information received by both the administrator and the user and preventing them from obtaining a truthful view of the real state of the system.
+This undermines the integrity of monitoring and control tasks, potentially leading the administrator to trust information sources that may have been compromised.\\
+
+To address this problem, this project designs and implements a \textit{Loadable Kernel Module} (\textit{LKM}) on a \textit{Linux} system with the aim of providing an authenticated source of critical system information against possible manipulation.
+The solution introduces a cryptographic authentication mechanism based on \textit{HMAC} for the content provided by the \textit{kernel}, using a secret symmetric key shared only between the administrator and the module.
+This approach relies on a chain of trust in which it is assumed that the \textit{kernel} and the \textit{LKM} have not been modified, for example through signing mechanisms for both the \textit{kernel} and the module, thereby reinforcing the integrity of the information provided.\\
+
+The experiments carried out approximate a real operating environment in which sensitive information is requested from \textit{User Space} to \textit{Kernel Space}.
+For this purpose, the sensitive system content to be authenticated is defined as a list of all running processes and their corresponding metadata, generated inside the \textit{Loadable Kernel Module} itself and used as an example of critical information that may be manipulated by a \textit{rootkit}.
+An \textit{HMAC} is computed over this content using the corresponding secret key and is attached to the information provided to the user, so that its integrity and authenticity can be verified.\\
+
+To validate this proposal, user-level components were developed to test the functionality. A first component creates a file whose descriptor is transferred to the \textit{kernel} so that it can reference it, thus establishing the secure communication channel with the core of the system.
+On the other hand, the integrity of the reported data is confirmed through a second verification component that analyzes the information written by the \textit{kernel}, locally computes the \textit{HMAC} of the content using the same secret key and then compares it with the received value to ensure that both match and that the content is authentic.\\

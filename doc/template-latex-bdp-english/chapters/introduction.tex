@@ -1,0 +1,182 @@
+\chapter{Introduction}
+\label{cap:capitulo1}
+\setcounter{page}{1}
+
+\begin{flushright}
+\begin{minipage}[]{10cm}
+\emph{``The worst enemy of security is complexity.''}\\
+\end{minipage}\\
+
+Bruce Schneier \textit{(A Plea for Simplicity, 1999)}~\cite{schneier}.
+\end{flushright}
+
+\vspace{1cm}
+
+Nowadays, the security of computer systems is a fundamental aspect to consider, becoming increasingly important as we store more sensitive information in them and as they become much more complex systems. Therefore, they may be exposed to a large number of threats if they are not properly protected.
+As the essay quoted at the beginning of this chapter warns, the inherent complexity of these infrastructures facilitates the proliferation of \textit{malware} designed to operate and infiltrate from the strictest invisibility.\\
+
+A modern operating system is not a simple structure or process, but rather an interwoven set of concentric layers or levels of abstraction that operate with respect to a hardware system. It can be described as a truly complex system, with a large number of components and functionalities. This complexity makes it difficult to protect and monitor, requiring deep knowledge of the system in order to know how to react to possible attacks.\\
+
+At the same time, from the attacker's point of view, significant technical knowledge is required to design an effective attack, but also creativity and skill to find vulnerabilities and ways to exploit them without being detected, depending on the attacker's goal.\\
+
+This makes cybersecurity a truly broad and complex discipline, in which attackers and defenders are engaged in a constant race to find new ways to compromise or protect systems.\\
+
+This project focuses on the security of \textit{Linux} operating systems, specifically on the design of a defensive mechanism that provides critical system information in an authenticated and verifiable way against possible manipulation.\\
+
+In order to understand the described scenario in detail and contextualize the topic of the project, the following sections introduce basic cybersecurity concepts and their main purposes, especially the main threat on which this project focuses: \textit{rootkits}.
+
+\
+
+\
+
+\section{Cybersecurity}
+\label{sec:seccion2}
+
+In the field of information systems, cybersecurity comprises the set of architectures, technologies and practices designed to protect systems, data and networks against attacks that may compromise their integrity, confidentiality or availability, whether intentional or not.
+However, from a technical point of view, it must be understood as a balance between the value of the assets to be protected, the risk associated with their compromise and the cost of the measures required to guarantee proportional protection.\\
+
+From this perspective, protecting a system does not consist of indefinitely maximizing defenses, but of applying mechanisms that are proportional to the real impact of a possible attack.\\
+
+The main flow of these threats is materialized through \textbf{malicious \textit{software}} (\textbf{\textit{malware}}), a concept that includes any code designed to infiltrate a system, damage it or steal data without the consent of its owner~\cite{malware_nist}.\\
+
+\newpage
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.85}{\input{figs/types-of-malware.tex}}
+  \figsource{Own elaboration based on \getauthor{akamai}, \gettitle{akamai}~\cite{akamai}, using vector iconography from \gettitle{fontawesome_free}~\cite{fontawesome_free}.}
+  \caption{Main types of \textit{malware}.}
+  \label{fig:types-malware}
+\end{figure}
+
+There are currently several families of \textit{malware}, mainly classified according to their behavior and objective.
+On the one hand, threats aimed at rapid infiltration and propagation stand out, such as \textbf{\textit{viruses}}, \textbf{\textit{worms}} and \textbf{\textit{Trojans}}, which exploit technical vulnerabilities or psychological deception of the user to access the system.
+On the other hand, there are variants focused on espionage and/or financial gain, such as \textbf{\textit{ransomware}}, which encrypts critical or personal data and then demands payment, and \textbf{\textit{spyware}} together with \textbf{\textit{keyloggers}}, designed to monitor and extract sensitive information from the system without being noticed.\\
+
+Nevertheless, within this offensive ecosystem there is one category that stands out due to its extreme criticality and constitutes the main focus of this project: \textbf{\textit{rootkits}}.
+Unlike other \textit{malware} families focused on propagation, espionage or direct financial profit, \textit{rootkits} are characterized by their ability to hide and manipulate system resources and activity, compromising the integrity of the information provided by the system.
+These threats may operate both in \textit{User Space} and in \textit{Kernel Space}, representing a major threat to the security of current information systems.
+Their operation will be discussed in greater detail later.\\
+
+However, for this \textit{malware} to infiltrate the system infrastructure, attackers need access methods and persistence mechanisms.
+They also require proper analysis, identification and exploitation of system vulnerabilities through which they can infiltrate~\cite{mitre_attack}.\\
+
+\
+
+\
+
+\subsection{Vulnerabilities and Attacks}
+\label{sec:ataques}
+
+In the context of system cybersecurity, a \textbf{vulnerability} is defined as a weakness in the design, implementation or configuration of a system that can be exploited by a malicious agent to compromise its integrity, confidentiality or availability~\cite{threat_enisa}.\\
+
+In this context, the \textbf{MITRE ATT\&CK} framework becomes highly relevant, as it is a standardized source of information that classifies the techniques and tactics used by attackers during an intrusion.
+Its usefulness lies in the fact that it allows threats to be described using a common language and the detection, monitoring, robustness and response capabilities against these threats to be evaluated in a structured way~\cite{mitre_attack}.\\
+
+These security gaps constitute the main entry point for intruders and can be broadly classified into three major groups according to their nature:
+\begin{itemize}
+    \item \textbf{\textit{Software} and \textit{hardware} vulnerabilities}: Flaws at the level of the operating system source code, applications or libraries, as well as in physical components or in the interaction between them.
+    In the case of \textit{software}, they may arise from insufficient input validation, code injection or memory errors such as \textit{buffer overflows}.
+    In the case of \textit{hardware}, attacks such as \textit{Rowhammer} exploit physical effects in \textit{DRAM} memory to modify bits in nearby memory locations.
+    On the other hand, attacks such as \textit{Spectre} exploit the interaction between \textit{software} and internal processor optimizations, such as speculative execution, to infer sensitive information through side channels.
+    \item \textbf{Human vulnerabilities}: Caused by lack of awareness, mistakes or negligence by system users, who may become the weakest link in the security chain.
+    \item \textbf{Configuration vulnerabilities}: Insecure design or implementation of the system architecture itself, such as the use of default credentials, exposed network services or incorrect privilege assignment.
+\end{itemize}
+
+\
+
+To exploit these vulnerabilities and carry out the \textit{malware} intrusion, attackers use various \textbf{attack tools} and techniques specific to each scenario.
+Some examples\footnote{For a detailed breakdown of exploitation phases and techniques, MITRE ATT\&CK may be consulted~\cite{mitre_attack}.}:
+\begin{itemize}
+    \item \textbf{Social engineering attacks}: Aimed at exploiting human vulnerabilities. \textbf{\textit{Phishing}} and its variants (\textbf{\textit{spear phishing}}) stand out,
+    with the objective of psychologically manipulating the user through fraudulent communications that lead to revealing credentials or executing malicious \textit{software} inadvertently.
+    \item \textbf{\textit{Exploits}}: To attack through configuration or \textit{software} flaws, attackers use \textit{exploits}.
+    These are code fragments designed to take advantage of a technical weakness and force unexpected behavior in the machine.
+    Their main objective is often to inject a triggering payload, such as \textbf{\textit{backdoors}} or remote administration tools (\textbf{\textit{RATs}}).
+    \item \textbf{Privilege escalation attacks}: Once the attacker has minimally compromised the system,
+    offensive tools are used to exploit secondary vulnerabilities in the same system and raise permissions, potentially obtaining administrator control (\textit{root}).
+    \item \textbf{Persistence and concealment}: After gaining access to the system, the attacker may use techniques to maintain presence and hinder detection.
+    This is the context in which \textit{rootkits} appear, as they can hide processes, files or connections by manipulating the information visible to the user.
+\end{itemize}
+
+\
+
+In short, regardless of the vulnerability detected and the offensive technique used, there is a critical need to implement robust defense mechanisms and secure state monitoring.
+This, together with proper user education and awareness, is essential to mitigate risks and largely protect the system.
+
+\
+
+\subsection{Defenses}
+\label{sec:defensas}
+
+To mitigate and protect against the main threats in this field, a strategic approach based on the principle of \textbf{\textit{Defense in Depth}} was created.
+This concept consists of deploying multiple overlapping security layers, so that if one control fails or is bypassed, the attacker may encounter another one later, making access more difficult.
+Mainly through this approach, defensive methods can be divided into two categories~\cite{nist_sec_controls}.\\
+
+First, \textbf{preventive measures} seek to reduce the attack surface and prevent the intrusion from materializing. The most relevant practices include:
+\begin{itemize}
+    \item \textbf{\textit{Security Awareness}}: Educating users to identify and report social engineering attacks, reducing the human error factor.
+    \item \textbf{\textit{Hardening}}: Keeping applications and the operating system updated to mitigate possible \textit{exploits}.
+    It also involves secure system configuration, such as disabling unnecessary services or restricting network traffic through the use of \textbf{\textit{firewalls}}.
+    \item \textbf{\textit{Principle of Least Privilege} (\textit{PoLP})}: Ensures that users, processes and applications operate only with the minimum and strictly necessary permissions required to perform their function.
+    This drastically limits the impact of an initial access breach and makes privilege escalation more difficult.
+\end{itemize}
+
+\
+
+On the other hand, assuming that preventive barriers can be bypassed, it is essential to implement continuous \textbf{detection, response and monitoring} mechanisms~\cite{nist_detection}:
+\begin{itemize}
+    \item \textbf{\textit{Host-based Intrusion Detection Systems} (\textit{HIDS})}: Tools that monitor machine activity, analyze event records (\textit{logs}) and detect unauthorized alterations recorded in critical files (\textit{File Integrity Monitoring}).
+    \item \textbf{\textit{Endpoint Detection and Response} platforms (\textit{EDR})}: An evolution of the traditional antivirus concept. Instead of relying solely on signatures, they analyze process behavior in memory in real time in order to detect and block anomalous executions.
+\end{itemize}
+
+\
+
+It should be noted that the field of cybersecurity is constantly evolving. The continuous sophistication and improvement of offensive techniques requires a major effort from the industry to research and design new protection methods.
+Thus, current defense paradigms, such as those explained in this section, must dynamically adapt to the temporal context of each environment in which they are used, since they may become obsolete and ineffective in the short term.\\
+
+\
+
+\
+
+\subsection{Rootkits}
+\label{sec:rootkits}
+
+In this cybersecurity context, a \textbf{\textit{rootkit}} is defined as a set of \textit{malware} fragments specifically designed to maintain privileged access to a system and, at the same time, hide its presence and the activities selected by the attacker, such as processes, network connections or files, from administrators and security \textit{software}~\cite{rootkits}.\\
+
+\begin{figure}[h!]
+  \centering
+  \makebox[\textwidth][c]{\scalebox{1.2}{\input{figs/rootkits_layers.tex}}}
+  \figsource{Own elaboration based on \getauthor{nist_rootkit_glossary}, \gettitle{nist_rootkit_glossary}~\cite{nist_rootkit_glossary}.}
+  \caption{Characteristic properties of a \textit{rootkit}.}
+  \label{fig:rootkits_layers}
+\end{figure}
+
+\
+
+Unlike other threats, their main objective is not to propagate or cause immediate destructive damage, but to achieve \textbf{undetectable persistence} in the long term after an initial intrusion into the target system.
+To reach this level of evasion, \textit{rootkits} alter the normal execution flow of the operating system through interception and code modification techniques, typically known as \textbf{\textit{hooking}}.\\
+
+Depending on the layer in which they operate and the level of privileges they can escalate to, they can be divided into two broad categories in \textit{Linux} systems:
+\begin{itemize}
+    \item \textbf{\textit{User-Space Rootkits}:} They operate in the least privileged region (\textit{Ring 3}).
+    The most common technique consists of capturing functions from the standard C library (\texttt{libc}) through mechanisms such as dynamic library loading using the \texttt{LD\_PRELOAD} variable.
+    In this way, they intercept requests to such functions (\textit{hooks}), such as \texttt{open} or \texttt{read}, before they reach the \textit{kernel}, hiding and filtering the output returned to the user.
+    Recent research shows that classical detection tools operating at the normal user privilege level are easily evaded, generating a false sense of security~\cite{rootkits}.
+    
+    \item \textbf{\textit{Kernel-Space Rootkits}:} They represent the most critical threat, since they operate at the highest privilege level (\textit{Ring 0}).
+    They are usually implemented through \textit{Loadable Kernel Modules} (\textit{LKMs}). Since they reside in the system \textit{kernel}, they acquire administrator privileges over critical data structures and the System Call Table (\textit{sys\_call\_table}).
+    This allows them to manipulate the system from within, rendering monitoring tools operating above them with fewer privileges completely useless.
+\end{itemize}
+
+\
+
+The fundamental challenge posed by these threats lies in a critical cybersecurity axiom: \textbf{\textit{a compromised system cannot provide reliable information about itself}}.
+Based on these arguments, attempting to detect or mitigate the action of a \textit{rootkit} using security mechanisms that operate at a lower privilege level than the attacker is a completely ineffective strategy.
+For this reason, robust defensive and monitoring architectures must be designed in the deepest layers of the system in order to guarantee data integrity and the correct operation of the environment.
+
+\newpage
+
+Taking as a reference the complex cybersecurity landscape described above and the major threat posed by \textbf{\textit{rootkits}}, this project proposes the design and development of a secure reporting system for \textit{Linux} environments, focused on providing critical system information in an authenticated and verifiable way against possible manipulation by this type of \textit{malware}.
+Before that, the next chapter establishes the technological framework of current \textit{Linux} operating systems, detailing their design, architecture and operation, thus facilitating the understanding of the project.
+Subsequently, the objectives and methodologies adopted for the design, integration and validation of this secure reporting system will be addressed.

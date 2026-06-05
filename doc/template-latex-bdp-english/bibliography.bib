@@ -1,0 +1,346 @@
+%%% Examples of different types of bibliographic references
+
+% Miscellaneous: essay in an online magazine
+@misc{schneier,
+  author       = {{Schneier, Bruce}},
+  howpublished = {Schneier on Security, online essay},
+  place        = {USA},
+  title        = {{A Plea for Simplicity}},
+  journal      = {Information Security},
+  year         = {1999},
+  month        = {November},
+  url          = {https://www.schneier.com/essays/archives/1999/11/a_plea_for_simplicit.html}
+}
+
+% Book: Operating Systems course
+@book{librossoo,
+  author    = {{Guardiola Múzquiz, Gorka and Soriano Salvador, Enrique}},
+  title     = {{Fundamentos de Sistemas Operativos: Una aproximación práctica usando Linux}},
+  year      = {2025},
+  month     = {November},
+  chapter   = {1, 4, 5},
+  edition   = {3.21},
+  publisher = {GSyC, Universidad Rey Juan Carlos},
+  url       = {https://honecomp.github.io/librossoo.html}
+}
+
+% Vector image: Unix family tree on Wikimedia Commons
+@misc{unix_family_tree,
+  author       = {{VARGUX}},
+  title        = {{File:Unix history-simple es.svg}},
+  place        = {Wikimedia Commons},
+  howpublished = {Vectorial file SVG},
+  year         = {2023},
+  month        = {June},
+  note         = {Published on June 26, 2023. CC BY-SA 4.0 license. Accessed on March 13, 2026},
+  url          = {https://commons.wikimedia.org/wiki/File:Unix_history-simple_es.svg}
+}
+
+% Wikipedia: article in an online encyclopedia
+@misc{wiki_rings,
+  author       = {{Wikipedia contributors}},
+  title        = {{Protection ring}},
+  place        = {Wikipedia, The Free Encyclopedia},
+  howpublished = {Wikipedia, online article},
+  year         = {2026},
+  month        = {January},
+  url          = {https://es.wikipedia.org/wiki/Anillo_(seguridad_inform%C3%A1tica)}
+}
+
+% Specific chapter: Linux kernel development
+@inbook{love_linux,
+  author    = {{Love, Robert}},
+  title     = {{Linux Kernel Development}},
+  chapter   = {1, 13},
+  edition   = {3},
+  year      = {2010},
+  publisher = {Developer's Library, Addison-Wesley},
+  url       = {https://github.com/swadhinsekhar/books/blob/master/Linux%20Kernel%20Development%203rd%20Edition%20-%20Love%20-%202010.pdf}
+}
+
+% Specific chapter: virtual memory
+@inbook{silberschatz_memoria,
+  author    = {{Silberschatz, Abraham and Galvin, Peter Baer and Gagne, Greg}},
+  title     = {{Fundamentos de sistemas operativos}},
+  chapter   = {9},
+  edition   = {9},
+  year      = {2013},
+  publisher = {McGraw-Hill Interamericana},
+  address   = {Madrid, Spain},
+  isbn      = {978-84-481-9076-7},
+  url       = {https://books.google.es/books?id=b2qynQEACAAJ}
+}
+
+% Technical report: explanation of the Linux filesystem organization
+@techreport{albritton_fs,
+  author      = {{Albritton, William McDaniel}},
+  title       = {{Module 2, Session 7 - Linux File System Structure}},
+  institution = {University of Hawaii},
+  year        = {2016},
+  url         = {https://tldp.org/LDP/intro-linux/html/chap_03.html},
+  note        = {Accessed on February 24, 2026}
+}
+
+% Reference manual: explanation of Linux namespaces
+@manual{man_namespaces,
+  title        = {{namespaces(7) - Linux Programmer's Manual}},
+  organization = {Linux Kernel Organization},
+  year         = {2024},
+  month        = {January},
+  note         = {Available by running \texttt{man 7 namespaces} in a Linux terminal or in the official Kernel documentation. Last update accessed.},
+  url          = {https://man7.org/linux/man-pages/man7/namespaces.7.html}
+}
+
+% Web: illustrative article about Namespaces
+@misc{hackerstack_namespaces,
+  author       = {{Gmkziz}},
+  title        = {{Understanding Linux Namespaces}},
+  howpublished = {Hackerstack, online article},
+  year         = {2024},
+  note         = {Accessed on February 25, 2026},
+  url          = {https://www.hackerstack.org/understanding-linux-namespaces/}
+}
+
+% Web: technical article about Docker containers and namespaces
+@misc{parmar_ns,
+  author       = {{Parmar, Kelvin}},
+  title        = {{Deep Dive into Linux Namespaces: Building Your Own Containers}},
+  howpublished = {Hashnode, online article},
+  year         = {2024},
+  month        = {August},
+  note         = {Accessed on March 2, 2026},
+  url          = {https://kelvin-parmar.hashnode.dev/deep-dive-into-linux-namespaces-building-your-own-containers}
+}
+
+% Official Docker documentation: overview and architecture
+@techreport{docker_overview,
+  author      = {{Docker, Inc.}},
+  title       = {{What is Docker?}},
+  institution = {Docker Docs},
+  year        = {2026},
+  note        = {Accessed on March 13, 2026},
+  url         = {https://docs.docker.com/get-started/docker-overview/}
+}
+
+% Official brand resource: Docker logos
+@misc{docker_brand,
+  author       = {{Docker, Inc.}},
+  title        = {{Docker Brand Guidelines and Logo Kit}},
+  howpublished = {Official brand resources page},
+  year         = {2026},
+  note         = {Official logo kit. Accessed on March 13, 2026},
+  url          = {https://www.docker.com/company/newsroom/media-resources/}
+}
+
+% Reference manual: explanation of kernel modules
+@manual{geeks_lkm,
+  author       = {{GeeksforGeeks}},
+  title        = {{Linux/Unix | Linux Kernel Module Programming (Hello World Program)}},
+  howpublished = {Online article},
+  year         = {2019},
+  month        = {January},
+  note         = {Accessed on March 7, 2026},
+  url          = {https://www.geeksforgeeks.org/linux-unix/linux-kernel-module-programming-hello-world-program/}
+}
+
+% Web article: explanation of /proc files
+@misc{medium_proc,
+  author       = {{Deeppadmani}},
+  title        = {{Understanding the /proc file system in Linux}},
+  howpublished = {Online article},
+  year         = {2025},
+  month        = {February},
+  url          = {https://medium.com/@deeppadmani98.2021/understanding-the-proc-file-system-in-linux-90746e3ba76a},
+  note         = {Accessed on March 8, 2026}
+}
+
+% Technical report: guide to malware incident prevention and handling
+@techreport{malware_nist,
+  author      = {{Souppaya, Murugiah and Scarfone, Karen}},
+  title       = {{Guide to Malware Incident Prevention and Handling for Desktops and Laptops}},
+  institution = {National Institute of Standards and Technology (NIST)},
+  type        = {Special Publication (SP)},
+  chapter     = {2},
+  year        = {2013},
+  month       = {July},
+  url         = {https://csrc.nist.gov/pubs/sp/800/83/r1/final}
+}
+
+% Web article: explanation of what malware is
+@misc{akamai,
+  author       = {{Akamai Technologies}},
+  howpublished = {Web article},
+  title        = {{What is malware?}},
+  note         = {Accessed on March 10, 2026},
+  url          = {https://www.akamai.com/es/glossary/what-is-malware}
+}
+
+@misc{fontawesome_free,
+  author       = {{Fonticons, Inc.}},
+  howpublished = {Website},
+  title        = {{Font Awesome Free}},
+  note         = {Accessed on March 13, 2026},
+  url          = {https://fontawesome.com/}
+}
+
+% Technical report: cybersecurity threats
+@techreport{threat_enisa,
+  author      = {{European Union Agency for Cybersecurity (ENISA)}},
+  title       = {{ENISA Threat Landscape 2025}},
+  institution = {ENISA},
+  chapter     = {10},
+  year        = {2025},
+  month       = {October},
+  url         = {https://www.enisa.europa.eu/publications/enisa-threat-landscape-2025},
+  note        = {Accessed on March 10, 2026}
+}
+
+% Technical report: security and privacy controls for information systems
+@techreport{nist_sec_controls,
+  author      = {{Joint Task Force}},
+  title       = {{Security and Privacy Controls for Information Systems and Organizations}},
+  institution = {National Institute of Standards and Technology (NIST)},
+  type        = {Special Publication (SP)},
+  chapter     = {2},
+  year        = {2020},
+  month       = {September},
+  url         = {https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final}
+}
+
+% Technical report: threat detection and prevention
+@techreport{nist_detection,
+  author      = {{Scarfone, Karen and Mell, Peter}},
+  title       = {{Guide to Intrusion Detection and Prevention Systems (IDPS)}},
+  institution = {National Institute of Standards and Technology (NIST)},
+  type        = {Special Publication (SP)},
+  chapter     = {2},
+  year        = {2007},
+  month       = {February},
+  url         = {https://csrc.nist.gov/publications/detail/sp/800-94/final}
+}
+
+% Technical report: rootkits and detection mechanisms
+@techreport{rootkits,
+  title         = {{User-space library rootkits revisited: Are user-space detection mechanisms futile?}},
+  author        = {{Soriano-Salvador, Enrique and Guardiola Múzquiz, Gorka and González Gómez, Juan}},
+  institution   = {Universidad Rey Juan Carlos},
+  year          = {2025},
+  month         = {June},
+  eprint        = {2506.07827},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.CR},
+  url           = {https://arxiv.org/abs/2506.07827}
+}
+
+% Definition of rootkit according to NIST
+@misc{nist_rootkit_glossary,
+  author       = {{National Institute of Standards and Technology (NIST)}},
+  howpublished = {Cybersecurity glossary},
+  title        = {{Rootkit}},
+  note         = {Accessed on March 14, 2026},
+  url          = {https://csrc.nist.gov/glossary/term/rootkit}
+}
+
+% Introduction to Armbian
+@techreport{armbian_intro,
+  author      = {{Armbian Community}},
+  title       = {{Armbian Documentation}},
+  institution = {Armbian Documentation},
+  year        = {2026},
+  note        = {Accessed on March 23, 2026},
+  url         = {https://docs.armbian.com/}
+}
+
+% Official downloads and support page for Raspberry Pi
+@techreport{armbian_rpi4b,
+  author      = {{Prima produkcija}},
+  title       = {{Raspberry Pi - Armbian}},
+  institution = {Armbian Documentation},
+  year        = {2026},
+  note        = {Accessed on March 23, 2026},
+  url         = {https://www.armbian.com/rpi4b/}
+}
+
+% Raspberry Pi 4 specifications
+@techreport{rpi4_specs,
+  author      = {{Raspberry Pi Ltd}},
+  title       = {{Raspberry Pi 4 Model B specifications}},
+  institution = {Raspberry Pi},
+  year        = {2019},
+  note        = {Accessed on March 23, 2026},
+  url         = {https://www.raspberrypi.com/products/raspberry-pi-4-model-b/specifications/}
+}
+
+% Official product page
+@techreport{rpi4_product,
+  author      = {{Raspberry Pi Ltd}},
+  title       = {{Raspberry Pi 4}},
+  institution = {Raspberry Pi},
+  year        = {2019},
+  note        = {Accessed on March 23, 2026},
+  url         = {https://www.raspberrypi.com/products/raspberry-pi-4-model-b/}
+}
+
+% Logo de Armbian
+@misc{armbian_brand,
+  author       = {{Armbian Community}},
+  title        = {{Armbian Linux branding material}},
+  howpublished = {Official GitHub repository},
+  year         = {2026},
+  note         = {Accessed on March 23, 2026},
+  url          = {https://github.com/armbian/stationery/blob/master/logo/PDF.PDF}
+}
+
+% MITRE ATT&CK
+@techreport{mitre_attack,
+  author       = {{MITRE ATT\&CK}},
+  title        = {{MITRE ATT\&CK}},
+  institution  = {{The MITRE Corporation}},
+  howpublished = {Official source of information on adversary tactics and techniques},
+  year         = {2026},
+  note         = {Accessed on March 26, 2026},
+  url          = {https://attack.mitre.org/}
+}
+
+% Unhide manual
+@manual{unhide_man,
+  author       = {{Marier, Francois} and {Gouin, Patrick}},
+  organization = {{Debian Manpages}},
+  title        = {{unhide-linux(8) --- unhide --- forensic tool to find hidden processes}},
+  month        = {January},
+  year         = {2017},
+  note         = {Accessed on March 26, 2026},
+  url          = {https://manpages.debian.org/testing/unhide/unhide-linux.8.en.html}
+}
+
+% Chkrootkit manual
+@misc{chkrootkit_man,
+  author = {{Debian Manpages}},
+  title  = {{chkrootkit(8) --- Scan the system for signs of rootkits}},
+  year   = {2026},
+  note   = {Accessed on March 27, 2026},
+  url    = {https://manpages.debian.org/testing/chkrootkit/chkrootkit.8.en.html}
+}
+
+% Definition of rootkit according to NIST
+@misc{nist_rootkit,
+  author       = {{NIST CSRC}},
+  title        = {{Rootkit - Glossary}},
+  howpublished = {Computer Security Resource Center based on NIST SP 800-83 Rev. 1 under Rootkit resource},
+  note         = {Accessed on March 30, 2026},
+  url          = {https://csrc.nist.gov/glossary/term/rootkit}
+}
+
+% Ken Thompson's Turing Award acceptance lecture
+@article{thompson_trusting_trust,
+  author  = {Thompson, Ken},
+  title   = {{Reflections on Trusting Trust}},
+  journal = {Communications of the ACM},
+  volume  = {27},
+  number  = {8},
+  pages   = {761--763},
+  month   = {August},
+  year    = {1984},
+  doi     = {10.1145/358198.358210},
+  url     = {https://doi.org/10.1145/358198.358210}
+}

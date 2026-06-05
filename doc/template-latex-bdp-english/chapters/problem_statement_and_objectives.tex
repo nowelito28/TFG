@@ -1,0 +1,214 @@
+\chapter{Problem Statement and Objectives}
+\label{cap:capitulo4}
+
+After establishing the necessary context on \textit{Linux} systems and the threat posed by \textit{rootkits}, this chapter describes the specific problem that motivates this project and the objectives pursued.
+
+\
+
+\section{Problem Description}
+
+One of the fundamental problems in operating-system security is determining to what extent the critical information offered to the administrator about the state of a machine can be considered reliable once the environment has been compromised, particularly \textit{User Space}.
+Based on the state of the art described above, \textit{rootkits} operating in this region can intercept functions from fundamental libraries and manipulate the output of tools such as \texttt{ps}, \texttt{ls} or \texttt{netstat}, falsifying the operator's view of the system and making it more difficult to detect malicious activity~\cite{rootkits}.\\
+
+This scenario is especially problematic in \textit{Linux} systems, because many monitoring and administration tasks rely on \textit{User-Space} utilities, where information is exposed through high-level interfaces.
+If that region is compromised, relying on it to verify the state of the system is no longer a solid strategy.
+Consequently, there is a need to obtain sensitive information from a more privileged layer, making its manipulation more difficult, and to provide that information with a mechanism that allows its integrity and authenticity to be checked afterwards.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.9}{\input{figs/secure_reporting_scheme.tex}}
+  \figsource{Own elaboration.}
+  \caption{Authenticated reporting mechanism between \textit{User Space} and \textit{Kernel Space}.}
+  \label{fig:secure_reporting_scheme}
+\end{figure}
+
+\
+
+This project addresses a specific and representative case, taking as critical information a list of all system processes together with their most relevant metadata, including global and local process identifiers, the users that execute them and references to their \textit{namespaces}.\\
+
+This choice is not arbitrary, since this information provides a global view of the state of the system and can therefore be compared with data obtained from other tools in order to detect possible signs of manipulation and concealment in that region.
+However, if an attacker manages to manipulate the information shown to the administrator, malicious processes could be hidden or the perceived state of the system could be altered, making detection more difficult.\\
+
+In conclusion, the problem addressed by this project can be formulated as follows: \textbf{how to provide the administrator of a \textit{Linux} system with a reliable view of critical system information when \textit{User Space} may have been compromised by \textit{malware} with persistence and concealment capabilities, such as \textit{rootkits}}.\\
+
+\
+
+\
+
+\section{Threat Model}
+\label{sec:modelo-amenaza}
+
+This project specifically addresses the threat of \textbf{\textit{User-Space rootkits}} in \textit{Linux} systems.
+These are \textit{malware} tools designed to maintain control over this region of the system, allowing them to alter the output of critical monitoring tools through code interception and modification techniques~\cite{rootkits}.\\
+
+This manipulation capability allows an attacker to hide:
+
+\begin{itemize}
+    \item \textbf{Malicious processes}: Hiding the execution of remote-control tools or \textit{backdoors}.
+    \item \textbf{Files and network connections}: Masking suspicious connections to remote servers or persistence files.
+    \item \textbf{Resource accesses}: Falsifying file-access records or permission information.
+    \item \textbf{User activity}: Falsifying information about active sessions or executed commands.
+\end{itemize}
+
+\
+
+In this context, the threat model focuses on a potentially compromised \textit{User Space}, capable of hiding or falsifying information visible to the administrator.
+The security assumptions considered are detailed below.\\
+
+\
+
+\subsection{Operational Context and Security Assumptions}
+
+The project assumes a scenario in which \textit{User Space} has been compromised, allowing the attacker to execute \textit{malware} with persistence and concealment capabilities.
+In this context, the following assumptions are made:
+
+\begin{itemize}
+    \item \textbf{\textit{User Space} is under the attacker's control.} The administrator cannot trust the output of monitoring tools such as \texttt{ps}, \texttt{ls} or \texttt{netstat}, since they may have been intercepted and manipulated by a \textit{rootkit}.
+    \item \textbf{\textit{Kernel Space} remains intact.} The project assumes that there is no compromise by \textit{Kernel-Space rootkits}, preserving the integrity of the code executed in \textit{Ring 0}.
+    \item \textbf{The administrator is trusted.} It is assumed that the shared symmetric key used for HMAC authentication is known only by the trusted administrator of the system.
+    \item \textbf{Communication is unidirectional from the \textit{kernel} to \textit{User Space}.} The \textit{kernel} does not trust data received from \textit{User Space} except for the identifier of the output file, which is the main input vector.
+    \item \textbf{\textit{Hardware} and \textit{Firmware} are intact.} It is assumed that neither the system \textit{hardware} nor its \textit{firmware} have been compromised.
+    \item \textbf{Boot chain of trust.} A chain of trust is conceived to preserve the integrity of the \textit{kernel} and the \textit{LKM}, for example through signing mechanisms, preventing the execution of unauthorized components within the trusted computing base.
+\end{itemize}
+
+\
+
+\subsection{Attacker Capabilities and Limitations}
+
+\textbf{Attacker capabilities within the modeled scenario:}
+
+\begin{itemize}
+    \item Intercepting and modifying the output of user tools through \texttt{LD\_PRELOAD} and \textit{hooking} of library functions such as \texttt{libc}.
+    \item Hiding processes, files, network connections and malicious activity from \textit{User-Space} monitoring tools.
+    \item Executing malicious code with arbitrary privileges in \textit{User Space}.
+    \item Manipulating information in \texttt{/proc} through \textit{bind mounts} and \textit{namespaces}.
+\end{itemize}
+
+\
+
+\textbf{Attacker limitations within the modeled scenario:}
+
+\begin{itemize}
+    \item The attacker cannot modify the \textit{kernel} or load malicious \textit{LKMs} (no access to \textit{Ring 0}).
+    \item The attacker cannot intercept system calls or modify the \textit{System Call Table} (\textit{sys\_call\_table}).
+    \item The attacker cannot forge HMAC-SHA256 without knowing the shared symmetric key between the \textit{kernel} and the system administrator.
+    \item The symmetric key is loaded into the \textit{kernel} during the boot process without the attacker having access to it.
+\end{itemize}
+
+\
+
+\subsection{Defensive Coverage}
+
+\textbf{What the system protects:}
+
+\begin{itemize}
+    \item \textbf{Process hiding}: It provides visibility from the \textit{kernel}, which cannot be manipulated from \textit{User Space}.
+    \item \textbf{Information integrity}: Through HMAC-SHA256 cryptographic authentication, mathematically verifiable using the same key with which it is encoded.
+    \item \textbf{Manipulation detection}: It allows authenticated information from the \textit{kernel} to be compared with compromised \textit{User-Space} tools.
+\end{itemize}
+
+\
+
+\textbf{What the system does NOT protect:}
+
+\begin{itemize}
+    \item Threats from \textit{Kernel-Space rootkits} operating in \textit{Ring 0}.
+    \item Post-load compromise of the \textit{LKM} through modification of \textit{kernel} memory.
+    \item Exposure or interception of the shared symmetric key between the \textit{kernel} and the administrator.
+    \item Processes or malicious activity prior to loading the \textit{LKM}.
+  \end{itemize}
+
+\
+
+\
+
+\section{Objectives}
+
+The main objective of this project is to \textbf{design a secure reporting mechanism for \textit{Linux} systems capable of providing the administrator with a more reliable view of critical system information, specifically the state of active processes, especially in environments compromised by \textit{User-Space rootkits}}.
+To this end, the proposed solution moves the collection of critical information to \textit{Kernel Space} through an \textit{LKM}, also incorporating a cryptographic mechanism that allows its integrity and authenticity to be verified afterwards from \textit{User Space} by the administrator.\\
+
+Based on this general objective, the project is specified through the following objectives:
+
+\
+
+\subsection{Functional Objectives}
+\label{sec:ofunc}
+
+The functional objectives, which describe \textbf{what} the proposed solution must do, are:
+
+\begin{itemize}
+    \item \textbf{Obtain critical system information from \textit{Kernel Space}.} A secure reporting mechanism must be designed from \textit{Kernel Space}, using an \textit{LKM}, capable of collecting information about active processes without relying on \textit{User-Space} tools.
+    \item \textbf{Build a global and structured view of system processes.} This reporting mechanism must generate a structured list of active system processes including their most relevant metadata: global \textit{UID}, local \textit{UID}, user namespace identifier, global \textit{PID}, local \textit{PID}, process namespace identifier, \textit{GID} and associated command.
+    \item \textbf{Transfer the information obtained from \textit{Kernel Space} to a channel accessible from \textit{User Space}, when requested by the administrator.} A controlled communication mechanism between both regions must be enabled so that the \textit{kernel} can detect the information request and transfer it. In this case, the information transfer is articulated by sending the reference to a file set by the administrator, through its file descriptor, from \textit{User Space} to \textit{Kernel Space}.
+    \item \textbf{Cryptographically authenticate the content generated in \textit{Kernel Space}.} The produced report must be accompanied by a mechanism that proves its authenticity and integrity, implemented in this project through an \textit{HMAC} based on \texttt{SHA-256}, calculated with a symmetric key \textit{K} from the process-list information.
+    \item \textbf{Allow subsequent verification of the information requested from the \textit{kernel} from \textit{User Space}.} The administrator must be able to verify the authenticity and integrity of the report generated by the \textit{LKM}, being able to perform this check afterwards on another non-compromised machine after copying the obtained data. To do so, a \textit{trust framework} is created in which both the administrator and the \textit{kernel} must share a symmetric key \textit{K}; in this same context, a \textit{User-Space} mechanism is implemented to recalculate the corresponding \textit{HMAC} and check whether the result matches the authenticated value emitted by the \textit{kernel}.
+    \item \textbf{Facilitate the detection of concealment and manipulation threats.} The developed reporting system must allow authenticated information obtained from \textit{Kernel Space} to be compared with that offered by \textit{User-Space} monitoring tools, enabling the identification of signs of concealment or manipulation.
+    \item \textbf{Validate the operation of the prototype.} The designed mechanism must be tested in a real \textit{Linux} environment, including processes and users belonging to different \textit{namespaces}, in order to demonstrate that the administrator correctly obtains the critical information and that its authentication can be successfully verified.
+\end{itemize}
+
+\
+
+\subsection{Non-Functional Objectives}
+\label{sec:onf}
+
+The non-functional objectives, which describe \textbf{how} the designed system must operate, are:
+
+\begin{itemize}
+    \item \textbf{Verifiable integrity and authenticity of critical information.} The reporting system must not merely expose data from the \textit{kernel}; it must guarantee that such data can be checked afterwards through a cryptographic authentication mechanism, in this case an \textit{HMAC} based on \texttt{SHA-256}.
+    \item \textbf{Robustness in communication between spaces.} The interface between \textit{Kernel Space} and \textit{User Space} must validate all information entering the \textit{kernel}, including permissions, file descriptors, opening modes and memory limits, reducing the risk of incorrect use or unsafe behavior that could compromise system stability.
+    \item \textbf{Security.} The implemented system must minimize trust in \textit{User Space}, so that critical information is generated primarily in a more privileged region, such as \textit{Kernel Space}, and is accompanied by cryptographic and authenticatable mechanisms that allow unauthorized modifications to be detected.
+    \item \textbf{Modularity and low impact on the system \textit{kernel}.} The secure reporting mechanism must be integrated as a \textit{kernel module} (\textit{LKM}), avoiding permanent modification of the core and facilitating both controlled deployment and unloading from the system, while also fulfilling the previous objective of generating critical information from a highly privileged region to favor its integrity.
+    \item \textbf{Portability across \textit{Linux} environments.} The design must rely on standard interfaces and mechanisms of the \textit{Linux} ecosystem, such as \texttt{/proc}, the \textit{kernel Crypto API}, conventional \texttt{C} compilation utilities and the headers required to compile \textit{LKMs}.
+    \item \textbf{Prototype reproducibility.} The prototype must be compilable, loadable, unloadable and verifiable through a clear and precise procedure, so that the results obtained during development can be repeated and analyzed afterwards.
+    \item \textbf{Output format.} The information provided by the reporting mechanism must be presented in a readable and ordered structure, facilitating inspection, analysis and comparison with the output of common system-monitoring tools.
+\end{itemize}
+
+\
+
+\
+
+\section{Methodology}
+
+The methodology followed in this project has mainly been of the \textbf{\textit{Spiral}} type.
+This choice is due to the fact that, although the problem to be addressed was clearly defined from the beginning, the specific technical solution was not.
+During the early phases of the project, several aspects required to design an appropriate solution were still not precisely known.
+For this reason, a spiral methodology was chosen, since it allows the required knowledge to be researched, designed, implemented and validated iteratively and progressively through a series of functional prototypes that serve as the solution to the stated problem.\\
+
+First, the problem and the technological framework in which the prototype is developed were studied in depth, as well as the technical foundations required to begin designing the \textit{LKM}.
+Subsequently, several incremental prototypes were built, adding new elements and functionalities in each iteration on top of the validated basis of the previous prototype. This made it possible to progressively build the component until the defined functionalities were achieved.
+Finally, in each iteration the necessary validations were carried out in the \textit{Linux} development environment itself, also relying on two \textit{User-Space} components that made it possible to verify the correct operation of the created secure reporting system.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.9}{\input{figs/methodology_progression.tex}}
+  \figsource{Own elaboration.}
+  \caption{Diagram of the \textit{Spiral} methodology used in the project.}
+  \label{fig:methodology_progression}
+\end{figure}
+
+In conclusion, the project can be considered to have followed a spiral methodology with progressive refinement over what had been developed in previous iterations, since the final design of the prototype was consolidated as the technical study, implementation and validation of each new prototype progressed.
+
+\
+
+\
+
+\section{Work Plan}
+
+The planning followed in the project has been directly aligned with the spiral methodology described in the previous section, progressing through successive iterations that depended on the knowledge and results obtained in the previous ones.
+Throughout the development of the project, weekly meetings were held with the supervisor, with an average duration of approximately 30 to 60 minutes. In these meetings, the work carried out in the current iteration was reviewed, doubts were resolved and the relevant corrections were proposed in order to refine each prototype.
+Once an iteration was completed, the partial objectives to be addressed in the next one were established.\\
+
+The first phase began in July 2025 and focused on studying the development environment (\textit{Linux}), the problem to be addressed (\textit{User-Space rootkits}) and the technical basis required to start proposing a viable practical solution (\textit{LKM} programming and cryptographic mechanisms).
+After this basis had been consolidated, implementation of the main component of the project began in September 2025.
+From then until January 2026, the final prototype of the secure reporting system was progressively developed as the required technical knowledge was further deepened, gradually incorporating the different defined functionalities, carrying out the necessary validations and refining the code through adjustments, comments and corrections until a functional version was achieved.\\
+
+Once the prototype was finished, the writing of the report began. This required continued research into several of the topics developed in it, both to properly substantiate the problem and the proposed solution and to document the work carried out with technical rigor.
+During the writing of the report, a generative AI tool, specifically \textit{Gemini 3 Pro}, was also used as an auxiliary tool to generate some schematic and illustrative vector images from concepts previously explained through a well-structured \textit{prompt}, as well as to detect and correct wording and grammar errors in the report.
+The report was completed at the end of May 2026.\\
+
+In conclusion, the project followed a progressive and organized plan, with weekly monitoring and the achievement of partial objectives until completing the final result of the Bachelor's Degree Project, including the necessary validations.
+
+\newpage
+
+Once the security problem to be addressed has been defined, the project objectives have been established and the methodology followed to achieve them has been described, the next chapter focuses on the development and technical explanation of the proposed solution.
+It details the design of the different prototypes developed until obtaining the final functional version of the secure reporting system, the implementation decisions adopted and the process followed to build and validate the final prototype.

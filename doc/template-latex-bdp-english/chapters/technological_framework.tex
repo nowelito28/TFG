@@ -1,0 +1,427 @@
+\chapter{Technological Framework}
+\label{cap:capitulo2}
+
+In order to design and implement an effective security solution against the threats posed by \textit{rootkits}, a detailed prior analysis of the technological environment in which they operate is required.
+For this reason, this chapter first analyzes the architecture and structure of \textit{Linux} operating systems, detailing their internal mechanisms, such as file management, memory management and modularity.
+
+\
+
+\
+
+\section{\textit{Linux} Operating Systems}
+\label{sec:linux}
+
+There is no canonical and universal definition of the concept of an operating system, since it is an idea that is, to some extent, relative and subjective depending on its purpose and context of use~\cite{librossoo}.\\
+
+One possible definition is: the set of programs that makes it possible to use a machine as a system, doing what is necessary for multiple processes to run on the same \textit{hardware}, multiplexing the machine in time by managing \textit{CPU} usage and in space by managing \textit{RAM}.\\
+
+Another possible definition would be: the program, or set of programs, that acts as an intermediary between the user and the \textit{hardware}, providing an interface as an abstraction of internal processes and instructions in order to interact with the machine and its resources efficiently and robustly.\\
+
+In today's technology market there are different general-purpose operating systems, including closed-source commercial options such as \textit{Microsoft Windows} or \textit{macOS}, generally aimed at computers, and \textit{Android} and \textit{iOS}, mainly designed for mobile devices. However, within the field of infrastructure administration, cybersecurity and \textit{software} development, \textit{GNU/Linux}, belonging to the \textit{Unix} family, is considered the absolute reference standard.\\
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{figs/unix_tree_vector.pdf}
+  \figsource{\getauthor{unix_family_tree}, \gettitle{unix_family_tree} (\getyear{unix_family_tree})~\cite{unix_family_tree}.}
+  \caption{Family tree of \textit{Unix} operating systems.}
+  \label{fig:unix_tree}
+\end{figure}
+
+As the previous figure illustrates, \textit{Unix} is the pioneering system created in the 1970s that laid the foundations of modern computing, from which \textit{Linux} was born as a clone developed entirely under an open-source model. \textit{macOS} also belongs to this family; however, this operating system has evolved under a semi-proprietary commercial model with partially closed source code.\\
+
+The hegemony of \textit{Linux} (\textit{GNU/Linux}) in these sectors is mainly due to its open-source philosophy\footnote{Open source focuses on source-code availability, review and collaborative development. Free software, on the other hand, emphasizes the user's freedoms to run, study, modify and redistribute the code, although both approaches often overlap in many projects.}. Having the source code publicly available, either through local installation of system headers and sources, typically located in development environments under \texttt{/usr/src}, or through public online repositories such as \textit{Git}, allows a large global community of developers to audit, debug and continuously improve the code.
+This transparency guarantees a much higher level of adaptability and reliability than that of commercial systems, allowing the environment to be configured according to the required needs.\\
+
+For these reasons, \textit{Linux} is considered the optimal operating system for developing this project. From this point onward, it will be assumed by default that the environment is \textit{Linux}, although the fundamental principles can be extrapolated to any modern operating system.
+
+\
+
+\
+
+\subsection{Architecture and Privilege Rings}
+\label{sec:estructuralinux}
+
+To guarantee their stability and security, modern operating systems do not rely solely on logical \textit{software} restrictions, but are tightly supported by protection mechanisms implemented at the \textit{hardware} level by the processor itself.
+In predominant system architectures such as the x86 family, this isolation mechanism is typically implemented through concentric hierarchical protection domains, commonly known as \textit{Protection Rings}~\cite{librossoo}.\\
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.65\textwidth]{figs/rings.pdf}
+  \figsource{\getauthor{wiki_rings}, \gettitle{wiki_rings} (\getyear{wiki_rings})~\cite{wiki_rings}.}
+  \caption{Privilege rings in modern operating systems.}
+  \label{fig:protection_rings}
+\end{figure}
+
+This architecture mainly defines four concentric privilege levels, commonly called rings, numbered from 0 to 3. The privilege level determines which CPU instructions a process can execute and which memory regions it can access during execution, distinguishing the following four rings~\cite{librossoo}:
+
+\begin{itemize}
+    \item \textbf{\textit{Ring 0}:} The highest privilege level, where the core of the system, the \textit{kernel}, typically resides. Programs executed in this ring have almost direct and unrestricted access to all \textit{hardware}, memory and processor instructions.
+    \item \textbf{\textit{Ring 1 and 2}:} Originally designed for system service and control with intermediate privileges, although in practice they have been largely discarded by most operating systems due to their complexity and low performance.
+    \item \textbf{\textit{Ring 3}:} The lowest privilege level. Processes launched in this ring cannot interact directly with the \textit{hardware} and must delegate any critical operation to higher privilege levels.
+\end{itemize}
+
+For reasons of efficiency and portability to other processor architectures, such as \textit{ARM}, which usually does not provide as many levels, \textit{Linux} simplifies this model and uses only two of these rings.
+On the one hand, the \textit{kernel} is isolated and executed entirely in \textit{Ring 0}; on the other hand, the rest of the user programs are confined to the \textit{Ring 3} region~\cite{love_linux, librossoo}.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{1.1}{\input{figs/os_structure.tex}}
+  \figsource{\getauthor{librossoo}, \gettitle{librossoo} (\getyear{librossoo})~\cite{librossoo}.}
+  \caption{Structure of a modern operating system.}
+  \label{fig:os_structure}
+\end{figure}
+
+Basically, the structure of the operating system can be described as a physical division of privileges that directly translates into a logical architecture structured in layers built on top of each other~\cite{librossoo}.\\
+
+At the base is the physical \textit{hardware} of the machine, with which the \textit{kernel} interacts directly through the available architecture instructions (ISA).
+Immediately above it, operating with absolute privileges over the system in \textit{Ring 0}, resides the \textit{kernel}. This is the heart of the operating system, responsible for managing the machine's resources and acting as the fundamental bridge between the \textit{hardware} and user applications.
+Subsequently, in the outer layers, there are the system libraries, responsible for providing the \textbf{\textit{Application Programming Interface} (\textit{API})}, and the final applications, which are confined to the user area (\textit{Ring~3}).\\
+
+Due to this separation, if a process in this user region needs to perform a privileged action, such as reading a file from disk, sending a network packet or allocating memory, it cannot directly access the \textit{hardware} by itself.
+Instead, it must request that privileged operation from the \textit{kernel} by crossing the \textit{Ring~0} boundary through a standardized and controlled communication mechanism, commonly known as \textbf{\textit{System Calls}} or \textit{syscalls}.\\
+
+This architectural barrier not only defines which instructions can be executed and where, but also forces the operating system to divide fast-access main memory (\textit{RAM}) into two large fully isolated virtual regions: \textbf{\textit{User Space}} and \textbf{\textit{Kernel Space}},
+thereby ensuring that no user process can corrupt sensitive internal system data~\cite{love_linux, librossoo}.
+
+\
+
+\
+
+\subsection{Memory: \textit{User Space} and \textit{Kernel Space}}
+\label{sec:uskrspaces}
+
+To understand how the privilege division described in the previous section is actually materialized in the physical memory of the machine (\textit{RAM}), it is necessary to introduce the concept of \textit{virtual memory}.\\
+
+In modern \textit{Linux} systems, processes do not directly access physical \textit{RAM} addresses.
+Instead, the \textit{kernel} and the \textit{CPU} memory management unit (\textit{MMU}) provide each process with the illusion of having an exclusive and contiguous space through \textbf{\textit{virtual memory}}.
+To achieve this, the \textit{MMU} dynamically translates virtual memory addresses into real physical locations and vice versa by consulting a \textbf{\textit{page table}}.
+In this way, multiple processes can run simultaneously in an isolated and secure manner, each with its own address map fully managed by the \textit{kernel}~\cite{silberschatz_memoria}.\\
+
+At the same time, this \textit{virtual memory} space is strictly divided into two large regions, strongly related to the processor's protection-ring architecture:
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.65}{\input{figs/usr_krn_memory.tex}}
+  \figsource{\getauthor{librossoo}, \gettitle{librossoo} (\getyear{librossoo})~\cite{librossoo}.}
+  \caption{Logical memory division between \textit{User Space} and \textit{Kernel Space}.}
+  \label{fig:usr_krn_memory}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{\textit{User Space}:} The lower portion of virtual memory, associated with \textit{Ring 3}. User applications, their libraries and their corresponding data are loaded and executed in this region.
+    If a process commits a critical error in this region, such as trying to access memory that does not belong to it, the operating system intervenes to terminate that process and raises an error, typically known as a \textit{Segmentation Fault}, preventing the failure from affecting the rest of the system.
+    \item \textbf{\textit{Kernel Space}:} The upper portion of virtual memory, reserved exclusively for the \textbf{\textit{kernel}}, its modules and device controllers (\textit{drivers}).
+    Since it is associated with \textit{Ring 0}, the code residing here has full access to physical memory and, consequently, to the \textit{hardware}. A programming error or malicious intrusion at this level compromises the entire system and may cause a complete system crash (\textit{Kernel Panic}).
+\end{itemize}
+
+\
+
+In the same way that \textit{virtual memory} abstracts the complexity of physical memory organization (\textit{RAM}) to guarantee process isolation and secure execution,
+the operating system also provides an equivalent abstraction for persistent storage management and interaction with the rest of the system components.
+This important task is handled by another major structural pillar of a \textit{Linux} operating system: its \textit{file system}.
+
+\
+
+\
+
+\subsection{Files and File Systems (\textit{FS})}
+\label{sec:fs}
+
+One of the most remarkable characteristics of the \textit{Linux} architecture, inherited directly from the original \textit{Unix} family, is the fundamental principle that ``everything is a file''\footnote{A file is not limited to a document stored on disk, but represents a uniform interface for accessing system resources. In \textit{Plan 9}, the conceptual successor to \textit{Unix}, this philosophy was taken even further, making practically all resources visible as files and directories. The \texttt{/proc} system follows this same philosophy, mainly from \textit{Plan 9}.}.
+In this type of operating system, not only text documents or binary executable programs are treated as files, but also directories, network connections (\textit{sockets}), \textit{hardware} devices such as terminals or hard disks,
+as well as dynamic information about running processes and the system itself, such as virtual files located in the \texttt{/proc} directory~\cite{love_linux}.\\
+
+To structure, access and organize this enormous amount of information, the operating system uses a \textbf{File System (\textit{FS})}, which can be defined as the set of rules, methods and logical hierarchies responsible for managing how files are named, stored and retrieved from a logical medium.\\
+
+Due to the large amount of both physical and logical data and resources handled by the machine, a universal organization must be maintained so that the operating system knows exactly where everything is located.
+As a solution to this organizational need, \textit{Linux} adopts the \textbf{\textit{Filesystem Hierarchy Standard} (\textit{FHS})}, which defines a global hierarchy of root directories where the different types of system files are distributed, such as binaries, libraries, configuration files, persistent data and dynamic resources, according to their function, type and scope.\\
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.8}{\input{figs/fhs.tex}}
+  \figsource{Own elaboration based on \getauthor{albritton_fs}, ``\gettitle{albritton_fs}'' (\getyear{albritton_fs})~\cite{albritton_fs}.}
+  \caption{Standard hierarchical directory structure in \textit{Linux} (\textit{FHS}).}
+  \label{fig:fhs}
+\end{figure}
+
+Within this structure, one of the most distinctive directories is \texttt{/proc}, since it does not store persistent data on disk, but constitutes a pseudo-file system dynamically generated by the \textit{kernel} in memory (\textit{RAM}) through \textbf{virtual files}.
+Its main purpose is to expose, through a file-based interface, information about system parameters, running processes and certain internal \textit{kernel} states, such as \texttt{/proc/meminfo} or \texttt{/proc/cpuinfo}.
+Access to these entries is performed through standard file operations, such as \texttt{read()} or \texttt{write()}, which the \textit{kernel} redirects to the corresponding handlers according to the nature and purpose of each virtual file.\\
+
+Thus, it is possible to create communication interfaces between \textit{User Space} and \textit{Kernel Space} through \textit{kernel modules} that create new virtual file entries inside this directory,
+allowing read and write operations to be associated with specific handlers in order to request or report sensitive system information in a controlled manner.\\
+
+To manage this wide heterogeneity of resources and allow multiple physical file systems, such as \textit{ext4} or \textit{NTFS}, to coexist on the same host system, the \textit{kernel} implements an abstraction layer called the \textbf{\textit{Virtual File System} (\textit{VFS})},
+located between the system-call layer (\textit{syscalls}) and the low-level \textit{drivers}.
+Its function is to provide a unified \textit{API} that allows applications in \textit{User Space} to use standard calls, such as \texttt{read()} or \texttt{write()}, on any file or device, completely abstracting the machine details~\cite{librossoo}.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.8}{\input{figs/vfs.tex}}
+  \figsource{\getauthor{librossoo}, \gettitle{librossoo} (\getyear{librossoo})~\cite{librossoo}.}
+  \caption{File-system management in \textit{Linux}.}
+  \label{fig:vfs}
+\end{figure}
+
+Mainly, the \textit{VFS} acts as a central router between \textit{User Space} and \textit{Kernel Space}, receiving application requests and transparently redirecting them to the corresponding \textit{driver}.
+In addition, modern systems support advanced mechanisms such as \textit{FUSE} (\textit{Filesystem in Userspace}), which allows the \textit{VFS} to delegate the management of certain file systems to processes running safely in \textit{User Space}.\\
+
+To integrate different file systems within the host system, \textit{Linux} dispenses with isolated drive units and uses \textbf{\textit{mounting}}.
+This unifying mechanism logically attaches any external file system to an existing directory, for example \texttt{/mnt} or \texttt{/media}, considered a \textbf{\textit{mount point}}.
+In this way, a continuous and transparent directory structure is created, abstracting the user from the nature of the underlying external medium~\cite{love_linux}.\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.8}{\input{figs/mounting_point.tex}}
+  \figsource{\getauthor{librossoo}, \gettitle{librossoo} (\getyear{librossoo})~\cite{librossoo}.}
+  \caption{\textit{Mount point}: multiple file systems in a single logical tree.}
+  \label{fig:mounting_point}
+\end{figure}
+
+As explained in the previous sections, the \textit{Linux} architecture is based on strongly centralized resources: a single \textit{kernel}, shared physical memory, a global directory hierarchy, among others.
+To break with this centralization and provide the system with isolation capabilities, the \textit{kernel} implements the technology of \textit{Namespaces}, which enables the confinement of processes and resources, both physical and logical, within an isolated and controlled environment.
+This concept is explained in detail in the following section~\cite{librossoo, love_linux}.
+
+\
+
+\
+
+\subsection{\textit{Namespaces}}
+\label{sec:namespaces}
+
+In order to explain in depth how \textit{Namespaces} work, it is first necessary to define how the operating system manages and classifies the programs running on the machine.\\
+
+Any program that is running and loaded into virtual memory is called a \textbf{\textit{process}}.
+To efficiently manage the large number of processes that may coexist simultaneously in the system, the \textit{kernel} assigns each of them a set of attributes and critical identifiers that are highly relevant for recording the system state:
+
+\begin{itemize}
+    \item \textbf{\textit{PID} (\textit{Process ID}):} A unique integer dynamically assigned to each active process, identifying it unambiguously within the system.
+    \item \textbf{\textit{UID} (\textit{User ID}):} The numeric identifier that associates the process with a specific user of the machine. This attribute determines the main permissions and privileges that the process has to interact with the file system, send signals or execute certain system calls.
+    \item \textbf{\textit{GID} (\textit{Group ID}):} The numeric identifier of the group to which the process belongs. It is used as a complement to the \textit{UID} to determine and refine access permissions to shared system resources.
+    \item \textbf{Command:} The name or direct reference to the binary executable file that originated the process, for example \texttt{/bin/ls} or \texttt{/usr/bin/python3}.
+\end{itemize}
+
+\begin{code}[h!]
+\begin{lstlisting}[language=bash]
+$localhost:$ ps aux
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.7  0.3  22208 12444 ?        Ss   12:37   0:04 /sbin/init
+root           2  0.0  0.0      0     0 ?        S    12:37   0:00 [kthreadd]
+root           3  0.0  0.0      0     0 ?        S    12:37   0:00 [pool_workque
+root           4  0.0  0.0      0     0 ?        I<   12:37   0:00 [kworker/R-kv
+root           5  0.0  0.0      0     0 ?        I<   12:37   0:00 [kworker/R-rc
+root           7  0.0  0.0      0     0 ?        I<   12:37   0:00 [kworker/R-sl
+root           8  0.0  0.0      0     0 ?        I<   12:37   0:00 [kworker/R-ne
+root          11  0.1  0.0      0     0 ?        I    12:37   0:00 [kworker/0:1-
+...
+noel        3039 53.0 14.7 1217632252 573236 ?   Sl   12:39   3:52 /usr/share/co
+noel        3145  0.7  2.0 1215834136 78112 ?    Sl   12:40   0:02 /usr/share/co
+noel        3206  7.9  0.8  82304 31816 ?        Sl   12:41   0:23 /home/noel/.v
+root        3327  0.0  0.0      0     0 ?        I<   12:42   0:00 [kworker/0:0H
+root        3330  0.2  0.0   9760  3676 pts/0    S    12:42   0:00 su
+root        3332  0.8  0.1  14356  7184 pts/0    S    12:42   0:01 sh
+root        3619  0.0  0.0      0     0 ?        I    12:44   0:00 [kworker/u20:
+noel        3668  3.1  0.5 4260844 21540 ?       Sl   12:45   0:02 /home/noel/.v
+root        3683  0.7  0.0      0     0 ?        I    12:45   0:00 [kworker/u16:
+root        3726  700  0.1  10852  4264 pts/0    R+   12:46   0:00 ps aux
+\end{lstlisting}
+\caption[Example output of the \texttt{ps aux} command in a Linux terminal.]{Example output of the \texttt{ps aux} command in a \textit{Linux} terminal showing the list of currently running system processes.}
+\label{cod:ps_aux}
+\end{code}
+
+If the concept of \textit{Namespace} is not considered for the moment, all these resources and attributes can be assumed to be \textbf{global}.
+This means that if, for example, a process has been assigned \textit{PID} 3039, that identifier is unique, absolute and visible to any other monitoring tool on the machine, such as the virtual files in \texttt{/proc}.
+Similarly, the \textit{root} user, whose \textit{UID} is 0, has unrestricted absolute privileges over all system processes,
+unlike a standard user with a different \textit{UID}, such as 1000, who is mostly restricted and can only manage the processes that they have started.\\
+
+This is where \textit{Namespaces} come into play, completely altering this paradigm. A \textbf{\textit{Namespace}} works as a logical abstraction layer that wraps a global system resource
+and exposes it to a group of processes as if it were an isolated and privileged resource, with the \textit{kernel} being responsible for translating these identities, attributes, permissions and resources in a fully transparent way.\\
+
+In practice, this means that a process running inside an isolated \textit{Namespace} may be assigned \textit{PID} 1, typically associated with the first process executed on the machine, \textit{systemd} or \textit{init}.
+However, from the external perspective of the \textit{kernel}, that same process is simply another regular process with, for example, \textit{PID} 4500.\\
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figs/linux-namespaces-types.pdf}
+  \figsource{\getauthor{hackerstack_namespaces}, \gettitle{hackerstack_namespaces} (\getyear{hackerstack_namespaces})~\cite{hackerstack_namespaces}.}
+  \caption{Types of \textit{Namespaces}.}
+  \label{fig:namespaces_types}
+\end{figure}
+
+To achieve this level of flexibility, the \textit{kernel} does not apply monolithic isolation to the entire operating system at once.
+Instead, it provides a modular architecture based on different \textbf{types of \textit{Namespaces}}.
+Each type is responsible for isolating a specific global resource, allowing administrators, or attackers, to create combinations of them independently depending on their purpose~\cite{man_namespaces}.\\
+
+The main types of \textit{Namespaces} implemented in a modern \textit{Linux} system are:
+
+\begin{itemize}
+    \item \textbf{\textit{Mount} (\texttt{mnt}):} Isolates the file-system mount points, a concept directly related to Figure \ref{fig:mounting_point}. Processes inside this \textit{Namespace} have their own view of the directory hierarchy (\textit{FHS}).
+    This means that mounting or unmounting a removable drive, such as a \textit{USB} device, within this isolated space will not affect or be visible to the rest of the host system.
+    \item \textbf{\textit{PID} (\texttt{pid}):} Provides an independent process hierarchy. As mentioned earlier, it allows the first process executed in that space to receive \textit{PID} 1,
+    completely isolating visibility outside the \textit{Namespace}. This prevents processes inside this space from interacting with processes outside it.
+    \item \textbf{\textit{User} (\texttt{user}):} Isolates user identifiers (\textit{UID}) and group identifiers (\textit{GID}).
+    In this space, a process may have absolute \textit{root} privileges (\textit{UID} 0) within it, while externally it continues to be treated and restricted as a standard unprivileged user.
+    \item \textbf{\textit{Network} (\texttt{net}):} Virtualizes and isolates the entire network stack of the system. Each \textit{Namespace} of this type has its own network interfaces, including its own \textit{loopback},
+    ports, \textit{IP} addresses, \textit{firewall} rules and routing tables, such as \textit{iptables} or \textit{nftables}.
+    \item \textbf{\textit{UTS} (\texttt{uts}):} Allows a group of processes to have its own machine name (\textit{hostname}) and \textit{NIS} domain name, independently from the real name of the physical server.
+    \item \textbf{\textit{IPC} (\texttt{ipc}):} Isolates inter-process communication resources, such as message queues (\textit{POSIX}), shared memory segments and semaphores.
+    It prevents a process in this space from interfering with or intercepting messages from external processes.
+    \item \textbf{\textit{Cgroup} (\texttt{cgroup}):} Encapsulates the view of the root directory of control groups.
+    This hides the hierarchy of policies and resource limits, such as \textit{CPU} or memory, established by the \textit{kernel}, preventing an isolated process from knowing or attempting to modify them.
+    \item \textbf{\textit{Time} (\texttt{time}):} Isolates the internal system clocks, especially the boot clock and the monotonic clock.
+    This allows the isolated space to have its own timeline, which is particularly useful for migrating containers between different physical servers without altering their perception of uptime.
+\end{itemize}
+
+\
+
+The strategic combination of these blocks is precisely the technological engine that makes modern virtualization technologies such as containers (\textit{Docker}) possible,
+whose typical architecture is illustrated in Figure \ref{fig:ns-docker}.
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.8}{\input{figs/ns-docker.tex}}
+  \figsource{Own elaboration based on \getauthor{docker_overview}, \gettitle{docker_overview} (\getyear{docker_overview})~\cite{docker_overview}, using Docker's official logo~\cite{docker_brand}.}
+  \caption{Example of a \textit{Docker} architecture.}
+  \label{fig:ns-docker}
+\end{figure}
+
+All these isolation and abstraction technologies, from the memory management of the machine itself to \textit{Namespaces}, reside and are managed in the core of the operating system.
+However, despite its robustness, the \textit{kernel} is not a monolithic and unalterable entity.
+To provide high flexibility and allow its functionalities to be extended at runtime, or maliciously altered, it has a dynamic architecture that allows code with maximum privileges to be injected and loaded, as explained in the following section.
+
+\
+
+\
+
+\subsection{\textit{Linux} Kernel Modules (\textit{LKMs})}
+\label{sec:lkms}
+
+A \textbf{\textit{Loadable Kernel Module}} (\textit{LKM}) is compiled object code, whose source code is written in \textit{C}, that can be loaded into and unloaded from the memory space of the \textit{kernel} at runtime.
+These modules allow the \textit{kernel} to extend its functionality, such as incorporating new file systems, without needing to reboot the system or recompile the entire \textit{kernel}~\cite{geeks_lkm}.\\
+
+Developing \textit{LKMs} presents drastic differences compared with conventional programming in \textit{User Space}.
+Since they operate directly at the highest privilege level, modules cannot access the standard \textit{C} library (\texttt{libc}) and, consequently, typical functions such as \texttt{printf()} or \texttt{malloc()}.
+In addition, since they are part of the \textit{kernel} itself, they cannot use system calls through the standard interface either, but instead invoke internal \textit{kernel} functions directly.\\
+
+On the other hand, there is no standard console output as in \textit{User Space}; to replace it, the \textit{kernel} provides its own log-printing macro: \texttt{printk()}.
+The traces generated through this function are stored in an internal circular \textit{buffer} and are registered in files, typically in \texttt{/var/log/kern.log}.
+Moreover, \texttt{printk()} requires each trace to be classified with a priority level (\textit{log level}), ranging from critical or error events (\texttt{KERN\_EMERG} and \texttt{KERN\_ERR}) to informational or debugging events (\texttt{KERN\_INFO} and \texttt{KERN\_DEBUG}).\\
+
+Regarding compilation, the \textit{kernel} headers (\texttt{linux-headers} packages) matching the exact system version are required.
+Through a \texttt{Makefile}, the code is compiled into a special packaged object file with the \texttt{.ko} extension (\textit{kernel object}).
+Once compiled, its life cycle management can be summarized in four basic phases:
+
+\begin{itemize}
+    \item \textbf{\texttt{insmod}:} Insertion of the code into \textit{Kernel Space}.
+    \item \textbf{\texttt{modinfo}:} Reporting of the module metadata and dependencies.
+    \item \textbf{\texttt{dmesg}:} Inspection of the \textit{kernel} execution traces.
+    \item \textbf{\texttt{rmmod}:} Removal of the module and release of memory resources.
+\end{itemize}
+
+\begin{code}[h!]
+\begin{lstlisting}[language=bash]
+# 0. Root privileges
+$ su
+
+# 1. Compile the module using Makefile
+$ make
+make -C /lib/modules/6.12.41-current-bcm2711/build M=/home/lkms modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+  CC [M]  /home/lkms/hw.o
+  MODPOST /home/lkms/Module.symvers
+  CC [M]  /home/lkms/hw.mod.o
+  LD [M]  /home/lkms/hw.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.41-current-bcm2711'
+
+# 2. Load the module (.ko) into the kernel
+$ insmod hw.ko
+
+# 3. Inspect the module metadata
+$ modinfo hw.ko
+filename:       /home/lkms/hw.ko
+version:        0.1
+description:    A simple Hello world LKM
+author:         Noel Rodriguez Perez
+license:        GPL
+srcversion:     2F2B1B95DA1F08AC18B09BC
+depends:        
+vermagic:       6.12.41-current-bcm2711 SMP mod_unload modversions
+
+# 4. Check the generated logs by printk
+$ dmesg
+
+# 5. Unload the module freeing its resources
+$ rmmod hw
+\end{lstlisting}
+\caption[Basic LKM management commands.]{Basic commands for managing an \textit{LKM}.}
+\label{cod:lkm_commands}
+\end{code}
+
+At source-code level, the logical structure of any \textit{LKM} is based on two main functions.
+First, an \textbf{initialization or load function} (\texttt{module\_init()}), which is executed automatically when the module is inserted into the \textit{kernel} through \texttt{insmod} and is responsible for reserving the required resources or creating the involved virtual files.
+Second, a \textbf{cleanup or unload function} (\texttt{module\_exit()}), invoked when the loaded module is removed through \texttt{rmmod}, in order to release the used memory and avoid leaks or inconsistent states in the system.\\
+
+Finally, in order to establish a bidirectional communication channel or interface between \textit{User Space} and \textit{Kernel Space}, an efficient technique is to create virtual files through the \textbf{\texttt{/proc}} pseudo-file system.
+In this way, the module instantiates a virtual file, for example \texttt{/proc/mydev}, and defines custom handlers that intercept the system calls acting on it, such as \texttt{read} or \texttt{write}, thus declaring specifically how to interact with \textit{User Space}.
+To implement this methodology in the \textit{LKM}, specific functions from the \textit{kernel API} are required to ensure safe operation, such as \texttt{copy\_to\_user()} and \texttt{copy\_from\_user()} for transferring information between different memory spaces~\cite{medium_proc}.\\
+
+In conclusion, the set of structural and functional characteristics presented above constitutes the technological basis of a \textit{Linux} operating system.
+As previously stated, this has been the working environment chosen to develop this project, deployed on an independent and controlled physical machine.
+This guarantees direct access to the deepest layers of the operating system, such as the \textit{kernel} and its modules, while mitigating any risk to production or real-use machines.
+
+\
+
+\
+
+\subsection{Development Environment}
+\label{sec:denv}
+
+Taking into account all the functionalities described in \textit{Linux} environments, the development of this project was carried out on a dedicated physical machine: a \textbf{Raspberry Pi 4 Model B} with \textbf{4 GB of RAM}, belonging to the \textit{ARM} architecture family.\\
+
+The choice of this platform and a \textit{Linux}-based system is mainly due to its versatility and the high degree of control it offers over the operating system, the \textit{kernel} and the low-level tools required to compile, load and debug \textit{kernel modules}.
+Furthermore, since it is an isolated physical machine, the risks associated with testing code in \textit{Kernel Space} are reduced, avoiding corruption of an everyday-use computer and enabling safer experimentation on a real environment~\cite{rpi4_specs}.\\
+
+Nevertheless, the choice of this board does not conceptually constrain the designed mechanism.
+The \textit{Raspberry Pi} is used as a controlled, portable and suitable experimental platform for testing.
+However, the ideas developed rely on interfaces and mechanisms native to \textit{Linux}, so they could be transferred to other compatible systems with few adaptations.
+It is a fairly flexible and portable operating system, so almost no changes to the code would be required.\\
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.65\textwidth]{figs/raspberry_pi.png}
+  \figsource{Official image of Raspberry Pi 4 Model B~\cite{rpi4_product}.}
+  \caption{Physical system used in the project.}
+  \label{fig:dev_pc}
+\end{figure}
+
+The \textbf{Armbian} distribution was installed on this board, specifically an image for Raspberry Pi 4 based on \textit{Ubuntu Noble}, aimed at \textit{single-board computer} boards and optimized for \textit{ARM} architectures.
+It was chosen because it provides a configurable, lightweight environment that is particularly suitable for this type of device, while also preserving the convenience offered by \textit{Ubuntu}/\textit{Debian} environments and the \texttt{apt} package manager~\cite{armbian_intro, armbian_rpi4b}.\\
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.35\textwidth]{figs/armbian.pdf}
+  \figsource{Official Armbian image~\cite{armbian_brand}.}
+  \caption{Armbian distribution logo for Raspberry Pi 4 Model B.}
+  \label{fig:armbian}
+\end{figure}
+
+On the other hand, preparing the environment began with the external installation of that \textit{Armbian} image on a 32~\textit{GB} \textit{microSD} card and the initial boot of the board after inserting it.
+Once the system had started, it was updated and the necessary tools were installed for compilation in \textit{C} (\texttt{gcc} and \texttt{make}), \textit{kernel module} development (\texttt{kmod}) and the \textit{kernel} headers required for compilation (\texttt{linux-headers}),
+the use of \textit{OpenSSL} (\texttt{openssl} and \texttt{libssl-dev}) and the deployment of containers to create new namespaces with \textit{Docker} (\texttt{docker.io}).
+
+\begin{code}[h!]
+\begin{lstlisting}[language=bash]
+$ uname -r
+6.12.41-current-bcm2711
+
+$ sudo apt update
+$ sudo apt install gcc make linux-headers-$(uname -r) \
+>   kmod openssl libssl-dev docker.io
+\end{lstlisting}
+\caption[Installation of the development environment.]{Installation of the development environment on \textit{Armbian} based on \textit{Ubuntu Noble}.}
+\label{cod:dev_env_install}
+\end{code}
+
+\newpage
+
+Once the technological basis of \textit{Linux} systems has been established and the development environment defined, the security problem exploited by threats such as \textit{rootkits} will be formally introduced next, together with the requirements and implementations for the proposed solution.

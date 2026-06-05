@@ -1,5 +1,5 @@
-DOCUMENTO = memoria
-TEMPORALES = *idx *aux *lof *log *lot *toc *bbl *blg *~ *out *rel *spl *loa *brf memoria.lomyequation memoria.locode
+DOCUMENTO = thesis
+TEMPORALES = *idx *aux *lof *log *lot *toc *bbl *blg *~ *out *rel *spl *loa *brf thesis.lomyequation thesis.locode
 HOY=$(shell date +"%Y-%m-%d")
 
 all: pdf 

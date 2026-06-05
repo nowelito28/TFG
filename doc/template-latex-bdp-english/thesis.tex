@@ -1,0 +1,51 @@
+% !TeX root = thesis.tex
+\documentclass[oneside,a4paper,12pt]{book} % TODO: change "oneside" to "twoside" when printing. This line must remain before everything else and outside the style file, otherwise it does not compile in Overleaf.
+
+\input{style.tex} % style configuration file
+
+% \makeindex
+
+\begin{document}
+\baselineskip 1.35\baselineskip
+
+\frontmatter
+
+\input{frontmatter/frontmatter.tex}
+
+% Bibliography
+\let\OLDthebibliography=\thebibliography
+\def\thebibliography#1{\OLDthebibliography{#1}
+  \addcontentsline{toc}{chapter}{\bibname}}
+
+\mainmatter
+
+\setcounter{page}{1}
+\input{chapters/introduction}
+
+\input{chapters/technological_framework}
+
+\input{chapters/state_of_the_art}
+
+\input{chapters/problem_statement_and_objectives}
+
+\input{chapters/design_and_development}
+
+\input{chapters/conclusions}
+
+\clearpage
+\thispagestyle{empty}
+
+% \printindex
+\nocite{*}
+\appendix
+\input{appendices/prototype_code_and_validation}
+
+\newpage
+\thispagestyle{plain}
+\null
+\newpage
+
+\bibliographystyle{IEEEtran}
+\bibliography{bibliography}
+
+\end{document}

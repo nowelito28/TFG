@@ -1,0 +1,73 @@
+\chapter{State of the Art}
+\label{cap:capitulo3}
+
+\begin{flushright}
+\begin{minipage}[]{10cm}
+\emph{``A collection of files that is installed on a host to alter the standard functionality of the host in a malicious and stealthy way.''}\\
+\end{minipage}\\
+
+NIST CSRC, \textit{Rootkit - Glossary}~\cite{nist_rootkit}.\\
+\end{flushright}
+
+Based on the definition above and on what was introduced earlier in this report, a \textit{rootkit} is a type of \textit{malware} designed to hide and manipulate system resources, such as processes, files, network connections or persistence mechanisms.
+Its danger does not lie only in the privilege escalation it may achieve, but also in its ability to falsify the view of the real state of the machine, compromising the reliability of its monitoring.\\
+
+In \textit{Linux} systems, \textit{rootkits} can mainly be classified into two broad categories according to the layer in which they operate:\\
+
+\begin{figure}[h!]
+  \centering
+  \scalebox{0.84}{\input{figs/rootkits_types.tex}}
+  \figsource{Own elaboration.}
+  \caption{General classification of \textit{rootkits} in \textit{Linux} systems.}
+  \label{fig:rootkits_types}
+\end{figure}
+
+\
+
+\
+
+\section{User-Space Rootkits}
+\label{sec:user_rootkits}
+
+\textit{User-Space rootkits} operate on programs, dynamic libraries and user tools of the operating system.
+Their most common technique consists of exploiting the \texttt{LD\_PRELOAD} dynamic-linking mechanism to load malicious libraries and intercept commonly used functions (\textit{hooking}), such as those provided by \texttt{libc},
+thereby altering the behavior of commands such as \texttt{ps}, \texttt{ls}, \texttt{top} or \texttt{netstat}~\cite{rootkits}.
+On the other hand, these threats are not limited exclusively to this mechanism: they may also replace legitimate commands with manipulated versions or rely on isolation and virtualization techniques to present an altered view of the system.\\
+
+If \textit{User Space} is already compromised, attempting to detect a \textit{rootkit} in this region using tools that also run in \textit{User Space} presents significant limitations and may even become completely ineffective.
+Depending on the design of the \textit{rootkit}, it may evade detection mechanisms specialized in hidden processes and even manipulate the \textit{shell} that launches them or the information exposed through the \texttt{/proc} file system by means of \textit{namespaces} and \textit{bind mounts}.\\
+
+Among the most prominent examples of this category are several families of \textit{rootkits} based on \texttt{LD\_PRELOAD},
+such as \textbf{Jynx} and \textbf{Jynx2}, which popularized this concealment approach in \textit{User Space} (\textit{userland}).
+Later, \textbf{Azazel} extended these techniques with anti-debugging mechanisms, process hiding, remote connections and evasion against detection mechanisms such as \texttt{unhide} or monitoring commands such as \texttt{ps} and \texttt{netstat}.
+In parallel, \textbf{BEURK} is presented as a \textit{preload rootkit} focused on anti-detection and hiding of processes, files and accesses;
+while \textbf{vlany} also adds persistence, dynamic linker modification and \textit{backdoor} capabilities.\\
+
+In this context, it is worth highlighting common detection tools,
+mainly \textbf{unhide}, a forensic tool used to detect hidden processes by searching for discrepancies between different views of the system,
+for example by comparing the information provided in \texttt{/proc} with that reported by tools such as \texttt{ps}.
+However, as previously mentioned, once this region is compromised, its usefulness becomes severely limited, since these tools operate at the same privilege level (\textit{User Space}) and under equal conditions, giving attackers an advantage~\cite{unhide_man}.\\
+
+\
+
+\
+
+\section{Kernel-Space Rootkits}
+\label{sec:kernel_rootkits}
+
+\textit{Kernel-Space rootkits} infiltrate the system's highest privilege level and are usually materialized through malicious \textit{kernel modules} (\textit{LKMs}) or through direct modifications of the \textit{kernel} itself.
+Their privileged position allows them to alter internal structures, hide processes, files or network traffic, intercept sensitive system calls and even falsify the information supplied to user tools.\\
+
+For this reason, detecting them from higher layers is especially complex, and any defensive mechanism operating with lower privileges starts from a clearly disadvantageous position.
+This motivates the need to design authenticated monitoring architectures that operate in regions close to the \textit{kernel} or, at least, that do not depend exclusively on information already provided by the user environment itself.\\
+
+Tools such as \texttt{chkrootkit} still include detection for families of this type of threat, such as \textbf{Adore LKM}, \textbf{knark}, \textbf{SucKIT}, \textbf{Fu} or \textbf{Syslogk}, reflecting the \textit{LKM} model as a concealment and persistence vector.
+The \textit{MITRE ATT\&CK} framework documents cases such as \textbf{REPTILE}, implemented as an open-source \textit{Linux rootkit} based on \textit{LKMs}, and \textbf{Drovorub}, a \textit{Linux malware} suite that includes \textit{LKMs} for persistence and remote control~\cite{chkrootkit_man}.\\
+
+
+In conclusion, \textit{rootkits} are not a homogeneous threat that always acts in the same way, but rather a family of concealment techniques distributed across several layers of the system.\\
+
+\newpage
+
+In light of the above, this project focuses mainly on the problem of \textit{User-Space rootkits}, due to their ability to falsify the information supplied by tools that run in that same region.
+The proposed solution to this limitation focuses on moving the collection of critical system information to a more trusted layer, implementing a \textit{kernel module} that generates and authenticates such information, so that its integrity can later be verified from \textit{User Space}.

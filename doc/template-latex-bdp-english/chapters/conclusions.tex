@@ -1,0 +1,215 @@
+\chapter{Conclusions}
+\label{cap:capitulo6}
+
+\begin{flushright}
+\begin{minipage}[]{10cm}
+\emph{``You can't trust code that you did not totally create yourself.''}\\
+\end{minipage}\\
+
+Ken Thompson \textit{(Reflections on Trusting Trust, 1984)}~\cite{thompson_trusting_trust}.
+\end{flushright}
+
+\vspace{1cm}
+
+After presenting the addressed problem, the required technological framework, the threat model, the defined objectives and the progressive development of the solution, this final chapter provides an overall assessment of the project.\\
+
+Its main purpose is to interpret the obtained result from a broader perspective, considering its impact, the skills applied during the work, the remaining limitations and the possible lines of evolution.\\
+
+The developed prototype demonstrates that it is possible to build a secure reporting mechanism for \textit{Linux} systems capable of generating critical information from \textit{Kernel Space}, specifically a list of the active processes in the system, transferring it in an accessible way for the administrator through a transfer file and authenticating it using an \textit{HMAC-SHA256} tag that can later be verified in \textit{User Space}.
+This solution does not completely eliminate the risks associated with a compromised system, but it does provide a practical way to reduce exclusive dependence on \textit{User-Space} tools when these may be manipulated by a \textit{rootkit} operating in that region.
+Therefore, the conclusions of the project must be understood both from the technical result achieved and from the security, responsibility and sustainability implications associated with this type of mechanism.\\
+
+\
+
+\
+
+\section{Achievement of Objectives}
+
+Once the progressive design of the adopted solution, its validations and the main problems encountered during development have been described, it is necessary to compare the final result with the objectives defined in Chapter~\ref{cap:capitulo4}.
+This closing assessment makes it possible to verify whether the implemented prototype truly responds to the initial problem and whether it provides the administrator with a reliable source of critical information when \textit{User Space} may be compromised by a \textit{rootkit}.\\
+
+The final result of the project consists of a \textit{kernel module} capable of generating from \textit{Kernel Space} a structured list of the processes present in the system, including relevant metadata about users, processes, groups, namespaces and the associated command name.
+This content is transferred to a transfer file indicated by the administrator through a \textit{File Handoff} mechanism, and is accompanied by an \textit{HMAC-SHA256} tag calculated with a shared symmetric key, allowing subsequent verification from \textit{User Space} to check the authenticity of the content.\\
+
+Therefore, the final prototype fulfills the general objective, since it moves the generation of critical information to a more privileged region and adds a cryptographic mechanism to detect later modifications of the report.\\\\
+
+\
+
+\subsection{Achievement of Functional Objectives}
+
+Regarding the functional objectives defined in Section~\ref{sec:ofunc}, the developed solution can be considered to fulfill the main capabilities initially planned.\\
+
+\begin{itemize}
+    \item \textbf{Obtaining critical information from \textit{Kernel Space}.} This objective is fulfilled through the final \textit{LKM}, which traverses the \textit{kernel} task list and builds the report directly from a privileged region, without relying on \textit{User-Space} monitoring tools. This decision responds to the main premise of the threat model, where such user tools could be manipulated.
+    
+    \item \textbf{Building a global and structured process view.} The generated report includes the fields defined in the objectives: \texttt{UID\_KERNEL}, \texttt{UID\_LOCAL}, \texttt{UID\_NS}, \texttt{PID\_KERNEL}, \texttt{PID\_LOCAL}, \texttt{PID\_NS}, \texttt{GID} and \texttt{COMMAND}. This provides a more complete view than a simple process list, since it also reflects differences between global and local identifiers, especially relevant in environments with \textit{namespaces}.
+    
+    \item \textbf{Controlled transfer to a channel accessible from \textit{User Space}.} This objective is fulfilled through the virtual entry \texttt{/proc/fdev} and the user utility responsible for creating the transfer file and sending its \textit{File Descriptor} to the \textit{kernel}. From that reference, the module resolves it and writes the report directly to the file selected by the administrator, keeping validations over the descriptor, permissions and opening mode under control.
+    
+    \item \textbf{Cryptographic authentication of the generated content.} The report content is authenticated through \textit{HMAC-SHA256}, calculated inside the \textit{kernel} using the \textit{Crypto API} and a previously embedded symmetric key \(K\). In this way, the generated tag is associated with the exact content produced by the module.
+    
+    \item \textbf{Subsequent verification from \textit{User Space}.} This objective is fulfilled through the checking utility developed in \texttt{C}, which extracts the protected content, recalculates the \textit{HMAC-SHA256} with the same key, encodes the result in \textit{Base64} and compares it with the tag written by the \textit{kernel}. The validation confirms that the administrator can later verify the integrity and authenticity of the received report from another non-compromised machine.
+    
+    \item \textbf{Facilitating the detection of concealment or manipulation.} The system does not implement an automatic \textit{rootkit} detection engine, but it does fulfill the objective of providing an authenticated source of information generated from the \textit{kernel} that can be compared with the output of \textit{User-Space} tools. Therefore, it facilitates the detection of inconsistencies when a \textit{rootkit} manipulates the view offered by conventional commands such as \texttt{ps}, leaving the final analysis decision to the administrator.
+    
+    \item \textbf{Prototype validation.} The prototype was validated in a real \textit{Linux} environment using the \textit{kernel} version employed during the project, compiling and loading the module, generating the embedded key, creating the transfer file, executing processes in \textit{Docker} containers and cryptographically verifying the resulting report. The tests show that the system generates the expected list and that the \textit{HMAC} tag can be correctly checked from \textit{User Space}.
+\end{itemize}
+
+\
+
+\subsection{Achievement of Non-Functional Objectives}
+
+The non-functional objectives in Section~\ref{sec:onf} are also covered by the design decisions adopted during development.\\
+
+\begin{itemize}
+    \item \textbf{Verifiable integrity and authenticity.} This is achieved through the use of \textit{HMAC-SHA256} and later verification with the same symmetric key, under the premise that both the \textit{kernel} and the administrator have the same symmetric key \(K\) and that no one else has access to it. Encoding the tag in \textit{Base64} also facilitates its textual storage and checking in the transfer file.
+    
+    \item \textbf{Robustness in communication between spaces.} The module validates the input received from \textit{User Space}, limits the write size over the \texttt{/proc} entry, transforms the received descriptor in a controlled way using \verb|fget| and checks that the destination file is writable and opened in \textit{append} mode. In addition, the use of auxiliary functions such as \verb|write_full| and \verb|safe_chunk| centralizes error checking during writing and reduces the risk of overflows in the report \textit{buffer}.
+    
+    \item \textbf{Security with respect to the defined threat model.} The designed solution minimizes trust in user tools, since the sensitive content is generated inside the \textit{kernel}. However, this guarantee holds within the assumptions of the threat model: the \textit{kernel}, the \textit{hardware}, the \textit{firmware} and the shared key must remain intact. Therefore, the system does not aim to protect against \textit{Kernel-Space rootkits} or against scenarios where the symmetric key has been exposed.
+    
+    \item \textbf{Modularity and low impact on the \textit{kernel}.} The mechanism is implemented as an \textit{LKM}, so it can be loaded and unloaded without permanently modifying the source code of the operating-system core. This decision facilitates controlled deployment of the prototype and fits its experimental nature, although it does not yet turn the mechanism into a complete production tool with advanced key management, alert integration or hardening against more complex concurrent loads.
+    
+    \item \textbf{Compatibility with standard \textit{Linux} mechanisms.} The implementation relies on interfaces belonging to the \textit{Linux} ecosystem, such as \texttt{/proc}, \verb|proc_create|, \verb|kernel_write|, \verb|fget|, \textit{RCU}, the \textit{kernel Crypto API} and conventional \texttt{C} compilation tools.
+    
+    \item \textbf{Prototype reproducibility.} The project provides the source code of the \textit{LKM}, the user utilities, the script for generating the embedded key and the validation sequences collected in the appendix and in the \textit{GitHub} repository: \url{https://github.com/nowelito28/TFG}. This makes it possible to repeat and use, under license, the flow of compilation, loading, execution, verification and unloading of the designed module, provided that compatible \textit{Linux} environments are used.
+    
+    \item \textbf{Managed portability.} Although the validation was performed on a Raspberry Pi 4 with \textit{ARM} architecture, the design is not conceptually tied to that specific board. The solution relies on native \textit{Linux} mechanisms and standard compilation tools, so it could be transferred to other compatible \textit{Linux} environments by making the necessary adaptations to the \textit{kernel}, the available headers and the target architecture.
+    
+    \item \textbf{Readable and ordered output format.} The transfer file contains explicit separators, an aligned process table and a final \textit{HMAC} tag in \textit{Base64}. This structure facilitates manual inspection, automatic extraction of the protected content and comparison with other system information sources.
+\end{itemize}
+
+\
+
+Therefore, it can be concluded that the project achieves the defined objectives and materializes a functional, verifiable solution consistent with the stated problem.
+Nevertheless, the result should not be understood as a final or complete solution, but as a prototype that demonstrates the feasibility of the proposed approach and opens the door to future improvements, extensions and validations in more complex or realistic scenarios.\\
+
+\
+
+\
+
+\section{Social, Economic, Temporal, Environmental and Ethical Impact}
+
+The main social impact of the project lies in the field of cybersecurity and trust in critical system information.
+In scenarios where an attacker has managed to compromise \textit{User Space}, the usual administration tools may no longer provide a reliable view of the real state of the machine.
+The developed mechanism helps mitigate this problem by providing the administrator with an alternative and authenticated source of information about active processes, generated from a more privileged region and verifiable through a shared symmetric key.\\
+
+From this perspective, the project may have a positive impact on analysis, incident response and technical auditing tasks.
+Having an authenticated report makes it possible to contrast the information offered by conventional tools such as \texttt{ps} with a detailed view obtained from the \textit{kernel}, facilitating the identification of signs of concealment or manipulation.
+This type of mechanism is especially relevant in systems where service continuity, activity traceability and trust in sensitive monitoring data are critical aspects.\\
+
+Nevertheless, it must be taken into account that the proposed mechanism is aimed at a technical profile.
+Its use requires understanding concepts of \textit{Linux} system administration, \texttt{C} programming, basic \textit{kernel} operation and cryptographic verification using \textit{HMAC}, as well as general cybersecurity knowledge.
+Therefore, it is not proposed as a tool intended for end users without technical knowledge, but as support for administrators, analysts or profiles with training in systems, programming and cybersecurity.\\
+
+It should also be noted that, in environments subject to internal security policies or legal requirements for traceability and information protection, having verifiable technical evidence can facilitate the justification of decisions during an audit or security investigation.\\
+
+Regarding the economic impact, the value of the project is mainly related to the potential cost associated with attacks with concealment and persistence capabilities.
+A compromise of this type may cause service interruptions, theft or leakage of information, costs derived from forensic analysis and system recovery, reputational damage and possible regulatory breaches.
+In this context, having a mechanism capable of providing an authenticated source of critical information allows earlier detection of signs of malicious presence or persistence, reducing the time required to diagnose the incident and consequently limiting part of the economic impact derived from a delayed response.\\
+
+From a temporal point of view, the prototype may reduce the time required to obtain a first reliable technical evidence about the active processes of a compromised system, since it generates an authenticated report on demand without depending only on \textit{User-Space} tools.
+However, its configuration, loading, verification and later analysis still require the intervention of a technical profile, so the time saving mainly occurs in diagnostic or incident-response scenarios, not in automated use by non-specialized users.\\
+
+The direct environmental impact of the project is limited, since the development has been restricted to a \textit{software} prototype executed in a local testing environment (\textit{on-premise}).
+Validation was performed on a real \textit{Linux} system, using only the resources required to compile, load and unload the module, generate test processes and verify the resulting report.
+In addition, the design of the prototype avoids continuous or intensive monitoring of the system.
+The report is generated on demand when the administrator requests the transfer through the \textit{File Handoff} mechanism, so the system does not need to remain continuously active to operate, consuming little energy.
+This would change, for example, if it were modified to monitor the system continuously or if it were deployed in the cloud, since the system's energy consumption and the need for operational resources, such as servers or support infrastructure, would increase.\\
+
+Finally, from the point of view of ethical and professional responsibility, the project requires careful treatment of the balance between defensive security and potential misuse.
+Developing mechanisms close to the \textit{kernel} implies operating in a critical area of the system, where implementation errors may affect machine stability and where poor permission or key management may reduce the expected protection, as well as increase the risk of vulnerabilities.
+For this reason, the design has been framed under an explicit threat model, with validations over input received from \textit{User Space}, checks over the destination file, use of standard \textit{kernel} mechanisms and a clear delimitation of what the prototype protects and what remains outside its scope.\\
+
+\
+
+\
+
+\section{Skills Acquired and Used}
+
+The completion of this \textit{Bachelor's Degree Project} made it possible to integrate different skills from the \textit{Degree in Engineering in Telecommunication Technologies}, especially those related to operating systems, low-level programming, cybersecurity, technical analysis and documentation of engineering solutions.
+Although these skills were already presented in Chapter~\ref{cap:capitulo4} as part of the project statement, this section provides a final assessment of how they were applied and reinforced during the development of the project.\\
+
+Specifically, the most relevant skills applied and acquired during the project are the following:
+
+\begin{itemize}
+    \item \textbf{Analysis of \textit{Linux} systems and operating-system fundamentals.} The project required understanding the separation between \textit{User Space} and \textit{Kernel Space}, the role of processes, user, process and group identifiers, \textit{namespaces}, the \texttt{/proc} virtual file system and the mechanisms for loading and unloading modules in a privileged system region.
+    
+    \item \textbf{Systems programming in \texttt{C}.} The development of the \textit{LKM} required working with \textit{kernel} structures and functions, carefully managing memory, validating data coming from \textit{User Space}, handling file descriptors through internal \textit{kernel} mechanisms and writing in a controlled way to a file selected by the administrator.
+    
+    \item \textbf{Development in \textit{Kernel Space}.} Specific skills were acquired in \textit{kernel module} programming, creation of \texttt{/proc} entries, communication between \textit{User Space} and \textit{Kernel Space}, writing from the \textit{kernel} to user files and using both synchronization and safe-reading mechanisms (\textit{RCU}) and specific \textit{APIs} from the \textit{kernel} source code, such as the \textit{Crypto API} for handling and calculating \textit{HMAC}.
+    It should be noted that correctly using these functionalities required a prior technical analysis of the \textit{kernel} source code to determine which mechanisms had to be used and how to apply them in each case.
+    
+    \item \textbf{Cybersecurity and threat analysis.} The work mainly allowed the application of knowledge about \textit{User-Space rootkits}, manipulation of monitoring tools, definition of a threat model and design of a defensive solution adjusted to specific security assumptions.
+    
+    \item \textbf{Applied cryptography and information integrity.} The solution incorporates cryptographic authentication through \textit{HMAC-SHA256}, calculated in the \textit{kernel} and later verified from \textit{User Space}. This reinforced the practical understanding of concepts such as integrity, authenticity, symmetric key, \textit{Base64} encoding and the limits of protection based on a shared symmetric key.
+    
+    \item \textbf{Incremental design, validation and error resolution.} The construction by prototypes made it possible to first validate basic concepts, such as loading a module or communicating through a virtual file in \texttt{/proc}, before incorporating more delicate mechanisms such as \textit{File Descriptor} handoff, \textit{HMAC} calculation and generation of the running-process report.
+    
+    \item \textbf{Technical communication and documentation.} The report collects the context of the problem, the justification of the threat model, the progressive design of the solution, the problems encountered, the validations carried out and the limitations of each prototype up to the final solution, demonstrating the ability to document and present a technical solution in a coherent and verifiable way.
+\end{itemize}
+
+\
+
+These skills were not applied in isolation, but in an integrated way throughout the development of the project.\\
+
+At the same time, previous knowledge from the following subjects of the \textit{Degree in Engineering in Telecommunication Technologies} was applied: \textit{Operating Systems}, \textit{Computer Network Security}, \textit{Telecommunication Systems Programming}, \textit{Telematic Systems}, \textit{Telematic Systems Engineering} and \textit{Information Systems Engineering}.\\
+
+The final result not only materializes a functional implementation, but also reflects a process of autonomous technical learning, engineering reasoning, experimental validation and documentation adjusted to the scope of a final engineering project.\\
+
+\
+
+\
+
+\section{Future Work}
+
+Although the developed prototype fulfills the defined objectives and demonstrates the feasibility of the proposed mechanism, there are still several lines of work that would allow it to evolve towards a more complete, robust solution closer to a real operational environment.
+These improvements would be aimed both at expanding the protected critical information and at enabling the selection of the sensitive information to request from the system, as well as strengthening deployment, key management and integration with monitoring infrastructures.\\
+
+A first line of evolution would consist of improving the management of the shared symmetric key \(K\), one of the most critical aspects.
+In the current prototype, the key is generated beforehand and embedded in the module and in the user-level utility in order to validate the operation of the \textit{HMAC-SHA256} mechanism and allow its use by the administrator during verification.
+However, a more realistic solution should prevent the key from being statically incorporated into the code or binary of the \textit{LKM}.
+
+To this end, secure key-provisioning mechanisms, integration with protected stores, periodic rotation, use of hardware security modules (\textit{HSM}) or support from technologies such as \textit{TPM} could be studied, so that authentication would no longer depend on a fixed key without access protection.\\
+
+Another important line would be to adapt the system to broader deployments, both \textit{on-premise} and in distributed or cloud environments.
+The mechanism could evolve so that several nodes independently generate authenticated reports and send them to a central verification component, making it possible to build an aggregated view of the state of an operational infrastructure.
+
+In this scenario, it would be necessary to define sending protocols, node identification, trust policies, secure report storage and temporal-correlation mechanisms, especially if the system is to be applied in architectures with containers, virtual machines or multiple \textit{Linux} servers on a network.\\
+
+It would also be possible to expand the type of critical information obtained from \textit{Kernel Space} and allow it to be requested dynamically and selectively.
+In this work, the list of active processes has been used as the main case, but the same approach could be extended so that the administrator requests different types of information in each execution, such as network connections, loaded modules, open files, user information, changes in internal tables or process creation and termination events.
+
+These extensions would make it possible to build a more complete and flexible reporting mechanism, although they would require defining a more expressive request interface and carefully studying collection cost, system stability and the amount of transferred information.\\
+
+For practical application, it would also be advisable to improve verification automation.
+Currently, the administrator executes the checking utility on the transfer file generated from \textit{User Space}.
+A natural evolution would be to integrate this verification into an analysis tool that automatically compares the authenticated \textit{kernel} report with the output of conventional \textit{User-Space} tools, highlighting relevant discrepancies and generating alerts when possible signs of concealment or manipulation are detected.\\
+
+Finally, the prototype would need to be hardened from an operational point of view.
+This would include expanding tests across different \textit{kernel} versions, reviewing behavior under concurrent loads, improving error handling, incorporating stricter access controls over the \texttt{/proc} interface, auditing the code with specific tools and documenting secure procedures for installing, loading and unloading the module.
+
+These lines would make it possible to move from a functional prototype towards a more mature tool, while always preserving the defined threat model and the limitations inherent in trusting the integrity of the \textit{kernel}.\\
+
+\newpage
+
+In conclusion, these ideas do not exhaust all possible evolutions of the project, but represent some future implementations that are especially relevant to increase its security, flexibility and applicability in real scenarios.\\
+
+Starting from the developed prototype, new technical and operational improvements not included in this section could be explored, thereby extending the capabilities and features of the designed system towards more robust operation and a possible production deployment.
+
+\newpage
+\thispagestyle{plain}
+
+To conclude this project, from a personal perspective, I would like to finish by emphasizing that this \textit{Bachelor's Degree Project} has been an intense journey of learning, deep research and demanding design, implementation and validation, starting from a truly complex problem and leading to a functional solution consistent with the objectives set.\\
+
+Beyond the technical result obtained, this development period has allowed me to consolidate knowledge and acquire new skills while enjoying the process, working on a topic that genuinely interests me.
+Therefore, I would once again like to express my gratitude to my supervisor for his guidance and support throughout the entire process, to all the people close to me who have supported me not only during this project but throughout the degree, and finally to those who have devoted part of their time to reading this report.\\
+
+I hope it has been of interest and may provide some value, either as knowledge or as a starting point or support for future projects.\\
+
+Thank you very much for everything.
+
+\newpage
+\thispagestyle{plain}
+\null
+\newpage

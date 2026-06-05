@@ -1,0 +1,102 @@
+\definecolor{srblue}{RGB}{196,124,73}
+\definecolor{srgreenfill}{RGB}{255,244,232}
+\definecolor{srgreendraw}{RGB}{198,132,76}
+\definecolor{srorangefill}{RGB}{255,236,214}
+\definecolor{srorangedraw}{RGB}{221,132,59}
+\definecolor{srgrayfill}{RGB}{252,245,238}
+\definecolor{srgraydraw}{RGB}{141,118,100}
+\definecolor{srhwfill}{RGB}{245,233,221}
+\definecolor{srtext}{RGB}{34,38,45}
+\definecolor{srred}{RGB}{190,95,62}
+
+\begin{tikzpicture}[
+  x=1cm,
+  y=1cm,
+  every node/.style={inner sep=0pt, outer sep=0pt},
+  label/.style={font=\sffamily\fontsize{8}{8.6}\selectfont, text=srtext, align=center},
+  smalllabel/.style={font=\sffamily\fontsize{6.7}{7.3}\selectfont, text=srtext, align=center},
+  title/.style={font=\sffamily\bfseries\fontsize{9}{9.6}\selectfont, text=srtext, align=center},
+  block/.style={draw=srgraydraw, rounded corners=0.10cm, line width=0.85pt},
+  keybox/.style={draw=srgreendraw, fill=srgreenfill, rounded corners=0.10cm, line width=0.85pt},
+  kernelbox/.style={draw=srorangedraw, fill=srorangefill, rounded corners=0.12cm, line width=0.9pt},
+  softbox/.style={draw=srgraydraw, fill=srgrayfill, rounded corners=0.10cm, line width=0.85pt},
+  hwbox/.style={draw=srgraydraw, fill=srhwfill, rounded corners=0.08cm, line width=0.85pt},
+  flow/.style={draw=srgraydraw, line width=0.9pt, ->},
+  biflow/.style={draw=srgraydraw, line width=0.85pt, <->}
+]
+
+  \path[use as bounding box] (0,0) rectangle (14.6,7.0);
+
+  \begin{scope}[yshift=-0.85cm]
+
+  % Admin user
+  \draw[srblue, line width=0.85pt] (1.45,5.05) circle (0.23);
+  \draw[srblue, line width=0.85pt] (1.45,4.80) -- (1.45,4.05);
+  \draw[srblue, line width=0.85pt] (1.10,4.45) -- (1.80,4.45);
+  \draw[srblue, line width=0.85pt] (1.45,4.05) -- (1.15,3.45);
+  \draw[srblue, line width=0.85pt] (1.45,4.05) -- (1.75,3.45);
+  \node[title] at (1.45,5.65) {Admin User};
+  \draw[keybox] (0.55,3.00) rectangle (1.35,3.40);
+  \node[label] at (0.95,3.20) {$K$};
+
+  % Main system block
+  \draw[block] (5.15,1.80) rectangle (12.85,6.25);
+
+  \draw[softbox] (5.85,5.25) rectangle (12.15,5.90);
+  \node[title] at (9.00,5.58) {User Space};
+  \node[text=srred] at (11.60,5.58) {\fontsize{10}{10}\selectfont \faSkullCrossbones};
+
+  \draw[softbox] (5.85,3.10) rectangle (12.15,5.00);
+  \node[title] at (9.00,4.62) {Kernel Space};
+  \draw[kernelbox] (8.25,3.98) rectangle (9.75,4.46);
+  \node[label] at (9.00,4.22) {LKM};
+  \draw[keybox] (9.95,4.06) rectangle (10.59,4.38);
+  \node[label] at (10.27,4.22) {$K$};
+  \draw[flow] (9.95,4.22) -- (9.75,4.22);
+
+  \draw[softbox] (7.78,3.20) rectangle (10.22,3.62);
+  \node[smalllabel] at (9.00,3.41) {active processes table};
+
+  \draw[kernelbox] (5.98,4.62) rectangle (7.75,5.30);
+  \node[label] at (6.865,4.96) {\texttt{/proc file}};
+
+  \draw[biflow]
+    (7.58,4.62) .. controls (7.88,4.28) and (8.00,4.22) .. (8.25,4.22);
+  \draw[biflow]
+    (9.00,3.98) -- (9.00,3.62);
+
+  \draw[hwbox] (5.85,2.20) rectangle (12.15,2.85);
+  \node[title] at (9.00,2.53) {Hardware};
+  \draw[flow]
+    (7.78,3.41) .. controls (7.42,3.30) and (7.42,2.92) .. (7.78,2.85);
+  \draw[flow]
+    (10.22,2.85) .. controls (10.58,2.92) and (10.58,3.30) .. (10.22,3.41);
+
+  % Handoff file
+  \draw[block] (2.70,2.05) rectangle (4.70,4.55);
+  \draw[softbox] (3.03,3.90) rectangle (3.87,4.35);
+  \node[label] at (3.45,4.125) {FD};
+  \draw[srgraydraw, line width=0.75pt] (4.05,4.20) -- (4.47,4.20);
+  \draw[srgraydraw, line width=0.75pt] (4.05,4.02) -- (4.47,4.02);
+  \draw[srgraydraw, line width=0.75pt] (4.05,3.84) -- (4.47,3.84);
+  \draw[srgraydraw, line width=0.75pt] (3.03,3.50) -- (4.37,3.50);
+  \draw[srgraydraw, line width=0.75pt] (3.03,3.32) -- (4.37,3.32);
+  \draw[srgraydraw, line width=0.75pt] (3.03,3.14) -- (4.37,3.14);
+  \draw[keybox] (3.05,2.52) rectangle (4.35,2.92);
+  \node[label] at (3.70,2.72) {HMAC};
+  \node[label] at (3.70,2.22) {handoff file};
+
+  \draw[biflow] (1.55,3.25) .. controls (1.90,2.78) and (2.28,2.48) .. (2.70,2.60);
+  \node[label] at (2.22,3.02) {open};
+  \node[label] at (1.62,2.20) {check auth\\processes list};
+
+  \draw[biflow] (1.98,4.72) .. controls (3.20,5.18) and (4.65,5.10) .. (5.98,4.96);
+  \node[label] at (3.95,5.25) {write FD};
+  \node[label] at (3.95,4.88) {read};
+
+  \draw[flow] (8.25,4.06) .. controls (7.05,3.20) and (5.55,3.12) .. (4.70,3.35);
+  \node[label] at (6.70,3.92) {write auth\\processes list};
+
+  \end{scope}
+
+\end{tikzpicture}

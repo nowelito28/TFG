@@ -1,0 +1,118 @@
+% Adjust the lines marked with TODO according to the document needs
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{makeidx}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{caption}
+\usepackage{acronym}
+\usepackage{hyphenat}
+\usepackage{a4wide}
+\usepackage[normalsize]{subfigure}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage[export]{adjustbox}
+\usepackage[Lenny]{fncychap}
+\usepackage{listings} % support for custom listings, e.g. source code
+\usepackage{eurosym} % support for the euro symbol with \euro {xx}
+\usepackage{hyperref} % TODO: add hidelinks for printing if highlighted links are not desired
+\usepackage{tikz}
+\usepackage{fontawesome5}
+\usetikzlibrary{babel}
+\usepackage{usebib}
+\newbibfield{author}
+\bibinput{bibliography}
+
+\newcommand{\getauthor}[1]{\usebibentry{#1}{author}}
+\newcommand{\getyear}[1]{\usebibentry{#1}{year}}
+\newcommand{\gettitle}[1]{\usebibentry{#1}{title}}
+\newcommand{\figsource}[1]{\caption*{\centering\scriptsize \textit{Fuente: #1}}}
+
+% Avoid word hyphenation.
+\pretolerance=10000
+
+\newcommand{\bigrule}{\titlerule[0.5mm]} \titleformat{\chapter}[display]
+{\bfseries\Huge}
+{%
+\titlerule
+\filright
+\Large\chaptertitlename\
+\Large
+\Huge \Large\thechapter} 
+{0mm}
+{\filright}
+[\vspace{0.5mm} \bigrule]
+\geometry{a4paper, left=3.5cm, right=2cm, top=3cm, bottom=2cm, headsep=1.5cm}
+
+% Styles for source-code listings:
+\definecolor{code_green}{rgb}{0,0.6,0}
+\definecolor{code_gray}{rgb}{0.5,0.5,0.5}
+\definecolor{code_mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=C,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{code_gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{code_green},
+  stringstyle=\color{code_mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\lstset{frame=tb,
+  language=C++,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{code_gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{code_green},
+  stringstyle=\color{code_mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\lstset{frame=tb,
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{code_gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{code_green},
+  stringstyle=\color{code_mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+% Definition of custom types: Code listings, equations and tables
+\DeclareCaptionType{code}[Code][List of Code Listings]
+\DeclareCaptionType{myequation}[Equation][List of Equations]
+\captionsetup{justification=centering,singlelinecheck=false}
+\captionsetup[code]{justification=centering,singlelinecheck=false}
+
+% TODO: specify any hyphenation rules considered necessary. Some examples:
+\hyphenation{fuer-tes}
+\hyphenation{mul-ti-ca-pa}
+\hyphenation{res-pues-ta}
+\hyphenation{di-fe-ren-tes}
+\hyphenation{de-sa-rro-lla-dos}
+\hyphenation{re-pre-sen-tan-do}
