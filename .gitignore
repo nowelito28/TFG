@@ -31,7 +31,7 @@
 *.pdf
 
 # Allowed PDFs
-!doc/spanish/plantilla-latex-tfg-spanish/figs/*.pdf
-!doc/english/template-latex-bdp-english/figs/*.pdf
-!doc/spanish/memoria.pdf
-!doc/english/thesis.pdf
+!docs/spanish/plantilla-latex-tfg-spanish/figs/*.pdf
+!docs/english/template-latex-bdp-english/figs/*.pdf
+!docs/spanish/memoria.pdf
+!docs/english/thesis.pdf
